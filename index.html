@@ -210,7 +210,7 @@ async function doAction(type) {
       entry_datetime: new Date().toISOString(),
       entry_type: type,
       pause_number: type==="START_PAUSE" ? pn+1 : null,
-      source_method: "manual",
+      source_method: "CODE",
       is_active: true
     });
     await loadEntries();
