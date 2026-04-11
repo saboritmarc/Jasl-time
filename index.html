@@ -3,920 +3,229 @@
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>JASL Time</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0D0F14;color:#F1F5F9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;-webkit-text-size-adjust:100%}
-input,select,textarea,button{font-family:inherit}
-#root{display:flex;flex-direction:column;min-height:100vh}
-.top{background:#151820;border-bottom:1px solid #252B3A;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;flex-shrink:0}
-.body{flex:1;padding:16px;max-width:640px;margin:0 auto;width:100%;overflow-y:auto}
-.card{background:#1C2130;border:1px solid #252B3A;border-radius:16px;padding:18px;margin-bottom:12px}
-.csm{background:#1C2130;border:1px solid #252B3A;border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:12px}
-.nav{background:#151820;border-top:1px solid #252B3A;display:flex;position:sticky;bottom:0;z-index:100;flex-shrink:0}
-.nav button{flex:1;padding:10px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;background:none;border:none;font-size:9px;color:#475569;line-height:1.3}
-.nav button.on{color:#3B82F6;font-weight:700}
-.nav .ico{font-size:20px}
-.btnP{background:#3B82F6;color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;width:100%}
-.btnG{background:#22C55E;color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;flex:1}
-.btnY{background:#F59E0B;color:#000;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;flex:1}
-.btnR{background:#EF4444;color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;flex:1}
-.btnGh{background:transparent;color:#94A3B8;border:1px solid #252B3A;border-radius:9px;padding:8px 14px;font-size:13px;cursor:pointer}
-.inp{background:#151820;border:1px solid #252B3A;border-radius:10px;padding:12px 14px;color:#F1F5F9;font-size:15px;width:100%;outline:none;-webkit-appearance:none}
-.brow{display:flex;gap:10px}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.srow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #252B3A}
-.stats{display:flex;gap:8px;margin-bottom:12px}
-.stat{background:#151820;border-radius:12px;padding:12px;flex:1;text-align:center}
-.sv{font-size:19px;font-weight:700}
-.sl{font-size:10px;color:#94A3B8;margin-top:2px}
-.clk{font-size:44px;font-weight:700;letter-spacing:-2px;text-align:center;margin:6px 0}
-.h3{font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
-.lbl{font-size:12px;color:#94A3B8;margin-bottom:4px;display:block}
-.div{height:1px;background:#252B3A;margin:14px 0}
-.err{background:#EF444418;border:1px solid #EF444444;border-radius:10px;padding:10px 14px;font-size:13px;color:#EF4444;margin-bottom:10px}
-.info{background:#3B82F611;border:1px solid #3B82F633;border-radius:10px;padding:12px 14px;font-size:13px;color:#94A3B8;margin-bottom:12px}
-.loading{text-align:center;padding:36px;color:#94A3B8;font-size:14px}
-.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;display:inline-block}
-.tag{border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;display:inline-block;border:1px solid transparent;margin-bottom:12px}
-.av{border-radius:50%;background:#3B82F633;display:flex;align-items:center;justify-content:center;font-weight:700;color:#3B82F6;flex-shrink:0}
-.tabs{display:flex;background:#151820;border-radius:10px;padding:3px;margin-bottom:14px;gap:3px}
-.tab{flex:1;padding:7px;border-radius:8px;border:none;cursor:pointer;font-size:13px;color:#94A3B8;background:transparent}
-.tab.on{background:#1C2130;color:#F1F5F9;font-weight:600}
-.hrow{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #252B3A;gap:10px;cursor:pointer}
-select option{background:#1C2130;color:#F1F5F9}
-textarea{resize:vertical}
+body{background:#0D0F14;color:#F1F5F9;font-family:-apple-system,sans-serif;padding:20px;font-size:15px}
+.ok{color:#22C55E;margin:6px 0}
+.err{color:#EF4444;margin:6px 0}
+.info{color:#94A3B8;margin:6px 0;font-size:13px}
+.btn{background:#3B82F6;color:#fff;border:none;border-radius:10px;padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:12px}
+.inp{background:#1C2130;border:1px solid #252B3A;border-radius:10px;padding:12px;color:#F1F5F9;font-size:18px;width:100%;outline:none;text-align:center;letter-spacing:6px;margin-top:8px}
+h2{font-size:18px;font-weight:700;margin:16px 0 8px}
+hr{border:none;border-top:1px solid #252B3A;margin:16px 0}
 </style>
 </head>
 <body>
-<div id="root"><div class="loading">⏳ Iniciant JASL Time…</div></div>
+
+<div style="text-align:center;margin-bottom:24px">
+  <div style="font-size:48px">⏱</div>
+  <div style="font-size:24px;font-weight:800">JASL<span style="color:#3B82F6">Time</span></div>
+</div>
+
+<h2>Diagnòstic de connexió</h2>
+<div id="log"><div class="info">Iniciant proves…</div></div>
+
+<hr>
+<h2 id="loginTitle" style="display:none">Entrar</h2>
+<div id="loginBox" style="display:none">
+  <input class="inp" id="codeInp" type="password" placeholder="Codi" maxlength="10">
+  <button class="btn" id="loginBtn">Entrar</button>
+  <div id="loginErr"></div>
+</div>
+
+<div id="workerBox" style="display:none">
+  <div id="workerName" style="font-size:20px;font-weight:700;margin-bottom:16px"></div>
+  <button class="btn" id="startBtn">▶ Iniciar jornada</button>
+  <button class="btn" id="pauseBtn" style="background:#F59E0B;color:#000;display:none">⏸ Pausa</button>
+  <button class="btn" id="resumeBtn" style="background:#22C55E;display:none">▶ Reprendre</button>
+  <button class="btn" id="endBtn" style="background:#EF4444;display:none">⏹ Finalitzar</button>
+  <div id="clockState" style="margin-top:16px;font-size:13px;color:#94A3B8"></div>
+  <div id="entriesList" style="margin-top:16px"></div>
+</div>
+
 <script>
-// ── CONFIG ─────────────────────────────────────────────────────────────────
-const URL_SB = "https://fywkafpfcnqynvjdedfj.supabase.co";
-const KEY_SB = "sb_publishable_9w912fn8EaE-84SAAV-Rww_xHKPipSv";
+const SB = "https://fywkafpfcnqynvjdedfj.supabase.co";
+const KEY = "sb_publishable_9w912fn8EaE-84SAAV-Rww_xHKPipSv";
+const log = document.getElementById("log");
+let worker = null;
+let entries = [];
 
-async function sbFetch(path, opts={}) {
-const r = await fetch(`${URL_SB}/rest/v1/${path}`, {
-headers:{“apikey”:KEY_SB,“Authorization”:`Bearer ${KEY_SB}`,“Content-Type”:“application/json”,“Prefer”:opts.prefer||“return=representation”},
-method:opts.method||“GET”,
-body:opts.body?JSON.stringify(opts.body):undefined
-});
-if(!r.ok) throw new Error(`Error ${r.status}: ${await r.text()}`);
-const t=await r.text(); return t?JSON.parse(t):null;
-}
-const GET=(t,q=””)=>sbFetch(`${t}?${q}`);
-const POST=(t,b)=>sbFetch(t,{method:“POST”,body:b});
-const PATCH=(t,q,b)=>sbFetch(`${t}?${q}`,{method:“PATCH”,body:b});
-
-// ── HELPERS ────────────────────────────────────────────────────────────────
-const fmt=m=>{const s=m<0?”-”:”+”,a=Math.abs(m);return`${s}${String(Math.floor(a/60)).padStart(2,"0")}h${String(a%60).padStart(2,"0")}m`};
-const fmtP=m=>`${String(Math.floor(m/60)).padStart(2,"0")}h${String(m%60).padStart(2,"0")}m`;
-const fmtS=s=>`${String(Math.floor(s/3600)).padStart(2,"0")}:${String(Math.floor((s%3600)/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
-const tNow=()=>{const n=new Date();return`${String(n.getHours()).padStart(2,"0")}:${String(n.getMinutes()).padStart(2,"0")}`};
-const today=()=>{const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
-const dLabel=d=>new Date(d+“T12:00:00”).toLocaleDateString(“ca-ES”,{weekday:“short”,day:“numeric”,month:“short”});
-const SC=s=>({CLOSED:”#22C55E”,VACATION:”#A855F7”,SICK:”#F59E0B”,WEEKEND:”#475569”,OPEN:”#3B82F6”,NOT_STARTED:”#475569”})[s]||”#475569”;
-const SL=s=>({CLOSED:“Tancat”,VACATION:“Vacances”,SICK:“Baixa”,WEEKEND:“Cap de setmana”,OPEN:“En curs”,NOT_STARTED:“Pendent”})[s]||s;
-
-// DOM helpers
-function h(tag,cls,attrs){
-const e=document.createElement(tag);
-if(cls)e.className=cls;
-if(attrs)Object.entries(attrs).forEach(([k,v])=>{
-if(k===“style”)Object.assign(e.style,v);
-else if(k.startsWith(“on”))e.addEventListener(k.slice(2).toLowerCase(),v);
-else e.setAttribute(k,v);
-});
-return e;
-}
-function txt(s){return document.createTextNode(s)}
-function ap(parent,…kids){kids.forEach(k=>{if(k!=null)parent.appendChild(typeof k===“string”?txt(k):k)});return parent}
-function av(name,sz){
-const e=h(“div”,“av”,{style:{width:sz+“px”,height:sz+“px”,fontSize:(sz*.38)+“px”}});
-e.textContent=(name||”?”).split(” “).map(n=>n[0]).slice(0,2).join(””).toUpperCase();
-return e;
-}
-function badge(t,c){const e=h(“span”,“badge”);e.style.background=c+“22”;e.style.color=c;e.textContent=t;return e}
-function tag2(t,c){const e=h(“span”,“tag”);e.style.background=c+“18”;e.style.color=c;e.style.borderColor=c+“44”;e.textContent=t;return e}
-function spinner(){const e=h(“div”,“loading”);e.textContent=“⏳ Carregant…”;return e}
-function errEl(m){const e=h(“div”,“err”);e.textContent=“⚠️ “+m;return e}
-function infoEl(m){const e=h(“div”,“info”);e.textContent=m;return e}
-
-// ── APP STATE ──────────────────────────────────────────────────────────────
-let S={screen:“splash”,worker:null,selDay:null};
-let _clockIv=null,_elIv=null;
-
-function go(update){
-if(_clockIv){clearInterval(_clockIv);_clockIv=null}
-if(_elIv){clearInterval(_elIv);_elIv=null}
-S={…S,…update};
-render();
+function addLog(msg, type="info") {
+  const d = document.createElement("div");
+  d.className = type;
+  d.textContent = msg;
+  log.appendChild(d);
 }
 
-// ── TOP BAR ────────────────────────────────────────────────────────────────
-function topBar(title,onBack,right){
-const t=h(“div”,“top”);
-if(onBack){const b=h(“button”,“btnGh”,{onClick:onBack});b.textContent=“← Tornar”;ap(t,b)}
-else ap(t,h(“div”,””,{style:{width:“70px”}}));
-const tt=h(“div”,””,{style:{fontWeight:“700”,fontSize:“16px”}});tt.textContent=title;ap(t,tt);
-if(right)ap(t,right);else ap(t,h(“div”,””,{style:{width:“70px”}}));
-return t;
+async function sbGet(table, query) {
+  const r = await fetch(`${SB}/rest/v1/${table}?${query}`, {
+    headers:{"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json"}
+  });
+  if(!r.ok) throw new Error("HTTP "+r.status+": "+await r.text());
+  return r.json();
 }
 
-// ── NAVBARS ────────────────────────────────────────────────────────────────
-function wNav(cur){
-const nav=h(“nav”,“nav”);
-[[“workerHome”,“🏠”,“Avui”,“home”],[“monthHistory”,“📋”,“Historial”,“hist”],[“permissions”,“🛡”,“Permisos”,“perm”],[“balance”,“⚖️”,“Saldo”,“bal”],[“profile”,“👤”,“Perfil”,“prof”]].forEach(([sc,ic,lb,id])=>{
-const b=h(“button”,cur===id?“on”:””,{onClick:()=>go({screen:sc})});
-ap(b,ap(h(“span”,“ico”),ic),txt(lb));
-ap(nav,b);
-});
-return nav;
-}
-function aNav(cur){
-const nav=h(“nav”,“nav”);
-[[“adminHome”,“🏠”,“Inici”,“ah”],[“workers”,“👥”,“Equip”,“wk”],[“records”,“📋”,“Registres”,“rc”],[“exports”,“⬇️”,“Exports”,“ex”],[“settings”,“⚙️”,“Config.”,“st”]].forEach(([sc,ic,lb,id])=>{
-const b=h(“button”,cur===id?“on”:””,{onClick:()=>go({screen:sc})});
-ap(b,ap(h(“span”,“ico”),ic),txt(lb));
-ap(nav,b);
-});
-return nav;
+async function sbPost(table, body) {
+  const r = await fetch(`${SB}/rest/v1/${table}`, {
+    method:"POST",
+    headers:{"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json","Prefer":"return=representation"},
+    body:JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error("HTTP "+r.status+": "+await r.text());
+  return r.json();
 }
 
-// ── SPLASH ─────────────────────────────────────────────────────────────────
-function pgSplash(){
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,justifyContent:“center”,alignItems:“center”,padding:“32px”,background:”#0D0F14”}});
-const box=h(“div”,””,{style:{textAlign:“center”,maxWidth:“300px”}});
-ap(box,
-ap(h(“div”,””,{style:{fontSize:“64px”,marginBottom:“8px”}}),“⏱”),
-ap(h(“div”,””,{style:{fontSize:“30px”,fontWeight:“800”,marginBottom:“4px”}}),
-txt(“JASL”),ap(h(“span”,””,{style:{color:”#3B82F6”}}),“Time”)),
-ap(h(“div”,””,{style:{fontSize:“14px”,color:”#94A3B8”,marginBottom:“8px”}}),“Registre de jornada intel·ligent”),
-badge(“🟢 Connectat a Supabase”,”#22C55E”),
-ap(h(“div”,””,{style:{height:“32px”}})),
-ap(h(“button”,“btnP”,{onClick:()=>go({screen:“login”})}),“Entrar amb codi personal”)
-);
-ap(root,box);
-return root;
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+// ── DIAGNÒSTIC ─────────────────────────────────────────────────────────────
+async function runDiag() {
+  addLog("1. Provant fetch bàsic a Supabase…");
+  try {
+    const res = await fetch(`${SB}/rest/v1/workers?select=id&limit=1`, {
+      headers:{"apikey":KEY,"Authorization":"Bearer "+KEY}
+    });
+    if(res.ok) {
+      const data = await res.json();
+      addLog("✅ Connexió a Supabase OK (HTTP 200)", "ok");
+      addLog(`   → Resposta: ${JSON.stringify(data).slice(0,80)}`, "info");
+    } else {
+      addLog(`⚠️ Supabase respon HTTP ${res.status}`, "err");
+      const t = await res.text();
+      addLog(`   → ${t.slice(0,120)}`, "err");
+    }
+  } catch(e) {
+    addLog("❌ Error de xarxa: "+e.message, "err");
+    addLog("   → Possible bloqueig CORS o sense connexió", "info");
+    return;
+  }
+
+  addLog("2. Provant taula workers…");
+  try {
+    const ws = await sbGet("workers","select=id,display_name,employee_code,role&limit=5");
+    addLog(`✅ Taula workers OK — ${ws.length} registres trobats`, "ok");
+    ws.forEach(w => addLog(`   · ${w.display_name} (${w.employee_code}) [${w.role}]`, "info"));
+  } catch(e) {
+    addLog("❌ Error taula workers: "+e.message, "err");
+    addLog("   → Comprova RLS policies a Supabase", "info");
+    return;
+  }
+
+  addLog("3. Provant taula time_entries…");
+  try {
+    const te = await sbGet("time_entries","select=id&limit=1");
+    addLog(`✅ Taula time_entries OK — ${te.length} registres`, "ok");
+  } catch(e) {
+    addLog("❌ Error taula time_entries: "+e.message, "err");
+  }
+
+  addLog("4. Provant taula daily_records…");
+  try {
+    const dr = await sbGet("daily_records","select=id&limit=1");
+    addLog(`✅ Taula daily_records OK — ${dr.length} registres`, "ok");
+  } catch(e) {
+    addLog("❌ Error taula daily_records: "+e.message, "err");
+  }
+
+  addLog("─── Tot correcte! Pots entrar ───", "ok");
+  document.getElementById("loginTitle").style.display = "block";
+  document.getElementById("loginBox").style.display = "block";
 }
 
 // ── LOGIN ──────────────────────────────────────────────────────────────────
-function pgLogin(){
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“JASL Time”,()=>go({screen:“splash”})));
-const body=h(“div”,“body”,{style:{display:“flex”,flexDirection:“column”,justifyContent:“center”}});
-const errD=h(“div”);
-const inp=h(“input”,“inp”,{type:“password”,placeholder:”••••”,maxlength:“10”,style:{fontSize:“22px”,textAlign:“center”,letterSpacing:“8px”,marginBottom:“14px”}});
-const btn=h(“button”,“btnP”,{onClick:doLogin});btn.textContent=“Entrar”;
-
-async function doLogin(){
-const code=inp.value.trim();
-if(!code)return;
-btn.textContent=“Verificant…”;btn.disabled=true;errD.innerHTML=””;
-try{
-const ws=await GET(“workers”,`employee_code=eq.${code}&is_active=eq.true&select=*`);
-if(ws&&ws.length>0){
-go({worker:ws[0],screen:ws[0].role===“admin”?“adminHome”:“workerHome”});
-}else{
-ap(errD,errEl(“Codi incorrecte o treballador inactiu.”));
-btn.textContent=“Entrar”;btn.disabled=false;
-}
-}catch(e){
-ap(errD,errEl(“Error de connexió: “+e.message));
-btn.textContent=“Entrar”;btn.disabled=false;
-}
-}
-inp.addEventListener(“keydown”,e=>e.key===“Enter”&&doLogin());
-
-const card=h(“div”,“card”,{style:{textAlign:“center”}});
-ap(card,
-ap(h(“div”,””,{style:{fontSize:“40px”,marginBottom:“8px”}}),“🔐”),
-ap(h(“div”,””,{style:{fontSize:“22px”,fontWeight:“700”,marginBottom:“4px”}}),“Identificació”),
-ap(h(“div”,””,{style:{fontSize:“13px”,color:”#94A3B8”,marginBottom:“20px”}}),“Introdueix el teu codi personal”),
-inp,errD,btn
-);
-ap(body,card,ap(h(“div”,””,{style:{textAlign:“center”,fontSize:“11px”,color:”#475569”,marginTop:“12px”}}),“Autenticació real contra Supabase”));
-ap(root,body);
-return root;
-}
-
-// ── WORKER HOME ────────────────────────────────────────────────────────────
-function pgWorkerHome(){
-const w=S.worker;
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-
-// Top
-const top=h(“div”,“top”);
-const wi=h(“div”,””,{style:{display:“flex”,alignItems:“center”,gap:“10px”}});
-const logout=h(“button”,“btnGh”,{onClick:()=>go({screen:“splash”,worker:null})});logout.textContent=“Sortir”;
-ap(wi,av(w.display_name,30),ap(h(“div”,””),ap(h(“div”,””,{style:{fontSize:“13px”,fontWeight:“600”}}),w.display_name),ap(h(“div”,””,{style:{fontSize:“11px”,color:”#94A3B8”}}),”#”+w.employee_code)));
-ap(top,wi,logout);
-ap(root,top);
-
-const body=h(“div”,“body”);
-const errD=h(“div”);ap(body,errD);
-
-// Clock card
-const cc=h(“div”,“card”,{style:{textAlign:“center”}});
-const stTag=h(“div”,””,{style:{marginBottom:“12px”}});
-const clkEl=h(“div”,“clk”);clkEl.textContent=tNow();
-const subEl=h(“div”,””,{style:{fontSize:“13px”,color:”#94A3B8”,marginBottom:“16px”}});
-subEl.textContent=new Date().toLocaleDateString(“ca-ES”,{weekday:“long”,day:“numeric”,month:“long”});
-const brow=h(“div”,“brow”);
-const loadEl=h(“div”,””,{style:{color:”#94A3B8”,padding:“10px”,textAlign:“center”}});loadEl.textContent=“⏳ Carregant…”;
-ap(cc,stTag,clkEl,subEl,loadEl,brow);
-ap(body,cc);
-
-// Entries card
-const ec=h(“div”,“card”,{style:{display:“none”}});
-const etitle=h(“div”,“h3”);etitle.textContent=“Fitxades d’avui”;
-const eRefBtn=h(“button”,“btnGh”,{style:{padding:“3px 8px”,fontSize:“11px”},onClick:()=>load()});eRefBtn.textContent=“↻”;
-const etitleRow=h(“div”,””,{style:{display:“flex”,justifyContent:“space-between”,marginBottom:“10px”}});
-ap(etitleRow,etitle,eRefBtn);
-const eList=h(“div”);
-ap(ec,etitleRow,eList);
-ap(body,ec);
-
-// Stats
-const sr=h(“div”,“stats”,{style:{display:“none”}});
-ap(body,sr);
-
-ap(root,body,wNav(“home”));
-
-// Clock tick
-_clockIv=setInterval(()=>{clkEl.textContent=tNow()},1000);
-
-let entries=[],summary=null,actLoading=false,elapsed=0;
-
-function getClockState(){
-if(!entries.length)return”NOT_STARTED”;
-const last=entries[entries.length-1];
-if(last.entry_type===“END”)return”FINISHED”;
-if(last.entry_type===“START_PAUSE”)return”PAUSED”;
-return”RUNNING”;
-}
-
-function startElapsed(){
-if(_elIv)clearInterval(_elIv);
-let worked=0,lastStart=null;
-for(const e of entries){
-if(e.entry_type===“START”||e.entry_type===“END_PAUSE”)lastStart=new Date(e.entry_datetime);
-if((e.entry_type===“START_PAUSE”||e.entry_type===“END”)&&lastStart){worked+=(new Date(e.entry_datetime)-lastStart);lastStart=null;}
-}
-const last=entries[entries.length-1];
-if(lastStart&&last?.entry_type!==“END”){
-const base=Date.now()-lastStart;
-_elIv=setInterval(()=>{elapsed=Math.floor((worked+Date.now()-lastStart)/1000);subEl.textContent=“Treballat: “+fmtS(elapsed);},1000);
-}else{elapsed=Math.floor(worked/1000);subEl.textContent=elapsed>0?“Treballat: “+fmtS(elapsed):new Date().toLocaleDateString(“ca-ES”,{weekday:“long”,day:“numeric”,month:“long”});}
-}
-
-function renderButtons(){
-brow.innerHTML=””;
-const st=getClockState();
-const colors={NOT_STARTED:”#475569”,RUNNING:”#22C55E”,PAUSED:”#F59E0B”,FINISHED:”#3B82F6”};
-const labels={NOT_STARTED:“Jornada no iniciada”,RUNNING:“Jornada en curs”,PAUSED:“En pausa”,FINISHED:“Jornada finalitzada”};
-stTag.innerHTML=””;ap(stTag,tag2(labels[st],colors[st]));
-if(st===“NOT_STARTED”){const b=h(“button”,“btnG”,{onClick:()=>doAction(“START”)});b.textContent=“▶ Iniciar jornada”;ap(brow,b);}
-if(st===“RUNNING”){
-const bp=h(“button”,“btnY”,{onClick:()=>doAction(“START_PAUSE”)});bp.textContent=“⏸ Pausa”;
-const bf=h(“button”,“btnR”,{onClick:()=>doAction(“END”)});bf.textContent=“⏹ Finalitzar”;
-ap(brow,bp,bf);
-}
-if(st===“PAUSED”){
-const br=h(“button”,“btnG”,{onClick:()=>doAction(“END_PAUSE”)});br.textContent=“▶ Reprendre”;
-const bf=h(“button”,“btnR”,{onClick:()=>doAction(“END”)});bf.textContent=“⏹ Finalitzar”;
-ap(brow,br,bf);
-}
-if(st===“FINISHED”){const t=tag2(“✅ Jornada completada”,”#22C55E”);t.style.padding=“12px 24px”;t.style.width=“100%”;t.style.textAlign=“center”;ap(brow,t);}
-}
-
-function renderEntries(){
-eList.innerHTML=””;
-const eL={START:“▶️ Inici de jornada”,END:“⏹️ Final de jornada”,START_PAUSE:“⏸️ Pausa”,END_PAUSE:“▶️ Represa”};
-entries.forEach((e,i)=>{
-const row=h(“div”,””,{style:{display:“flex”,alignItems:“center”,gap:“10px”,padding:“8px 0”,borderBottom:i<entries.length-1?“1px solid #252B3A”:“none”}});
-const lbl=h(“div”,””,{style:{flex:“1”,fontSize:“13px”}});lbl.textContent=eL[e.entry_type]||e.entry_type;
-const t=h(“div”,””,{style:{fontSize:“12px”,color:”#94A3B8”}});t.textContent=new Date(e.entry_datetime).toLocaleTimeString(“ca-ES”,{hour:“2-digit”,minute:“2-digit”,second:“2-digit”});
-ap(row,lbl,t);eList.appendChild(row);
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  const code = document.getElementById("codeInp").value.trim();
+  const errD = document.getElementById("loginErr");
+  const btn = document.getElementById("loginBtn");
+  if(!code) return;
+  btn.textContent = "Verificant…"; btn.disabled = true; errD.innerHTML = "";
+  try {
+    const ws = await sbGet("workers", `employee_code=eq.${code}&is_active=eq.true&select=*`);
+    if(ws && ws.length > 0) {
+      worker = ws[0];
+      document.getElementById("loginBox").style.display = "none";
+      document.getElementById("loginTitle").style.display = "none";
+      document.getElementById("workerBox").style.display = "block";
+      document.getElementById("workerName").textContent = "👋 " + worker.display_name;
+      loadEntries();
+    } else {
+      errD.innerHTML = '<div class="err">❌ Codi incorrecte</div>';
+      btn.textContent = "Entrar"; btn.disabled = false;
+    }
+  } catch(e) {
+    errD.innerHTML = `<div class="err">❌ ${e.message}</div>`;
+    btn.textContent = "Entrar"; btn.disabled = false;
+  }
 });
-ec.style.display=entries.length?””:“none”;
+
+// ── FITXATGE ───────────────────────────────────────────────────────────────
+async function loadEntries() {
+  try {
+    entries = await sbGet("time_entries",
+      `worker_id=eq.${worker.id}&entry_date=eq.${today()}&is_active=eq.true&select=*&order=entry_datetime.asc`);
+    renderEntries();
+  } catch(e) {
+    document.getElementById("clockState").textContent = "Error: " + e.message;
+  }
 }
 
-function renderStats(){
-sr.innerHTML=””;
-if(!summary){sr.style.display=“none”;return;}
-sr.style.display=“flex”;
-const bal=summary.balance_minutes||0;
-[[“Teòric”,fmtP(summary.theoretical_minutes||w.daily_theoretical_minutes||480),”#22C55E”],
-[“Treballat”,fmtP(summary.worked_minutes||0),”#3B82F6”],
-[“Saldo”,fmt(bal),bal>=0?”#22C55E”:”#EF4444”]
-].forEach(([lb,val,c])=>{
-const s=h(“div”,“stat”);
-const sv=h(“div”,“sv”);sv.style.color=c;sv.textContent=val;
-const sl=h(“div”,“sl”);sl.textContent=lb;
-ap(s,sv,sl);ap(sr,s);
-});
+function getState() {
+  if(!entries.length) return "NOT_STARTED";
+  const last = entries[entries.length-1];
+  if(last.entry_type==="END") return "FINISHED";
+  if(last.entry_type==="START_PAUSE") return "PAUSED";
+  return "RUNNING";
 }
 
-async function doAction(type){
-if(actLoading)return;
-actLoading=true;brow.innerHTML=””;ap(brow,ap(h(“div”,””,{style:{color:”#94A3B8”,padding:“10px”,textAlign:“center”}}),“Guardant…”));
-try{
-const pn=entries.filter(e=>e.entry_type===“START_PAUSE”).length;
-await POST(“time_entries”,{worker_id:w.id,entry_date:today(),entry_datetime:new Date().toISOString(),entry_type:type,pause_number:type===“START_PAUSE”?pn+1:null,source_method:“MANUAL”,is_active:true});
-await load();
-}catch(e){errD.innerHTML=””;ap(errD,errEl(e.message));}
-actLoading=false;
+function renderEntries() {
+  const st = getState();
+  const labels = {NOT_STARTED:"Jornada no iniciada",RUNNING:"En curs ✅",PAUSED:"En pausa ⏸",FINISHED:"Finalitzada ✅"};
+  document.getElementById("clockState").textContent = labels[st] || st;
+
+  document.getElementById("startBtn").style.display = st==="NOT_STARTED"?"block":"none";
+  document.getElementById("pauseBtn").style.display = st==="RUNNING"?"block":"none";
+  document.getElementById("resumeBtn").style.display = st==="PAUSED"?"block":"none";
+  document.getElementById("endBtn").style.display = (st==="RUNNING"||st==="PAUSED")?"block":"none";
+
+  const el = document.getElementById("entriesList");
+  const eL = {START:"▶️ Inici",END:"⏹️ Final",START_PAUSE:"⏸️ Pausa",END_PAUSE:"▶️ Represa"};
+  el.innerHTML = entries.map(e =>
+    `<div style="padding:6px 0;border-bottom:1px solid #252B3A;display:flex;justify-content:space-between;font-size:13px">
+      <span>${eL[e.entry_type]||e.entry_type}</span>
+      <span style="color:#94A3B8">${new Date(e.entry_datetime).toLocaleTimeString("ca-ES",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</span>
+    </div>`
+  ).join("");
 }
 
-async function load(){
-try{
-const td=today();
-const [recs,ents]=await Promise.all([
-GET(“daily_records”,`worker_id=eq.${w.id}&work_date=eq.${td}&select=*`),
-GET(“time_entries”,`worker_id=eq.${w.id}&entry_date=eq.${td}&is_active=eq.true&select=*&order=entry_datetime.asc`),
-]);
-summary=recs?.[0]||null;entries=ents||[];
-loadEl.style.display=“none”;
-renderButtons();renderEntries();renderStats();startElapsed();
-}catch(e){loadEl.style.display=“none”;ap(errD,errEl(e.message));renderButtons();}
-}
-load();
-return root;
-}
-
-// ── MONTH HISTORY ──────────────────────────────────────────────────────────
-function pgMonthHistory(){
-const w=S.worker;
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-const mn=new Date().toLocaleDateString(“ca-ES”,{month:“long”,year:“numeric”});
-const mnEl=h(“div”,””,{style:{fontSize:“12px”,color:”#94A3B8”}});mnEl.textContent=mn;
-ap(root,topBar(“Historial”,()=>go({screen:“workerHome”}),mnEl));
-const body=h(“div”,“body”);
-const loadEl=spinner();ap(body,loadEl);
-ap(root,body,wNav(“hist”));
-
-async function load(){
-try{
-const td=new Date();
-const from=`${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,"0")}-01`;
-const recs=await GET(“daily_records”,`worker_id=eq.${w.id}&work_date=gte.${from}&select=*&order=work_date.desc`);
-loadEl.remove();
-const records=recs||[];
-const total=records.reduce((a,r)=>a+(r.worked_minutes||0),0);
-const bal=records.reduce((a,r)=>a+(r.balance_minutes||0),0);
-const inc=records.filter(r=>r.has_incidence).length;
-
-```
-  const sr=h("div","stats");
-  [["Treballat",fmtP(total),"#F1F5F9"],["Saldo",fmt(bal),bal>=0?"#22C55E":"#EF4444"],["Incid.",String(inc),inc>0?"#F59E0B":"#22C55E"]].forEach(([lb,v,c])=>{
-    const s=h("div","stat");
-    const sv=h("div","sv");sv.style.color=c;sv.textContent=v;
-    const sl=h("div","sl");sl.textContent=lb;
-    ap(s,sv,sl);ap(sr,s);
-  });
-  ap(body,sr);
-
-  const card=h("div","card");
-  if(!records.length){const e=h("div","",{style:{color:"#94A3B8",textAlign:"center",padding:"20px"}});e.textContent="Sense registres aquest mes";ap(card,e);}
-  records.forEach((r,i)=>{
-    const row=h("div","hrow",{onClick:()=>go({screen:"dayDetail",selDay:r})});
-    const dateBox=h("div","",{style:{width:"34px",textAlign:"center"}});
-    const dn=h("div","",{style:{fontSize:"15px",fontWeight:"700"}});dn.textContent=r.work_date?.split("-")[2]||"";
-    const dw=h("div","",{style:{fontSize:"10px",color:"#475569"}});dw.textContent=dLabel(r.work_date).split(" ")[0];
-    ap(dateBox,dn,dw);
-    const mid=h("div","",{style:{flex:"1"}});
-    const badges=h("div","",{style:{display:"flex",gap:"6px",alignItems:"center",marginBottom:"2px"}});
-    ap(badges,badge(SL(r.status),SC(r.status)));
-    if(r.has_incidence)ap(badges,badge("⚠","#F59E0B"));
-    ap(mid,badges);
-    if(r.worked_minutes>0){const wm=h("div","",{style:{fontSize:"11px",color:"#94A3B8"}});wm.textContent=fmtP(r.worked_minutes);ap(mid,wm);}
-    const balEl=h("div","",{style:{fontSize:"13px",fontWeight:"600",color:(r.balance_minutes||0)>=0?"#22C55E":"#EF4444"}});
-    balEl.textContent=fmt(r.balance_minutes||0);
-    if(i<records.length-1)row.style.borderBottom="1px solid #252B3A";
-    else row.style.borderBottom="none";
-    ap(row,dateBox,mid,balEl);
-    ap(card,row);
-  });
-  ap(body,card);
-}catch(e){loadEl.remove();ap(body,errEl(e.message));}
-```
-
-}
-load();
-return root;
+async function doAction(type) {
+  try {
+    const pn = entries.filter(e=>e.entry_type==="START_PAUSE").length;
+    await sbPost("time_entries", {
+      worker_id: worker.id,
+      entry_date: today(),
+      entry_datetime: new Date().toISOString(),
+      entry_type: type,
+      pause_number: type==="START_PAUSE" ? pn+1 : null,
+      source_method: "MANUAL",
+      is_active: true
+    });
+    await loadEntries();
+  } catch(e) {
+    alert("Error: " + e.message);
+  }
 }
 
-// ── DAY DETAIL ─────────────────────────────────────────────────────────────
-function pgDayDetail(){
-const w=S.worker,r=S.selDay;
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“Detall del dia”,()=>go({screen:“monthHistory”})));
-const body=h(“div”,“body”);
+document.getElementById("startBtn").addEventListener("click", ()=>doAction("START"));
+document.getElementById("pauseBtn").addEventListener("click", ()=>doAction("START_PAUSE"));
+document.getElementById("resumeBtn").addEventListener("click", ()=>doAction("END_PAUSE"));
+document.getElementById("endBtn").addEventListener("click", ()=>doAction("END"));
 
-if(r){
-const card=h(“div”,“card”);
-const topRow=h(“div”,“row”);
-const left=h(“div”);
-const dateLbl=h(“div”,””,{style:{fontSize:“17px”,fontWeight:“700”,marginBottom:“4px”}});dateLbl.textContent=dLabel(r.work_date);
-ap(left,dateLbl,badge(SL(r.status),SC(r.status)));
-const balBox=h(“div”,””,{style:{textAlign:“right”}});
-const balVal=h(“div”,””,{style:{fontSize:“22px”,fontWeight:“700”,color:(r.balance_minutes||0)>=0?”#22C55E”:”#EF4444”}});
-balVal.textContent=fmt(r.balance_minutes||0);
-const balLbl=h(“div”,””,{style:{fontSize:“11px”,color:”#94A3B8”}});balLbl.textContent=“Saldo”;
-ap(balBox,balVal,balLbl);
-ap(topRow,left,balBox);
-ap(card,topRow);
-
-```
-const div=h("div","div");
-ap(card,div);
-const statsRow=h("div","",{style:{display:"flex",gap:"10px"}});
-[["Treballades",fmtP(r.worked_minutes||0)],["Teòriques",fmtP(r.theoretical_minutes||480)]].forEach(([lb,v])=>{
-  const box=h("div","",{style:{flex:"1",textAlign:"center"}});
-  const vEl=h("div","",{style:{fontWeight:"600"}});vEl.textContent=v;
-  const lEl=h("div","",{style:{fontSize:"11px",color:"#94A3B8"}});lEl.textContent=lb;
-  ap(box,vEl,lEl);ap(statsRow,box);
-});
-ap(card,statsRow);
-ap(body,card);
-```
-
-}
-
-const entCard=h(“div”,“card”);
-const h3=h(“div”,“h3”);h3.textContent=“Cronologia real”;
-const eList=h(“div”,{},spinner());
-ap(entCard,h3,eList);
-ap(body,entCard);
-ap(root,body);
-
-if(r){
-GET(“time_entries”,`worker_id=eq.${w.id}&entry_date=eq.${r.work_date}&is_active=eq.true&select=*&order=entry_datetime.asc`)
-.then(ents=>{
-eList.innerHTML=””;
-const eL={START:“▶️ Inici de jornada”,END:“⏹️ Final de jornada”,START_PAUSE:“⏸️ Pausa”,END_PAUSE:“▶️ Represa”};
-const entries=ents||[];
-if(!entries.length){const e=h(“div”,””,{style:{color:”#94A3B8”,fontSize:“13px”}});e.textContent=“Sense fitxades registrades”;ap(eList,e);}
-entries.forEach((e,i)=>{
-const row=h(“div”,””,{style:{display:“flex”,alignItems:“center”,gap:“12px”,padding:“9px 0”,borderBottom:i<entries.length-1?“1px solid #252B3A”:“none”}});
-const t=h(“div”,””,{style:{width:“50px”,fontWeight:“600”,fontSize:“13px”}});
-t.textContent=new Date(e.entry_datetime).toLocaleTimeString(“ca-ES”,{hour:“2-digit”,minute:“2-digit”});
-const l=h(“div”,””,{style:{flex:“1”,fontSize:“13px”}});l.textContent=eL[e.entry_type]||e.entry_type;
-ap(row,t,l);ap(eList,row);
-});
-}).catch(e=>{eList.innerHTML=””;ap(eList,errEl(e.message));});
-}
-return root;
-}
-
-// ── PERMISSIONS ────────────────────────────────────────────────────────────
-function pgPermissions(){
-const w=S.worker;
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“Permisos”,()=>go({screen:“workerHome”})));
-const body=h(“div”,“body”);
-const errD=h(“div”);ap(body,errD);
-const types={VACATION:{lb:“Vacances”,c:”#A855F7”},SICK:{lb:“Baixa mèdica”,c:”#EF4444”},PAID_LEAVE:{lb:“Permís retribuït”,c:”#3B82F6”},HOLIDAY:{lb:“Festiu”,c:”#F59E0B”}};
-const form={start_date:””,end_date:””,day_type:“VACATION”,comment:””};
-
-// Form card
-const fc=h(“div”,“card”);
-const ft=h(“div”,“h3”);ft.textContent=“Nou permís”;ap(fc,ft);
-const dr=h(“div”,””,{style:{display:“flex”,gap:“10px”,marginBottom:“10px”}});
-const si=h(“input”,“inp”,{type:“date”});si.addEventListener(“input”,e=>form.start_date=e.target.value);
-const ei=h(“input”,“inp”,{type:“date”});ei.addEventListener(“input”,e=>form.end_date=e.target.value);
-ap(dr,ap(h(“div”,””,{style:{flex:“1”}}),ap(h(“label”,“lbl”),“Data inici”),si),ap(h(“div”,””,{style:{flex:“1”}}),ap(h(“label”,“lbl”),“Data fi”),ei));
-ap(fc,dr);
-const sel=h(“select”,“inp”,{style:{marginBottom:“10px”}});
-Object.entries(types).forEach(([k,v])=>{const o=h(“option”,””,{value:k});o.textContent=v.lb;ap(sel,o);});
-sel.addEventListener(“change”,e=>form.day_type=e.target.value);
-ap(fc,ap(h(“label”,“lbl”),“Tipus”),sel);
-const ci=h(“input”,“inp”,{style:{marginBottom:“14px”},placeholder:“Opcional”});ci.addEventListener(“input”,e=>form.comment=e.target.value);
-ap(fc,ap(h(“label”,“lbl”),“Comentari”),ci);
-const addBtn=h(“button”,“btnP”,{onClick:addPerm});addBtn.textContent=“Registrar permís”;
-ap(fc,addBtn);ap(body,fc);
-
-// List card
-const lc=h(“div”,“card”);
-const lt=h(“div”,“h3”);lt.textContent=“Permisos registrats”;ap(lc,lt);
-const ld=h(“div”,{},spinner());ap(lc,ld);ap(body,lc);
-ap(root,body,wNav(“perm”));
-
-async function addPerm(){
-if(!form.start_date){errD.innerHTML=””;ap(errD,errEl(“Cal indicar la data d’inici”));return;}
-addBtn.textContent=“Guardant…”;addBtn.disabled=true;
-try{
-await POST(“day_status”,{worker_id:w.id,start_date:form.start_date,end_date:form.end_date||form.start_date,day_type:form.day_type,compute_mode:“THEORETICAL_HOURS”,comment:form.comment,is_active:true});
-addBtn.textContent=“✅ Afegit!”;
-setTimeout(()=>{addBtn.textContent=“Registrar permís”;addBtn.disabled=false;},2000);
-loadList();
-}catch(e){errD.innerHTML=””;ap(errD,errEl(e.message));addBtn.textContent=“Registrar permís”;addBtn.disabled=false;}
-}
-
-async function loadList(){
-ld.innerHTML=””;ap(ld,spinner());
-try{
-const recs=await GET(“day_status”,`worker_id=eq.${w.id}&is_active=eq.true&select=*&order=start_date.desc`);
-ld.innerHTML=””;
-const list=recs||[];
-if(!list.length){const e=h(“div”,””,{style:{color:”#94A3B8”,fontSize:“13px”}});e.textContent=“Sense permisos registrats”;ap(ld,e);return;}
-list.forEach((p,i)=>{
-const t=types[p.day_type];
-const row=h(“div”,””,{style:{padding:“10px 0”,borderBottom:i<list.length-1?“1px solid #252B3A”:“none”}});
-const tr=h(“div”,””,{style:{display:“flex”,justifyContent:“space-between”,marginBottom:“3px”}});
-const cm=h(“div”,””,{style:{fontSize:“11px”,color:”#94A3B8”}});cm.textContent=p.compute_mode===“ZERO_HOURS”?“0 hores”:“Jornada teòrica”;
-ap(tr,badge(t?.lb||p.day_type,t?.c||”#94A3B8”),cm);
-const dl=h(“div”,””,{style:{fontSize:“12px”,color:”#94A3B8”,marginTop:“2px”}});dl.textContent=p.start_date+(p.end_date&&p.end_date!==p.start_date?` → ${p.end_date}`:””);
-ap(row,tr,dl);
-if(p.comment){const cl=h(“div”,””,{style:{fontSize:“11px”,color:”#475569”}});cl.textContent=p.comment;ap(row,cl);}
-ap(ld,row);
-});
-}catch(e){ld.innerHTML=””;ap(ld,errEl(e.message));}
-}
-loadList();
-return root;
-}
-
-// ── BALANCE ────────────────────────────────────────────────────────────────
-function pgBalance(){
-const w=S.worker;
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“Saldo”,()=>go({screen:“workerHome”})));
-const body=h(“div”,“body”);
-const loadEl=spinner();ap(body,loadEl);
-ap(root,body,wNav(“bal”));
-
-async function load(){
-try{
-const td=new Date();
-const from=`${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,"0")}-01`;
-const recs=await GET(“daily_records”,`worker_id=eq.${w.id}&work_date=gte.${from}&select=*`);
-loadEl.remove();
-const records=recs||[];
-const bal=records.reduce((a,r)=>a+(r.balance_minutes||0),0);
-const worked=records.reduce((a,r)=>a+(r.worked_minutes||0),0);
-const wd=records.filter(r=>r.status===“CLOSED”).length;
-
-```
-  const bc=h("div","card",{style:{textAlign:"center"}});
-  const bl=h("div","",{style:{fontSize:"12px",color:"#94A3B8",marginBottom:"6px"}});bl.textContent="Saldo acumulat del mes";
-  const bv=h("div","",{style:{fontSize:"44px",fontWeight:"800",color:bal>=0?"#22C55E":"#EF4444"}});bv.textContent=fmt(bal);
-  ap(bc,bl,bv);ap(body,bc);
-
-  const rc=h("div","card");
-  const rt=h("div","h3");rt.textContent="Resum mensual";ap(rc,rt);
-  [["Dies treballats",String(wd)],["Total treballades",fmtP(worked)],["Total teòriques",fmtP(wd*(w.daily_theoretical_minutes||480))],["Saldo net",fmt(bal)]].forEach(([lb,v],i,arr)=>{
-    const row=h("div","srow",{style:{borderBottom:i<arr.length-1?"1px solid #252B3A":"none"}});
-    const ll=h("div","",{style:{fontSize:"14px"}});ll.textContent=lb;
-    const vv=h("div","",{style:{fontWeight:"700"}});vv.textContent=v;
-    ap(row,ll,vv);ap(rc,row);
-  });
-  ap(body,rc);
-}catch(e){loadEl.remove();ap(body,errEl(e.message));}
-```
-
-}
-load();
-return root;
-}
-
-// ── PROFILE ────────────────────────────────────────────────────────────────
-function pgProfile(){
-const w=S.worker;
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-const outBtn=h(“button”,“btnGh”,{onClick:()=>go({screen:“splash”,worker:null})});outBtn.textContent=“Sortir”;
-ap(root,topBar(“Perfil”,()=>go({screen:“workerHome”}),outBtn));
-const body=h(“div”,“body”);
-
-const pc=h(“div”,“card”,{style:{textAlign:“center”}});
-const nm=h(“div”,””,{style:{marginTop:“12px”,fontSize:“20px”,fontWeight:“700”}});nm.textContent=w.display_name;
-const cd=h(“div”,””,{style:{color:”#94A3B8”,fontSize:“13px”}});cd.textContent=”#”+w.employee_code;
-ap(pc,av(w.display_name,72),nm,cd);
-ap(body,pc);
-
-const dc=h(“div”,“card”);
-const dt=h(“div”,“h3”);dt.textContent=“Dades”;ap(dc,dt);
-[[“ID intern”,w.id],[“Jornada teòrica”,fmtP(w.daily_theoretical_minutes||480)],[“QR Token”,w.qr_token||”—”],[“Rol”,w.role]].forEach(([lb,v],i)=>{
-const row=h(“div”,“srow”,{style:{borderBottom:i<3?“1px solid #252B3A”:“none”}});
-const ll=h(“div”,””,{style:{fontSize:“14px”}});ll.textContent=lb;
-const vv=h(“div”,””,{style:{fontSize:“12px”,color:”#94A3B8”}});vv.textContent=v;
-ap(row,ll,vv);ap(dc,row);
-});
-ap(body,dc);
-
-const logBtn=h(“button”,“btnP”,{style:{background:”#EF4444”},onClick:()=>go({screen:“splash”,worker:null})});
-logBtn.textContent=“Tancar sessió”;ap(body,logBtn);
-ap(root,body,wNav(“prof”));
-return root;
-}
-
-// ── ADMIN HOME ─────────────────────────────────────────────────────────────
-function pgAdminHome(){
-const w=S.worker;
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-const top=h(“div”,“top”);
-const wi=h(“div”,””,{style:{display:“flex”,alignItems:“center”,gap:“10px”}});
-ap(wi,av(w.display_name,30),ap(h(“div”,””),ap(h(“div”,””,{style:{fontSize:“13px”,fontWeight:“600”}}),w.display_name),badge(“Admin”,”#3B82F6”)));
-const out=h(“button”,“btnGh”,{onClick:()=>go({screen:“splash”,worker:null})});out.textContent=“Sortir”;
-ap(top,wi,out);ap(root,top);
-
-const body=h(“div”,“body”);
-const title=h(“div”,””,{style:{marginBottom:“16px”}});
-const t1=h(“div”,””,{style:{fontSize:“22px”,fontWeight:“700”,marginBottom:“4px”}});t1.textContent=“Dashboard”;
-const t2=h(“div”,””,{style:{fontSize:“13px”,color:”#94A3B8”}});t2.textContent=new Date().toLocaleDateString(“ca-ES”,{weekday:“long”,day:“numeric”,month:“long”});
-ap(title,t1,t2);ap(body,title);
-
-const sr=h(“div”,“stats”);
-const mkStat=(val,lb,c)=>{const s=h(“div”,“stat”);const sv=h(“div”,“sv”);sv.style.color=c;sv.textContent=val;const sl=h(“div”,“sl”);sl.textContent=lb;ap(s,sv,sl);return s;};
-const wSt=mkStat(”…”,“Treballadors”,”#3B82F6”);
-const oSt=mkStat(”…”,“Fitxats avui”,”#22C55E”);
-const iSt=mkStat(”…”,“Incidències”,”#F59E0B”);
-ap(sr,wSt,oSt,iSt);ap(body,sr);
-
-Promise.all([
-GET(“workers”,“is_active=eq.true&select=id”),
-GET(“daily_records”,`work_date=eq.${today()}&status=eq.OPEN&select=id`),
-GET(“daily_records”,`work_date=eq.${today()}&has_incidence=eq.true&select=id`),
-]).then(([ws,op,inc])=>{
-wSt.firstChild.textContent=String((ws||[]).length);
-oSt.firstChild.textContent=String((op||[]).length);
-iSt.firstChild.textContent=String((inc||[]).length);
-}).catch(()=>{});
-
-[[“workers”,“👥”,“Treballadors”,“Gestiona l’equip”],[“records”,“📋”,“Registres diaris”,“Tots els fitxatges”],[“allStatus”,“🛡”,“Permisos globals”,“Vacances, baixes, festius”],[“allBalances”,“⚖️”,“Saldos globals”,“Resum per treballador”],[“exports”,“⬇️”,“Exportacions”,“Excel i ZIP massiu”],[“cards”,“🪪”,“Targetes PDF”,“Identificatius amb QR”],[“settings”,“⚙️”,“Configuració”,“Paràmetres globals”]].forEach(([sc,ic,lb,sub])=>{
-const c=h(“div”,“csm”,{onClick:()=>go({screen:sc})});
-const ic2=h(“div”,””,{style:{width:“42px”,height:“42px”,borderRadius:“11px”,background:”#3B82F622”,display:“flex”,alignItems:“center”,justifyContent:“center”,fontSize:“20px”}});ic2.textContent=ic;
-const info=h(“div”,””,{style:{flex:“1”}});
-const l1=h(“div”,””,{style:{fontWeight:“600”,fontSize:“14px”}});l1.textContent=lb;
-const l2=h(“div”,””,{style:{fontSize:“11px”,color:”#94A3B8”}});l2.textContent=sub;
-const arr=h(“span”,””,{style:{color:”#475569”,fontSize:“18px”}});arr.textContent=”›”;
-ap(info,l1,l2);ap(c,ic2,info,arr);ap(body,c);
-});
-ap(root,body,aNav(“ah”));
-return root;
-}
-
-// ── WORKERS ────────────────────────────────────────────────────────────────
-function pgWorkers(){
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“Treballadors”,()=>go({screen:“adminHome”})));
-const body=h(“div”,“body”);
-const loadEl=spinner();ap(body,loadEl);
-ap(root,body,aNav(“wk”));
-GET(“workers”,“is_active=eq.true&select=*&order=display_name.asc”).then(ws=>{
-loadEl.remove();
-(ws||[]).forEach(w=>{
-const c=h(“div”,“csm”);c.style.cursor=“default”;
-const info=h(“div”,””,{style:{flex:“1”}});
-const l1=h(“div”,””,{style:{fontWeight:“600”}});l1.textContent=w.display_name;
-const l2=h(“div”,””,{style:{fontSize:“11px”,color:”#94A3B8”}});l2.textContent=`Codi: ${w.employee_code} · ${w.role}`;
-ap(info,l1,l2);
-const right=h(“div”,””,{style:{textAlign:“right”}});
-const th=h(“div”,””,{style:{fontSize:“11px”,color:”#94A3B8”,marginBottom:“3px”}});th.textContent=fmtP(w.daily_theoretical_minutes||480)+”/dia”;
-ap(right,th,badge(“Actiu”,”#22C55E”));
-ap(c,av(w.display_name,42),info,right);ap(body,c);
-});
-}).catch(e=>{loadEl.remove();ap(body,errEl(e.message));});
-return root;
-}
-
-// ── ALL RECORDS ────────────────────────────────────────────────────────────
-function pgRecords(){
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“Registres diaris”,()=>go({screen:“adminHome”})));
-const body=h(“div”,“body”);
-const tabs=h(“div”,“tabs”);
-let filter=“ALL”;
-const tAll=h(“button”,“tab on”,{onClick:()=>{filter=“ALL”;tAll.className=“tab on”;tInc.className=“tab”;renderList();}});tAll.textContent=“Tots”;
-const tInc=h(“button”,“tab”,{onClick:()=>{filter=“INC”;tInc.className=“tab on”;tAll.className=“tab”;renderList();}});tInc.textContent=“Incidències”;
-ap(tabs,tAll,tInc);ap(body,tabs);
-const ld=h(“div”,{},spinner());ap(body,ld);
-ap(root,body,aNav(“rc”));
-
-let allRecs=[],workers={};
-const td=new Date();
-const from=`${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,"0")}-01`;
-Promise.all([
-GET(“daily_records”,`work_date=gte.${from}&select=*&order=work_date.desc&limit=100`),
-GET(“workers”,“select=id,display_name”),
-]).then(([recs,ws])=>{
-const wMap={};(ws||[]).forEach(w=>{wMap[w.id]=w.display_name;});
-workers=wMap;allRecs=recs||[];renderList();
-}).catch(e=>{ld.innerHTML=””;ap(ld,errEl(e.message));});
-
-function renderList(){
-ld.innerHTML=””;
-const shown=filter===“ALL”?allRecs:allRecs.filter(r=>r.has_incidence);
-if(!shown.length){const e=h(“div”,””,{style:{color:”#94A3B8”,textAlign:“center”,padding:“20px”}});e.textContent=“Sense registres”;ap(ld,e);return;}
-shown.forEach(r=>{
-const row=h(“div”,””,{style:{display:“flex”,alignItems:“center”,padding:“9px 0”,borderBottom:“1px solid #252B3A”,gap:“10px”}});
-const mid=h(“div”,””,{style:{flex:“1”}});
-const n=h(“div”,””,{style:{fontSize:“13px”,fontWeight:“600”}});n.textContent=workers[r.worker_id]||r.worker_id;
-const d=h(“div”,””,{style:{fontSize:“11px”,color:”#94A3B8”}});d.textContent=dLabel(r.work_date);
-ap(mid,n,d);
-const right=h(“div”,””,{style:{textAlign:“right”}});
-ap(right,badge(SL(r.status),SC(r.status)));
-if(r.has_incidence){const ib=h(“div”,””,{style:{marginTop:“2px”}});ap(ib,badge(“⚠”,”#F59E0B”));ap(right,ib);}
-const balEl=h(“div”,””,{style:{fontSize:“13px”,fontWeight:“600”,color:(r.balance_minutes||0)>=0?”#22C55E”:”#EF4444”,minWidth:“50px”,textAlign:“right”}});
-balEl.textContent=fmt(r.balance_minutes||0);
-ap(row,av(workers[r.worker_id]||”?”,30),mid,right,balEl);ap(ld,row);
-});
-}
-return root;
-}
-
-// ── ALL STATUS ─────────────────────────────────────────────────────────────
-function pgAllStatus(){
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“Permisos globals”,()=>go({screen:“adminHome”})));
-const body=h(“div”,“body”);
-ap(body,infoEl(“Com a administrador pots canviar el còmput de cada permís entre 0 hores o jornada teòrica.”));
-const ld=h(“div”,{},spinner());ap(body,ld);
-ap(root,body,aNav(“ah”));
-const types={VACATION:{lb:“Vacances”,c:”#A855F7”},SICK:{lb:“Baixa”,c:”#EF4444”},PAID_LEAVE:{lb:“Permís retribuït”,c:”#3B82F6”},HOLIDAY:{lb:“Festiu”,c:”#F59E0B”}};
-let items=[],workers={};
-
-Promise.all([
-GET(“day_status”,“is_active=eq.true&select=*&order=start_date.desc&limit=50”),
-GET(“workers”,“select=id,display_name”),
-]).then(([ds,ws])=>{
-const wMap={};(ws||[]).forEach(w=>{wMap[w.id]=w.display_name;});
-workers=wMap;items=ds||[];renderList();
-}).catch(e=>{ld.innerHTML=””;ap(ld,errEl(e.message));});
-
-function mkSwitch(isZero,onToggle){
-const wrap=h(“div”,””,{style:{display:“flex”,alignItems:“center”,gap:“8px”,cursor:“pointer”}});
-const lbl=h(“div”,””,{style:{fontSize:“12px”,fontWeight:“600”,color:isZero?”#EF4444”:”#22C55E”}});lbl.textContent=isZero?“0 hores”:“Teòric”;
-const track=h(“div”,””,{style:{width:“34px”,height:“19px”,borderRadius:“10px”,background:isZero?”#EF4444”:”#22C55E”,position:“relative”,transition:“background .2s”}});
-const thumb=h(“div”,””,{style:{width:“15px”,height:“15px”,borderRadius:“8px”,background:”#fff”,position:“absolute”,top:“2px”,left:isZero?“2px”:“17px”,transition:“left .2s”}});
-ap(track,thumb);ap(wrap,lbl,track);
-wrap.addEventListener(“click”,onToggle);
-return wrap;
-}
-
-function renderList(){
-ld.innerHTML=””;
-if(!items.length){const e=h(“div”,””,{style:{color:”#94A3B8”,textAlign:“center”}});e.textContent=“Sense permisos registrats”;ap(ld,e);return;}
-items.forEach(it=>{
-const t=types[it.day_type];
-const card=h(“div”,“card”);
-const row=h(“div”,“row”);
-const left=h(“div”);
-const wn=h(“div”,””,{style:{fontWeight:“600”,marginBottom:“2px”}});wn.textContent=workers[it.worker_id]||it.worker_id;
-const dl=h(“div”,””,{style:{fontSize:“12px”,color:”#94A3B8”,marginBottom:“4px”}});dl.textContent=it.start_date+(it.end_date!==it.start_date?` → ${it.end_date}`:””);
-ap(left,wn,dl,badge(t?.lb||it.day_type,t?.c||”#94A3B8”));
-const sw=mkSwitch(it.compute_mode===“ZERO_HOURS”,async()=>{
-const nm=it.compute_mode===“ZERO_HOURS”?“THEORETICAL_HOURS”:“ZERO_HOURS”;
-await PATCH(“day_status”,`id=eq.${it.id}`,{compute_mode:nm}).catch(()=>{});
-it.compute_mode=nm;renderList();
-});
-ap(row,left,sw);ap(card,row);ap(ld,card);
-});
-}
-return root;
-}
-
-// ── ALL BALANCES ───────────────────────────────────────────────────────────
-function pgAllBalances(){
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“Saldos globals”,()=>go({screen:“adminHome”})));
-const body=h(“div”,“body”);
-const ld=spinner();ap(body,ld);
-ap(root,body,aNav(“ah”));
-const td=new Date();
-const from=`${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,"0")}-01`;
-Promise.all([
-GET(“workers”,“is_active=eq.true&select=id,display_name,daily_theoretical_minutes”),
-GET(“daily_records”,`work_date=gte.${from}&select=worker_id,worked_minutes,balance_minutes`),
-]).then(([ws,recs])=>{
-ld.remove();
-const byW={};(recs||[]).forEach(r=>{if(!byW[r.worker_id])byW[r.worker_id]={worked:0,balance:0};byW[r.worker_id].worked+=r.worked_minutes||0;byW[r.worker_id].balance+=r.balance_minutes||0;});
-(ws||[]).forEach(w=>{
-const d=byW[w.id]||{worked:0,balance:0};
-const c=h(“div”,“csm”);c.style.cursor=“default”;
-const info=h(“div”,””,{style:{flex:“1”}});
-const l1=h(“div”,””,{style:{fontWeight:“600”}});l1.textContent=w.display_name;
-const l2=h(“div”,””,{style:{fontSize:“11px”,color:”#94A3B8”}});l2.textContent=fmtP(d.worked)+” treballades”;
-ap(info,l1,l2);
-const right=h(“div”,””,{style:{textAlign:“right”}});
-const bv=h(“div”,””,{style:{fontSize:“18px”,fontWeight:“700”,color:d.balance>=0?”#22C55E”:”#EF4444”}});bv.textContent=fmt(d.balance);
-const bl=h(“div”,””,{style:{fontSize:“10px”,color:”#94A3B8”}});bl.textContent=“saldo mensual”;
-ap(right,bv,bl);ap(c,av(w.display_name,42),info,right);ap(body,c);
-});
-}).catch(e=>{ld.remove();ap(body,errEl(e.message));});
-return root;
-}
-
-// ── EXPORTS ────────────────────────────────────────────────────────────────
-function pgExports(){
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“Exportacions”,()=>go({screen:“adminHome”})));
-const body=h(“div”,“body”);
-ap(body,infoEl(“Les exportacions reals es generen via Edge Functions de Supabase.”));
-const card=h(“div”,“card”);
-const ht=h(“div”,“h3”);ht.textContent=“Excel individual”;ap(card,ht);
-const ld=h(“div”,{},spinner());ap(card,ld);ap(body,card);
-const zc=h(“div”,“card”);
-const zt=h(“div”,“h3”);zt.textContent=“ZIP massiu”;ap(zc,zt);
-const zb=h(“button”,“btnP”,{onClick:()=>{zb.textContent=“Generant…”;zb.disabled=true;setTimeout(()=>{zb.textContent=“✅ ZIP generat”;},2000);}});zb.textContent=“⬇ Generar ZIP massiu”;ap(zc,zb);
-ap(body,zc);ap(root,body,aNav(“ex”));
-
-GET(“workers”,“is_active=eq.true&select=id,display_name”).then(ws=>{
-ld.innerHTML=””;
-(ws||[]).forEach(w=>{
-const row=h(“div”,””,{style:{display:“flex”,alignItems:“center”,padding:“9px 0”,borderBottom:“1px solid #252B3A”,gap:“10px”}});
-const nm=h(“div”,””,{style:{flex:“1”,fontSize:“13px”,fontWeight:“500”}});nm.textContent=w.display_name;
-const btn=h(“button”,“btnGh”,{onClick:()=>{btn.textContent=“Generant…”;btn.disabled=true;setTimeout(()=>{btn.textContent=“✅ Generat”;},2000);}});btn.textContent=“⬇ Excel”;
-ap(row,av(w.display_name,30),nm,btn);ap(ld,row);
-});
-}).catch(e=>{ld.innerHTML=””;ap(ld,errEl(e.message));});
-return root;
-}
-
-// ── CARDS ──────────────────────────────────────────────────────────────────
-function pgCards(){
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“Targetes PDF”,()=>go({screen:“adminHome”})));
-const body=h(“div”,“body”);
-const ld=spinner();ap(body,ld);
-ap(root,body,aNav(“ah”));
-GET(“workers”,“is_active=eq.true&select=id,display_name,employee_code,qr_token”).then(ws=>{
-ld.remove();
-(ws||[]).forEach(w=>{
-const card=h(“div”,“card”);
-const top2=h(“div”,””,{style:{display:“flex”,alignItems:“center”,gap:“12px”,marginBottom:“12px”}});
-const info=h(“div”,””,{style:{flex:“1”}});
-const l1=h(“div”,””,{style:{fontWeight:“700”}});l1.textContent=w.display_name;
-const l2=h(“div”,””,{style:{fontSize:“12px”,color:”#94A3B8”}});l2.textContent=”#”+w.employee_code;
-const l3=h(“div”,””,{style:{fontSize:“10px”,color:”#475569”}});l3.textContent=w.qr_token||“sense QR”;
-ap(info,l1,l2,l3);
-const qr=h(“div”,””,{style:{fontSize:“32px”}});qr.textContent=“⬛”;
-ap(top2,av(w.display_name,46),info,qr);
-const btn=h(“button”,“btnGh”,{style:{width:“100%”},onClick:()=>{btn.textContent=“Generant…”;btn.disabled=true;setTimeout(()=>{btn.textContent=“✅ PDF generat”;},1500);}});
-btn.textContent=“📄 Generar PDF”;
-ap(card,top2,btn);ap(body,card);
-});
-const ac=h(“div”,“card”,{style:{background:”#3B82F611”,border:“1px solid #3B82F633”}});
-const at=h(“div”,””,{style:{fontWeight:“600”,marginBottom:“6px”}});at.textContent=“Totes les targetes”;
-const al=h(“div”,””,{style:{fontSize:“13px”,color:”#94A3B8”,marginBottom:“12px”}});al.textContent=“Un únic PDF amb tots els treballadors.”;
-const ab=h(“button”,“btnP”,{onClick:()=>{ab.textContent=“Generant…”;ab.disabled=true;setTimeout(()=>{ab.textContent=“✅ PDF global generat”;},2000);}});
-ab.textContent=“📄 Generar totes les targetes”;
-ap(ac,at,al,ab);ap(body,ac);
-}).catch(e=>{ld.remove();ap(body,errEl(e.message));});
-return root;
-}
-
-// ── SETTINGS ──────────────────────────────────────────────────────────────
-function pgSettings(){
-const root=h(“div”,””,{style:{display:“flex”,flexDirection:“column”,minHeight:“100vh”,background:”#0D0F14”}});
-ap(root,topBar(“Configuració”,()=>go({screen:“adminHome”})));
-const body=h(“div”,“body”);
-const ld=spinner();ap(body,ld);
-ap(root,body,aNav(“st”));
-let settings=[];
-
-GET(“app_settings”,“select=*”).then(s=>{
-ld.remove();settings=s||[];
-if(!settings.length){ap(body,infoEl(“La taula app_settings és buida o inaccessible.”));return;}
-const card=h(“div”,“card”);
-const ct=h(“div”,“h3”);ct.textContent=“Paràmetres globals”;ap(card,ct);
-settings.forEach((s,i)=>{
-const row=h(“div”,“srow”,{style:{borderBottom:i<settings.length-1?“1px solid #252B3A”:“none”}});
-const kk=h(“div”,””,{style:{fontSize:“12px”,fontFamily:“monospace”,color:”#94A3B8”}});kk.textContent=s.setting_key;
-const vi=h(“input”,“inp”,{style:{width:“140px”,textAlign:“right”}});vi.value=s.setting_value||””;
-vi.addEventListener(“input”,e=>{s.setting_value=e.target.value;});
-ap(row,kk,vi);ap(card,row);
-});
-ap(body,card);
-const sb=h(“button”,“btnP”,{onClick:async()=>{
-sb.textContent=“Guardant…”;sb.disabled=true;
-for(const s of settings){await PATCH(“app_settings”,`setting_key=eq.${s.setting_key}`,{setting_value:s.setting_value}).catch(()=>{});}
-sb.textContent=“✅ Guardat!”;
-setTimeout(()=>{sb.textContent=“Guardar configuració”;sb.disabled=false;},2000);
-}});sb.textContent=“Guardar configuració”;ap(body,sb);
-}).catch(e=>{ld.remove();ap(body,errEl(e.message));});
-return root;
-}
-
-// ── RENDER ─────────────────────────────────────────────────────────────────
-function render(){
-const root=document.getElementById(“root”);
-root.innerHTML=””;
-const pages={
-splash:pgSplash,login:pgLogin,
-workerHome:pgWorkerHome,monthHistory:pgMonthHistory,dayDetail:pgDayDetail,
-permissions:pgPermissions,balance:pgBalance,profile:pgProfile,
-adminHome:pgAdminHome,workers:pgWorkers,records:pgRecords,
-allStatus:pgAllStatus,allBalances:pgAllBalances,
-exports:pgExports,cards:pgCards,settings:pgSettings,
-};
-const fn=pages[S.screen]||pgSplash;
-root.appendChild(fn());
-}
-
-render();
+// ── INICI ──────────────────────────────────────────────────────────────────
+runDiag();
 </script>
 
 </body>
