@@ -177,7 +177,7 @@ function getState() {
   if(!entries.length) return "NOT_STARTED";
   const last = entries[entries.length-1];
   if(last.entry_type==="END") return "FINISHED";
-  if(last.entry_type==="START_PAUSE") return "PAUSED";
+  if(last.entry_type==="PAUSE-START") return "PAUSED";
   return "RUNNING";
 }
 
@@ -192,7 +192,7 @@ function renderEntries() {
   document.getElementById("endBtn").style.display = (st==="RUNNING"||st==="PAUSED")?"block":"none";
 
   const el = document.getElementById("entriesList");
-  const eL = {START:"▶️ Inici",END:"⏹️ Final",START_PAUSE:"⏸️ Pausa",END_PAUSE:"▶️ Represa"};
+  const eL = {START:"▶️ Inici",END:"⏹️ Final",START:"▶️ Inici",END:"⏹️ Final","PAUSE-START":"⏸️ Pausa","PAUSE-END":"▶️ Represa""};
   el.innerHTML = entries.map(e =>
     `<div style="padding:6px 0;border-bottom:1px solid #252B3A;display:flex;justify-content:space-between;font-size:13px">
       <span>${eL[e.entry_type]||e.entry_type}</span>
@@ -203,13 +203,13 @@ function renderEntries() {
 
 async function doAction(type) {
   try {
-    const pn = entries.filter(e=>e.entry_type==="START_PAUSE").length;
+    const pn = entries.filter(e=>e.entry_type==="PAUSE-START").length;
     await sbPost("time_entries", {
       worker_id: worker.id,
       entry_date: today(),
       entry_datetime: new Date().toISOString(),
       entry_type: type,
-      pause_number: type==="START_PAUSE" ? pn+1 : null,
+      pause_number: type==="PAUSE-START" ? pn+1 : null,
       source_method: "CODE",
       is_active: true
     });
@@ -220,8 +220,8 @@ async function doAction(type) {
 }
 
 document.getElementById("startBtn").addEventListener("click", ()=>doAction("START"));
-document.getElementById("pauseBtn").addEventListener("click", ()=>doAction("START_PAUSE"));
-document.getElementById("resumeBtn").addEventListener("click", ()=>doAction("END_PAUSE"));
+document.getElementById("pauseBtn").addEventListener("click", ()=>doAction("PAUSE-START"));
+document.getElementById("resumeBtn").addEventListener("click", ()=>doAction("PAUSE-END"));
 document.getElementById("endBtn").addEventListener("click", ()=>doAction("END"));
 
 // ── INICI ──────────────────────────────────────────────────────────────────
