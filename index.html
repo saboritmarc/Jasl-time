@@ -203,7 +203,7 @@ async function doAction(type) {
       entry_date: today(),
       entry_datetime: new Date().toISOString(),
       entry_type: type,
-      pause_number: type==="PAUSE_START" ? pn+1 : null,
+      pause_number: type==="PAUSE_START" ? pn+1 : type==="PAUSE_END" ? pn : null,
       source_method: "CODE",
       is_active: true
     });
