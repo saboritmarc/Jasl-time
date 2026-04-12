@@ -47,7 +47,7 @@ button,input,select{font-family:inherit}
 </style>
 </head>
 <body>
-<div id="app"><div class="ld">Carregant JASL Time...</div></div>
+<div id="app"><div class="ld">Iniciant...</div></div>
 <script>
 var SB  = "https://fywkafpfcnqynvjdedfj.supabase.co";
 var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ";
@@ -692,7 +692,14 @@ document.getElementById(“app”).innerHTML = “<div style='padding:20px;color
 return false;
 };
 
+document.getElementById(“app”).innerHTML = “<div style='padding:20px;color:#94A3B8'>Executant renderApp…</div>”;
+setTimeout(function() {
+try {
 renderApp();
+} catch(e) {
+document.getElementById(“app”).innerHTML = “<div style='padding:20px;color:#EF4444'><strong>Error:</strong> “ + e.message + “<br><br>” + e.stack + “</div>”;
+}
+}, 100);
 </script>
 
 </body>
