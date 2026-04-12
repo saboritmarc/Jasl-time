@@ -110,7 +110,15 @@ function go(upd){
 if(_clkIv){clearInterval(_clkIv);_clkIv=null}
 if(_elIv){clearInterval(_elIv);_elIv=null}
 S={…S,…upd};
+window.onerror=function(msg,src,line,col,err){
+document.getElementById(“root”).innerHTML=”<div style="padding:20px;color:#EF4444;font-size:14px"><strong>Error JavaScript:</strong><br>”+msg+”<br><br>Línia: “+line+”<br><br>”+String(err)+”</div>”;
+return false;
+};
+try{
 render();
+}catch(e){
+document.getElementById(“root”).innerHTML=”<div style="padding:20px;color:#EF4444;font-size:14px"><strong>Error en carregar:</strong><br>”+e.message+”</div>”;
+}
 }
 
 // ── TOP & NAV ───────────────────────────────────────────────────────────────
@@ -876,7 +884,15 @@ exports:pgExports,cards:pgCards,settings:pgSettings,
 root.appendChild((pages[S.screen]||pgSplash)());
 }
 
+window.onerror=function(msg,src,line,col,err){
+document.getElementById(“root”).innerHTML=”<div style="padding:20px;color:#EF4444;font-size:14px"><strong>Error JavaScript:</strong><br>”+msg+”<br><br>Línia: “+line+”<br><br>”+String(err)+”</div>”;
+return false;
+};
+try{
 render();
+}catch(e){
+document.getElementById(“root”).innerHTML=”<div style="padding:20px;color:#EF4444;font-size:14px"><strong>Error en carregar:</strong><br>”+e.message+”</div>”;
+}
 </script>
 
 </body>
