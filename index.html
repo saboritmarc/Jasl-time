@@ -676,9 +676,15 @@ exports:screenExports, cards:screenCards, settings:screenSettings
 
 function renderApp() {
 var root = document.getElementById(“app”);
-root.innerHTML = “”;
+root.innerHTML = “<div style='padding:20px;color:#94A3B8'>Renderitzant: “ + APP.screen + “…</div>”;
+try {
 var fn = SCREENS[APP.screen] || screenSplash;
-root.appendChild(fn());
+var pg = fn();
+root.innerHTML = “”;
+root.appendChild(pg);
+} catch(e) {
+root.innerHTML = “<div style='padding:20px;color:#EF4444'>ERROR a “ + APP.screen + “: “ + e.message + “<br>” + e.stack + “</div>”;
+}
 }
 
 window.onerror = function(msg, src, line, col, err) {
@@ -690,4 +696,4 @@ renderApp();
 </script>
 
 </body>
-</html>
+</html>3
