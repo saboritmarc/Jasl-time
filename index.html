@@ -7,47 +7,49 @@
 <title>Test</title>
 </head>
 <body style="background:#0D0F14;color:#F1F5F9;padding:20px;font-family:sans-serif">
-<h2 id="status">Provant...</h2>
+<h2>Diagnostic</h2>
 <div id="log"></div>
 <script>
-function log(msg, color) {
+function log(msg, ok) {
   var d = document.createElement("div");
-  d.style.cssText = "padding:8px;margin:4px 0;border-radius:6px;background:" + (color||"#1C2130");
+  d.style.cssText = "padding:8px;margin:4px 0;border-radius:6px;font-size:14px;background:" + (ok===true?"#22C55E22":ok===false?"#EF444422":"#1C2130");
   d.textContent = msg;
   document.getElementById("log").appendChild(d);
 }
 
-document.getElementById(“status”).textContent = “JavaScript OK”;
-log(“1. JavaScript funciona correctament”, “#22C55E22”);
+log(“1. JavaScript OK”, true);
+log(“2. Provant fetch a Supabase…”, null);
 
-try {
-var x = {};
-Object.keys(x);
-log(“2. Object.keys OK”, “#22C55E22”);
-} catch(e) { log(“2. ERROR: “ + e.message, “#EF444422”); }
+var done = false;
 
-try {
-var p = Promise.resolve(1);
-p.then(function(v){ log(“3. Promises OK”, “#22C55E22”); });
-} catch(e) { log(“3. ERROR Promises: “ + e.message, “#EF444422”); }
+// Timeout de 8 segons
+setTimeout(function(){
+if(!done){
+log(“3. TIMEOUT - El fetch no respon despres de 8 segons”, false);
+log(”   Possible causa: CORS bloquejat per GitHub Pages”, false);
+log(”   Solucio: Prova obrir el fitxer HTML directament al navegador sense GitHub”, false);
+}
+}, 8000);
 
-try {
 fetch(“https://fywkafpfcnqynvjdedfj.supabase.co/rest/v1/workers?select=id&limit=1”, {
+method: “GET”,
 headers: {
 “apikey”: “sb_publishable_9w912fn8EaE-84SAAV-Rww_xHKPipSv”,
-“Authorization”: “Bearer sb_publishable_9w912fn8EaE-84SAAV-Rww_xHKPipSv”
+“Authorization”: “Bearer sb_publishable_9w912fn8EaE-84SAAV-Rww_xHKPipSv”,
+“Content-Type”: “application/json”
 }
 }).then(function(r) {
-log(“4. Fetch HTTP “ + r.status + (r.ok ? “ OK” : “ ERROR”), r.ok ? “#22C55E22” : “#EF444422”);
+done = true;
+log(“3. Fetch respon HTTP “ + r.status, r.ok);
 return r.text();
 }).then(function(t) {
-log(“5. Resposta: “ + t.slice(0, 80), “#3B82F622”);
+log(“4. Dades: “ + t.slice(0,100), true);
+log(“TOT CORRECTE - La connexio funciona!”, true);
 }).catch(function(e) {
-log(“4. Fetch ERROR: “ + e.message, “#EF444422”);
+done = true;
+log(“3. ERROR fetch: “ + e.message, false);
+log(”   Tipus: “ + e.name, false);
 });
-} catch(e) { log(“4. ERROR: “ + e.message, “#EF444422”); }
-
-log(“Proves en curs…”, “#F59E0B22”);
 </script>
 
 </body>
