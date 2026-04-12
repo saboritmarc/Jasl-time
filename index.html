@@ -151,7 +151,7 @@ function getState() {
   if(!entries.length) return "NOT_STARTED";
   const last = entries[entries.length-1];
   if(last.entry_type==="END") return "FINISHED";
-  if(last.entry_type==="PAUSE-START") return "PAUSED";
+  if(last.entry_type==="PAUSE_START") return "PAUSED";
   return "RUNNING";
 }
 
@@ -171,7 +171,7 @@ function render() {
   if(st==="RUNNING") {
     const bp = document.createElement("button");
     bp.className="btnY"; bp.textContent="⏸ Pausa";
-    bp.onclick = ()=>doAction("PAUSE-START"); btns.appendChild(bp);
+    bp.onclick = ()=>doAction("PAUSE_START"); btns.appendChild(bp);
     const bf = document.createElement("button");
     bf.className="btnR"; bf.textContent="⏹ Finalitzar";
     bf.onclick = ()=>doAction("END"); btns.appendChild(bf);
@@ -179,13 +179,13 @@ function render() {
   if(st==="PAUSED") {
     const br = document.createElement("button");
     br.className="btnG"; br.textContent="▶ Reprendre";
-    br.onclick = ()=>doAction("PAUSE-END"); btns.appendChild(br);
+    br.onclick = ()=>doAction("PAUSE_END"); btns.appendChild(br);
     const bf = document.createElement("button");
     bf.className="btnR"; bf.textContent="⏹ Finalitzar";
     bf.onclick = ()=>doAction("END"); btns.appendChild(bf);
   }
 
-  const eL = {"START":"▶️ Inici","END":"⏹️ Final","PAUSE-START":"⏸️ Pausa","PAUSE-END":"▶️ Represa"};
+  const eL = {"START":"▶️ Inici","END":"⏹️ Final","PAUSE_START":"⏸️ Pausa","PAUSE_END":"▶️ Represa"};
   const el = document.getElementById("entriesList");
   el.innerHTML = entries.map(e =>
     '<div class="erow"><span>'+(eL[e.entry_type]||e.entry_type)+'</span><span style="color:#94A3B8">'+
@@ -197,13 +197,13 @@ async function doAction(type) {
   const btns = document.getElementById("actionBtns");
   btns.innerHTML = '<div style="color:#94A3B8;padding:10px;text-align:center">Guardant…</div>';
   try {
-    const pn = entries.filter(e=>e.entry_type==="PAUSE-START").length;
+    const pn = entries.filter(e=>e.entry_type==="PAUSE_START").length;
     await api("POST","time_entries",null,{
       worker_id: W.id,
       entry_date: today(),
       entry_datetime: new Date().toISOString(),
       entry_type: type,
-      pause_number: type==="PAUSE-START" ? pn+1 : null,
+      pause_number: type==="PAUSE_START" ? pn+1 : null,
       source_method: "CODE",
       is_active: true
     });
