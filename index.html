@@ -9,167 +9,141 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0D0F14;color:#F1F5F9;font-family:-apple-system,sans-serif;padding:20px;font-size:15px}
 .ok{color:#22C55E;margin:6px 0}
-.err{color:#EF4444;margin:6px 0}
-.info{color:#94A3B8;margin:6px 0;font-size:13px}
-.btn{background:#3B82F6;color:#fff;border:none;border-radius:10px;padding:14px 20px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:12px}
-.inp{background:#1C2130;border:1px solid #252B3A;border-radius:10px;padding:12px;color:#F1F5F9;font-size:18px;width:100%;outline:none;text-align:center;letter-spacing:6px;margin-top:8px}
-h2{font-size:18px;font-weight:700;margin:16px 0 8px}
+.er{color:#EF4444;margin:6px 0}
+.in{color:#94A3B8;margin:4px 0;font-size:13px}
+.btn{background:#3B82F6;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+.inp{background:#1C2130;border:1px solid #252B3A;border-radius:10px;padding:12px;color:#F1F5F9;font-size:20px;width:100%;outline:none;text-align:center;letter-spacing:8px;margin-top:8px}
+.btnY{background:#F59E0B;color:#000;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+.btnR{background:#EF4444;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+.btnG{background:#22C55E;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+h2{font-size:17px;font-weight:700;margin:16px 0 8px}
 hr{border:none;border-top:1px solid #252B3A;margin:16px 0}
+.erow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #252B3A;font-size:13px}
 </style>
 </head>
 <body>
-
-<div style="text-align:center;margin-bottom:24px">
-  <div style="font-size:48px">⏱</div>
-  <div style="font-size:24px;font-weight:800">JASL<span style="color:#3B82F6">Time</span></div>
+<div style="text-align:center;margin-bottom:20px">
+  <div style="font-size:44px">⏱</div>
+  <div style="font-size:22px;font-weight:800">JASL<span style="color:#3B82F6">Time</span></div>
 </div>
 
-<h2>Diagnòstic de connexió</h2>
-<div id="log"><div class="info">Iniciant proves…</div></div>
+<h2>Diagnòstic</h2>
+<div id="log"></div>
 
 <hr>
-<h2 id="loginTitle" style="display:none">Entrar</h2>
 <div id="loginBox" style="display:none">
-  <input class="inp" id="codeInp" type="password" placeholder="Codi" maxlength="10">
+  <h2>Entrar</h2>
+  <input class="inp" id="codeInp" type="password" placeholder="Codi" maxlength="20">
   <button class="btn" id="loginBtn">Entrar</button>
   <div id="loginErr"></div>
 </div>
 
 <div id="workerBox" style="display:none">
-  <div id="workerName" style="font-size:20px;font-weight:700;margin-bottom:16px"></div>
-  <button class="btn" id="startBtn">▶ Iniciar jornada</button>
-  <button class="btn" id="pauseBtn" style="background:#F59E0B;color:#000;display:none">⏸ Pausa</button>
-  <button class="btn" id="resumeBtn" style="background:#22C55E;display:none">▶ Reprendre</button>
-  <button class="btn" id="endBtn" style="background:#EF4444;display:none">⏹ Finalitzar</button>
-  <div id="clockState" style="margin-top:16px;font-size:13px;color:#94A3B8"></div>
+  <h2 id="workerName"></h2>
+  <div id="stateLabel" style="color:#94A3B8;margin-bottom:10px"></div>
+  <div id="actionBtns"></div>
   <div id="entriesList" style="margin-top:16px"></div>
 </div>
 
 <script>
 const SB = "https://fywkafpfcnqynvjdedfj.supabase.co";
 const KEY = "sb_publishable_9w912fn8EaE-84SAAV-Rww_xHKPipSv";
-const log = document.getElementById("log");
-let worker = null;
-let entries = [];
 
-function addLog(msg, type="info") {
+function log(msg, cls="in") {
   const d = document.createElement("div");
-  d.className = type;
+  d.className = cls;
   d.textContent = msg;
-  log.appendChild(d);
-}
-
-async function sbGet(table, query) {
-  const r = await fetch(`${SB}/rest/v1/${table}?${query}`, {
-    headers:{"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json"}
-  });
-  if(!r.ok) throw new Error("HTTP "+r.status+": "+await r.text());
-  return r.json();
-}
-
-async function sbPost(table, body) {
-  const r = await fetch(`${SB}/rest/v1/${table}`, {
-    method:"POST",
-    headers:{"apikey":KEY,"Authorization":"Bearer "+KEY,"Content-Type":"application/json","Prefer":"return=representation"},
-    body:JSON.stringify(body)
-  });
-  if(!r.ok) throw new Error("HTTP "+r.status+": "+await r.text());
-  return r.json();
+  document.getElementById("log").appendChild(d);
 }
 
 function today() {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
 
-// ── DIAGNÒSTIC ─────────────────────────────────────────────────────────────
-async function runDiag() {
-  addLog("1. Provant fetch bàsic a Supabase…");
+async function api(method, table, query, body) {
+  const url = SB+"/rest/v1/"+table+(query?"?"+query:"");
+  const opts = {
+    method: method||"GET",
+    headers: {
+      "apikey": KEY,
+      "Authorization": "Bearer "+KEY,
+      "Content-Type": "application/json",
+      "Prefer": "return=representation"
+    }
+  };
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const t = await r.text();
+  if(!r.ok) throw new Error("HTTP "+r.status+": "+t);
+  return t ? JSON.parse(t) : null;
+}
+
+// DIAGNÒSTIC
+async function diag() {
+  log("Provant connexió…");
   try {
-    const res = await fetch(`${SB}/rest/v1/workers?select=id&limit=1`, {
+    const r = await fetch(SB+"/rest/v1/workers?select=id&limit=1", {
       headers:{"apikey":KEY,"Authorization":"Bearer "+KEY}
     });
-    if(res.ok) {
-      const data = await res.json();
-      addLog("✅ Connexió a Supabase OK (HTTP 200)", "ok");
-      addLog(`   → Resposta: ${JSON.stringify(data).slice(0,80)}`, "info");
+    if(r.ok) {
+      log("✅ Connexió OK", "ok");
     } else {
-      addLog(`⚠️ Supabase respon HTTP ${res.status}`, "err");
-      const t = await res.text();
-      addLog(`   → ${t.slice(0,120)}`, "err");
+      log("❌ HTTP "+r.status, "er");
+      return;
     }
   } catch(e) {
-    addLog("❌ Error de xarxa: "+e.message, "err");
-    addLog("   → Possible bloqueig CORS o sense connexió", "info");
+    log("❌ Error xarxa: "+e.message, "er");
+    log("Comprova que tens connexió a internet", "in");
     return;
   }
 
-  addLog("2. Provant taula workers…");
+  log("Provant taula workers…");
   try {
-    const ws = await sbGet("workers","select=id,display_name,employee_code,role&limit=5");
-    addLog(`✅ Taula workers OK — ${ws.length} registres trobats`, "ok");
-    ws.forEach(w => addLog(`   · ${w.display_name} (${w.employee_code}) [${w.role}]`, "info"));
+    const ws = await api("GET","workers","select=id,display_name,employee_code&limit=5");
+    log("✅ Workers OK ("+ws.length+" registres)", "ok");
   } catch(e) {
-    addLog("❌ Error taula workers: "+e.message, "err");
-    addLog("   → Comprova RLS policies a Supabase", "info");
+    log("❌ "+e.message, "er");
     return;
   }
 
-  addLog("3. Provant taula time_entries…");
-  try {
-    const te = await sbGet("time_entries","select=id&limit=1");
-    addLog(`✅ Taula time_entries OK — ${te.length} registres`, "ok");
-  } catch(e) {
-    addLog("❌ Error taula time_entries: "+e.message, "err");
-  }
-
-  addLog("4. Provant taula daily_records…");
-  try {
-    const dr = await sbGet("daily_records","select=id&limit=1");
-    addLog(`✅ Taula daily_records OK — ${dr.length} registres`, "ok");
-  } catch(e) {
-    addLog("❌ Error taula daily_records: "+e.message, "err");
-  }
-
-  addLog("─── Tot correcte! Pots entrar ───", "ok");
-  document.getElementById("loginTitle").style.display = "block";
+  log("✅ Tot correcte — pots entrar!", "ok");
   document.getElementById("loginBox").style.display = "block";
 }
 
-// ── LOGIN ──────────────────────────────────────────────────────────────────
-document.getElementById("loginBtn").addEventListener("click", async () => {
+// LOGIN
+let W = null, entries = [];
+
+document.getElementById("loginBtn").onclick = async function() {
   const code = document.getElementById("codeInp").value.trim();
-  const errD = document.getElementById("loginErr");
-  const btn = document.getElementById("loginBtn");
   if(!code) return;
-  btn.textContent = "Verificant…"; btn.disabled = true; errD.innerHTML = "";
+  this.textContent = "Verificant…"; this.disabled = true;
+  document.getElementById("loginErr").innerHTML = "";
   try {
-    const ws = await sbGet("workers", `employee_code=eq.${code}&is_active=eq.true&select=*`);
-    if(ws && ws.length > 0) {
-      worker = ws[0];
+    const ws = await api("GET","workers","employee_code=eq."+code+"&is_active=eq.true&select=*");
+    if(ws && ws.length) {
+      W = ws[0];
       document.getElementById("loginBox").style.display = "none";
-      document.getElementById("loginTitle").style.display = "none";
       document.getElementById("workerBox").style.display = "block";
-      document.getElementById("workerName").textContent = "👋 " + worker.display_name;
-      loadEntries();
+      document.getElementById("workerName").textContent = "👋 "+W.display_name;
+      await loadEntries();
     } else {
-      errD.innerHTML = '<div class="err">❌ Codi incorrecte</div>';
-      btn.textContent = "Entrar"; btn.disabled = false;
+      document.getElementById("loginErr").innerHTML = '<div class="er">❌ Codi no trobat</div>';
+      this.textContent = "Entrar"; this.disabled = false;
     }
   } catch(e) {
-    errD.innerHTML = `<div class="err">❌ ${e.message}</div>`;
-    btn.textContent = "Entrar"; btn.disabled = false;
+    document.getElementById("loginErr").innerHTML = '<div class="er">❌ '+e.message+'</div>';
+    this.textContent = "Entrar"; this.disabled = false;
   }
-});
+};
 
-// ── FITXATGE ───────────────────────────────────────────────────────────────
+// FITXATGE
 async function loadEntries() {
   try {
-    entries = await sbGet("time_entries",
-      `worker_id=eq.${worker.id}&entry_date=eq.${today()}&is_active=eq.true&select=*&order=entry_datetime.asc`);
-    renderEntries();
+    entries = await api("GET","time_entries","worker_id=eq."+W.id+"&entry_date=eq."+today()+"&is_active=eq.true&select=*&order=entry_datetime.asc") || [];
+    render();
   } catch(e) {
-    document.getElementById("clockState").textContent = "Error: " + e.message;
+    document.getElementById("stateLabel").textContent = "Error: "+e.message;
   }
 }
 
@@ -181,31 +155,51 @@ function getState() {
   return "RUNNING";
 }
 
-function renderEntries() {
+function render() {
   const st = getState();
-  const labels = {NOT_STARTED:"Jornada no iniciada",RUNNING:"En curs ✅",PAUSED:"En pausa ⏸",FINISHED:"Finalitzada ✅"};
-  document.getElementById("clockState").textContent = labels[st] || st;
+  const stLabels = {NOT_STARTED:"Jornada no iniciada",RUNNING:"🟢 En curs",PAUSED:"🟡 En pausa",FINISHED:"✅ Finalitzada"};
+  document.getElementById("stateLabel").textContent = stLabels[st];
 
-  document.getElementById("startBtn").style.display = st==="NOT_STARTED"?"block":"none";
-  document.getElementById("pauseBtn").style.display = st==="RUNNING"?"block":"none";
-  document.getElementById("resumeBtn").style.display = st==="PAUSED"?"block":"none";
-  document.getElementById("endBtn").style.display = (st==="RUNNING"||st==="PAUSED")?"block":"none";
+  const btns = document.getElementById("actionBtns");
+  btns.innerHTML = "";
 
+  if(st==="NOT_STARTED") {
+    const b = document.createElement("button");
+    b.className="btnG"; b.textContent="▶ Iniciar jornada";
+    b.onclick = ()=>doAction("START"); btns.appendChild(b);
+  }
+  if(st==="RUNNING") {
+    const bp = document.createElement("button");
+    bp.className="btnY"; bp.textContent="⏸ Pausa";
+    bp.onclick = ()=>doAction("PAUSE-START"); btns.appendChild(bp);
+    const bf = document.createElement("button");
+    bf.className="btnR"; bf.textContent="⏹ Finalitzar";
+    bf.onclick = ()=>doAction("END"); btns.appendChild(bf);
+  }
+  if(st==="PAUSED") {
+    const br = document.createElement("button");
+    br.className="btnG"; br.textContent="▶ Reprendre";
+    br.onclick = ()=>doAction("PAUSE-END"); btns.appendChild(br);
+    const bf = document.createElement("button");
+    bf.className="btnR"; bf.textContent="⏹ Finalitzar";
+    bf.onclick = ()=>doAction("END"); btns.appendChild(bf);
+  }
+
+  const eL = {"START":"▶️ Inici","END":"⏹️ Final","PAUSE-START":"⏸️ Pausa","PAUSE-END":"▶️ Represa"};
   const el = document.getElementById("entriesList");
-  const eL = {START:"▶️ Inici",END:"⏹️ Final",START:"▶️ Inici",END:"⏹️ Final","PAUSE-START":"⏸️ Pausa","PAUSE-END":"▶️ Represa""};
   el.innerHTML = entries.map(e =>
-    `<div style="padding:6px 0;border-bottom:1px solid #252B3A;display:flex;justify-content:space-between;font-size:13px">
-      <span>${eL[e.entry_type]||e.entry_type}</span>
-      <span style="color:#94A3B8">${new Date(e.entry_datetime).toLocaleTimeString("ca-ES",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</span>
-    </div>`
+    '<div class="erow"><span>'+(eL[e.entry_type]||e.entry_type)+'</span><span style="color:#94A3B8">'+
+    new Date(e.entry_datetime).toLocaleTimeString("ca-ES",{hour:"2-digit",minute:"2-digit",second:"2-digit"})+'</span></div>'
   ).join("");
 }
 
 async function doAction(type) {
+  const btns = document.getElementById("actionBtns");
+  btns.innerHTML = '<div style="color:#94A3B8;padding:10px;text-align:center">Guardant…</div>';
   try {
     const pn = entries.filter(e=>e.entry_type==="PAUSE-START").length;
-    await sbPost("time_entries", {
-      worker_id: worker.id,
+    await api("POST","time_entries",null,{
+      worker_id: W.id,
       entry_date: today(),
       entry_datetime: new Date().toISOString(),
       entry_type: type,
@@ -215,17 +209,12 @@ async function doAction(type) {
     });
     await loadEntries();
   } catch(e) {
-    alert("Error: " + e.message);
+    btns.innerHTML = '<div class="er">❌ '+e.message+'</div>';
+    setTimeout(()=>render(), 3000);
   }
 }
 
-document.getElementById("startBtn").addEventListener("click", ()=>doAction("START"));
-document.getElementById("pauseBtn").addEventListener("click", ()=>doAction("PAUSE-START"));
-document.getElementById("resumeBtn").addEventListener("click", ()=>doAction("PAUSE-END"));
-document.getElementById("endBtn").addEventListener("click", ()=>doAction("END"));
-
-// ── INICI ──────────────────────────────────────────────────────────────────
-runDiag();
+diag();
 </script>
 
 </body>
