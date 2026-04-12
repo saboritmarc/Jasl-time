@@ -174,7 +174,7 @@ function screenSplash() {
 var page = mk(“div”,“page”,“justify-content:center;align-items:center;padding:32px”);
 var box  = mk(“div”,””,“text-align:center;max-width:300px”);
 var ttl  = mk(“div”,””,“font-size:26px;font-weight:800;margin-bottom:4px”);
-ttl.innerHTML = “JASL<span style='color:#3B82F6'>Time</span>”;
+var ttlT=document.createTextNode(“JASL”);var ttlS=mk(“span”,””,“color:#3B82F6”);ttlS.textContent=“Time”;ttl.appendChild(ttlT);ttl.appendChild(ttlS);
 var sub  = mk(“div”,””,“font-size:14px;color:#94A3B8;margin-bottom:32px”); sub.textContent = “Registre de jornada”;
 var btn  = mk(“button”,“btnP”); btn.textContent = “Entrar amb codi”; btn.onclick = function() { goTo({screen:“login”}); };
 ap(box, ttl, sub, btn); ap(page, box);
@@ -696,4 +696,4 @@ renderApp();
 </script>
 
 </body>
-</html>3
+</html>
