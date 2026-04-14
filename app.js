@@ -57,7 +57,7 @@ async function loadTodaySummary(){
   var today=new Date().toISOString().split('T')[0];
   try{
     var summary;
-    try{ summary=await rpc('get_today_summary',{p_worker_id:parseInt(state.worker.id)}); }
+    try{ var raw=await rpc('get_today_summary',{p_worker_id:parseInt(state.worker.id)}); summary=Array.isArray(raw)?raw[0]:raw; }
     catch(e1){ var rows=await dbGet('daily_records','worker_id=eq.'+state.worker.id+'&work_date=eq.'+today+'&select=*'); summary=rows[0]||{status:'NOT_STARTED',worked_minutes:0,theoretical_minutes:state.worker.daily_theoretical_minutes||480,balance_minutes:0}; }
     state.todaySummary=summary; renderTodaySummary(summary);
   }catch(e){ showToast('Error carregant resum del dia','error'); }
