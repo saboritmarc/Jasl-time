@@ -1,4 +1,3 @@
-
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -27,7 +26,7 @@ async function doLogin(){
   document.getElementById('login-error').classList.remove('show');
   try{
     var worker;
-    try{ var res=await rpc('login_by_code',{p_employee_code:code}); worker=res; }catch(e1){ var rows=await dbGet('workers','employee_code=eq.'+encodeURIComponent(code)+'&is_active=eq.true&select=*'); worker=rows[0]||null; }
+    try{ var res=await rpc('login_by_code',{p_employee_code:code}); worker=Array.isArray(res)?res[0]:res; }catch(e1){ var rows=await dbGet('workers','employee_code=eq.'+encodeURIComponent(code)+'&is_active=eq.true&select=*'); worker=rows[0]||null; }
     if(!worker||!worker.id)throw new Error('Codi no trobat');
     state.worker=worker; afterLogin();
   }catch(e){ var err=document.getElementById('login-error'); err.textContent=e.message||'Error autenticacio'; err.classList.add('show'); }
@@ -143,7 +142,14 @@ function openModal(type){
   }else if(type==='qr-view'){
     box.innerHTML='<div class="modal-title" style="text-align:center">El meu QR</div><div class="qr-wrap"><div id="qr-render"></div><div style="text-align:center;color:var(--text2);font-size:13px">'+(state.worker.qr_token||state.worker.employee_code)+'</div></div><button class="btn btn-ghost btn-full" onclick="closeModal()">Tancar</button>';
     document.getElementById('modal-overlay').classList.add('open');
-    setTimeout(function(){ var token=state.worker.qr_token||state.worker.employee_code||''; new QRCode(document.getElementById('qr-render'),{text:token,width:200,height:200,colorDark:'#000',colorLight:'#fff'}); },100);
+    setTimeout(function(){
+      var token=state.worker.qr_token||state.worker.employee_code||'';
+      var canvas=document.createElement('canvas');
+      document.getElementById('qr-render').appendChild(canvas);
+      QRCode.toCanvas(canvas,token,{width:200,margin:2},function(err){
+        if(err){ document.getElementById('qr-render').textContent=token; }
+      });
+    },100);
     return;
   }
   document.getElementById('modal-overlay').classList.add('open');
