@@ -847,7 +847,22 @@ try{
 var rows;
 try{rows=await rpc(‘get_all_day_statuses’,{});}catch(e1){rows=await dbGet(‘day_status’,‘is_active=eq.true&order=start_date.desc&select=*,workers(display_name,employee_code)’);}
 if(!rows||!rows.length){el.innerHTML=’<div class="empty-state">Cap permis</div>’;return;}
-el.innerHTML=rows.map(function(p){ var name=(p.workers&&p.workers.display_name)?p.workers.display_name:p.worker_id; var cc=p.compute_mode===‘THEORETICAL_HOURS’?‘tag-green’:‘tag-gray’; var cl=p.compute_mode===‘THEORETICAL_HOURS’?‘Teoric’:‘Zero h’; return ‘<div class="perm-row"><div class="card-row"><span style="font-weight:700">’+name+’</span><span class="tag tag-purple">’+permTypeLabel(p.day_type)+’</span></div><div class="perm-dates">’+p.start_date+’ → ‘+p.end_date+’</div><div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between"><span class="tag '+cc+'">’+cl+’</span><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="togglePermCompute(''+p.id+'',''+p.compute_mode+'')">Canviar comput</button></div></div>’; }).join(’’);
+el.innerHTML=rows.map(function(p){
+var name2=(p.workers&&p.workers.display_name)?p.workers.display_name:p.worker_id;
+var cc2=p.compute_mode===‘THEORETICAL_HOURS’?‘tag-green’:‘tag-gray’;
+var cl2=p.compute_mode===‘THEORETICAL_HOURS’?‘Teoric’:‘Zero h’;
+var h2=’<div class="perm-row">’;
+h2+=’<div class="card-row"><span style="font-weight:700">’+name2+’</span>’;
+h2+=’<span class="tag tag-purple">’+permTypeLabel(p.day_type)+’</span></div>’;
+h2+=’<div class="perm-dates">’+p.start_date+’ → ‘+p.end_date+’</div>’;
+h2+=’<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between">’;
+h2+=’<span class="tag '+cc2+'">’+cl2+’</span>’;
+h2+=’<button class=“btn btn-ghost” style=“padding:4px 10px;font-size:11px” ‘;
+h2+=‘onclick=“togglePermCompute(this.dataset.id,this.dataset.mode)” ‘;
+h2+=‘data-id=”’+p.id+’” data-mode=”’+p.compute_mode+’”>’;
+h2+=‘Canviar comput</button></div></div>’;
+return h2;
+}).join(’’);
 }catch(e){el.innerHTML=’<div class="empty-state">Error</div>’;}
 }
 
@@ -864,11 +879,28 @@ el.innerHTML=rows.map(function(w){ var b=w.annual_balance||0; var bc=b>=0?‘var
 }catch(e){el.innerHTML=’<div class="empty-state">Error</div>’;}
 }
 
-async function loadExportWorkers(){ var sel=document.getElementById(‘export-worker-select’); var ws=state.allWorkers.length?state.allWorkers:await dbGet(‘workers’,‘is_active=eq.true&select=*’).catch(function(){return[];}); sel.innerHTML=’<option value="">Selecciona treballador</option>’+ws.map(function(w){return ‘<option value="'+w.id+'">’+(w.display_name||w.employee_code)+’</option>’;}).join(’’); }
+async function loadExportWorkers(){
+var sel=document.getElementById(‘export-worker-select’);
+var ws=state.allWorkers.length?state.allWorkers:await dbGet(‘workers’,‘is_active=eq.true&select=*’).catch(function(){return[];});
+var opts=’<option value="">Selecciona treballador</option>’;
+ws.forEach(function(w){ opts+=’<option value="'+w.id+'">’+(w.display_name||w.employee_code)+’</option>’; });
+sel.innerHTML=opts;
+}
 
 async function callExport(type){ showToast(‘Generant exportacio…’,‘success’); try{ if(type===‘individual’){var wId=document.getElementById(‘export-worker-select’).value;var month=parseInt(document.getElementById(‘export-month’).value);var year=parseInt(document.getElementById(‘export-year’).value);await rpc(‘generate_worker_excel_report’,{p_worker_id:wId,p_month:month,p_year:year});}else{await rpc(‘generate_all_workers_zip’,{});} showToast(‘Exportacio completada’,‘success’); }catch(e){showToast(‘Error en la generacio’,‘error’);} }
 
-async function loadCardsWorkers(){ var el=document.getElementById(‘cards-workers-list’); var ws=state.allWorkers.length?state.allWorkers:await dbGet(‘workers’,‘is_active=eq.true&select=*’).catch(function(){return[];}); el.innerHTML=ws.map(function(w){ return ‘<div class="worker-item" onclick="state.selectedCardWorker=''+w.id+'';this.querySelector('input').checked=!this.querySelector('input').checked" style="user-select:none" id="cw-'+w.id+'"><div class="worker-avatar-sm">’+workerAvatar(w)+’</div><div style="flex:1"><div style="font-weight:700;font-size:14px">’+(w.display_name||w.employee_code)+’</div></div><input type="checkbox" style="accent-color:var(--accent);width:18px;height:18px" onclick="event.stopPropagation()"></div>’; }).join(’’); }
+async function loadCardsWorkers(){
+var el=document.getElementById(‘cards-workers-list’);
+var ws=state.allWorkers.length?state.allWorkers:await dbGet(‘workers’,‘is_active=eq.true&select=*’).catch(function(){return[];});
+var html=’’;
+ws.forEach(function(w){
+html+=’<div class="worker-item" onclick="state.selectedCardWorker='+JSON.stringify(w.id)+';this.querySelector('+JSON.stringify('input')+').checked=!this.querySelector('+JSON.stringify('input')+').checked" style="user-select:none" id="cw-'+w.id+'">’;
+html+=’<div class="worker-avatar-sm">’+workerAvatar(w)+’</div>’;
+html+=’<div style="flex:1"><div style="font-weight:700;font-size:14px">’+(w.display_name||w.employee_code)+’</div></div>’;
+html+=’<input type="checkbox" style="accent-color:var(--accent);width:18px;height:18px" onclick="event.stopPropagation()"></div>’;
+});
+el.innerHTML=html;
+}
 
 async function generateCards(all){ showToast(‘Generant targetes…’,‘success’); try{ if(all){await rpc(‘generate_multiple_cards_pdf’,{});}else{await rpc(‘generate_worker_card_pdf’,{p_worker_id:state.selectedCardWorker});} showToast(‘Targetes generades’,‘success’); }catch(e){showToast(‘Comprova el backend’,‘error’);} }
 
