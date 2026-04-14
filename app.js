@@ -65,7 +65,7 @@ async function loadTodaySummary(){
 
 function renderTodaySummary(s){
   var status=(s&&s.status)?s.status:'NOT_STARTED';
-  var sm={NOT_STARTED:{label:'No iniciat',cls:'tag-gray'},IN_PROGRESS:{label:'En curs',cls:'tag-green'},PAUSED:{label:'En pausa',cls:'tag-yellow'},FINISHED:{label:'Finalitzat',cls:'tag-purple'},INCIDENCE:{label:'Incidencia',cls:'tag-red'}};
+  var sm={NOT_STARTED:{label:'No iniciat',cls:'tag-gray'},IN_PROGRESS:{label:'En curs',cls:'tag-green'},PAUSED:{label:'En pausa',cls:'tag-yellow'},ON_PAUSE:{label:'En pausa',cls:'tag-yellow'},FINISHED:{label:'Finalitzat',cls:'tag-purple'},COMPLETED:{label:'Finalitzat',cls:'tag-purple'},INCIDENCE:{label:'Incidencia',cls:'tag-red'},INCIDENT:{label:'Incidencia',cls:'tag-red'}};
   var st=sm[status]||sm['NOT_STARTED'];
   document.getElementById('clock-status-tag').innerHTML='<span class="tag '+st.cls+'">'+st.label+'</span>';
   document.getElementById('stat-worked').textContent=minsToHM(s&&s.worked_minutes?s.worked_minutes:0);
@@ -74,10 +74,10 @@ function renderTodaySummary(s){
   var balEl=document.getElementById('stat-balance');
   balEl.textContent=(bal>=0?'+':'')+minsToHM(bal);
   balEl.style.color=bal>=0?'var(--accent)':'var(--warn)';
-  document.getElementById('btn-start').disabled=status!=='NOT_STARTED';
+  document.getElementById('btn-start').disabled=!(status==='NOT_STARTED'||status==='FINISHED'||status==='COMPLETED');
   document.getElementById('btn-pause').disabled=status!=='IN_PROGRESS';
-  document.getElementById('btn-resume').disabled=status!=='PAUSED';
-  document.getElementById('btn-end').disabled=!(status==='IN_PROGRESS'||status==='PAUSED');
+  document.getElementById('btn-resume').disabled=!(status==='PAUSED'||status==='ON_PAUSE');
+  document.getElementById('btn-end').disabled=!(status==='IN_PROGRESS'||status==='PAUSED'||status==='ON_PAUSE');
 }
 
 async function doClockAction(action){
