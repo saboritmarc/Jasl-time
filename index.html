@@ -944,13 +944,14 @@ async function loadDayDetail(date) {
     }
     // summary
     const bal = record.balance_minutes || 0;
-    document.getElementById('day-summary-cards').innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-        <div class="stat-box"><div class="stat-val">${minsToHM(record.worked_minutes||0)}</div><div class="stat-lbl">Treballat</div></div>
-        <div class="stat-box"><div class="stat-val" style="color:${bal>=0?'var(--accent)':'var(--warn)'}">${(bal>=0?'+':'')}${minsToHM(bal)}</div><div class="stat-lbl">Saldo</div></div>
-      </div>
-      ${record.status ? `<div>${dayStatusTag(record.status)}</div>` : ''}
-    `;
+    var _balColor = bal>=0 ? 'var(--accent)' : 'var(--warn)';
+    var _balPfx = bal>=0 ? '+' : '';
+    var _stHtml = record.status ? '<div>' + dayStatusTag(record.status) + '</div>' : '';
+    document.getElementById('day-summary-cards').innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">' +
+      '<div class="stat-box"><div class="stat-val">' + minsToHM(record.worked_minutes||0) + '</div><div class="stat-lbl">Treballat</div></div>' +
+      '<div class="stat-box"><div class="stat-val" style="color:' + _balColor + '">' + _balPfx + minsToHM(bal) + '</div><div class="stat-lbl">Saldo</div></div>' +
+      '</div>' + _stHtml;
     // timeline
     const tl = document.getElementById('day-timeline');
     if (!entries.length) { tl.innerHTML = '<div class="empty-state">Cap entrada per a aquest dia</div>'; return; }
@@ -1246,7 +1247,14 @@ showToast(‘Exportació completada’, ‘success’);
 async function loadCardsWorkers() {
 const el = document.getElementById(‘cards-workers-list’);
 const workers = state.allWorkers.length ? state.allWorkers : await dbGet(‘workers’,‘is_active=eq.true&select=*’);
-el.innerHTML = workers.map(w => `<div class="worker-item" onclick="this.classList.toggle('selected');state.selectedCardWorker='${w.id}'" style="user-select:none" id="cw-${w.id}"> <div class="worker-avatar-sm">${w.photo_path ?`<img src="${SUPABASE_URL}/storage/v1/object/public/worker-photos/${w.photo_path}">` : '👤'}</div> <div style="flex:1"><div style="font-weight:700;font-size:14px">${w.display_name||w.employee_code}</div></div> <input type="checkbox" style="accent-color:var(--accent);width:18px;height:18px"> </div>`).join(’’);
+el.innerHTML = workers.map(function(w) {
+var avatarHtml = w.photo_path ? ‘<img src="' + SUPABASE_URL + '/storage/v1/object/public/worker-photos/' + w.photo_path + '">’ : ‘👤’;
+return ‘<div class="worker-item" onclick="this.classList.toggle(\'selected\');state.selectedCardWorker=\'' + w.id + '\'" style="user-select:none" id="cw-' + w.id + '">’ +
+‘<div class="worker-avatar-sm">’ + avatarHtml + ‘</div>’ +
+‘<div style="flex:1"><div style="font-weight:700;font-size:14px">’ + (w.display_name||w.employee_code) + ‘</div></div>’ +
+‘<input type="checkbox" style="accent-color:var(--accent);width:18px;height:18px">’ +
+‘</div>’;
+}).join(’’);
 }
 
 async function generateCards(all) {
