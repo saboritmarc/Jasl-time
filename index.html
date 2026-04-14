@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
@@ -25,216 +26,218 @@
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
 
-  /* ── LAYOUT ── */
-  #app { height: 100%; display: flex; flex-direction: column; }
-  .page { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
-  .page.active { display: flex; }
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 20px; border-bottom: 1px solid var(--border);
-    background: var(--surface); min-height: 60px; flex-shrink: 0;
-  }
-  .topbar-title { font-size: 15px; font-weight: 700; letter-spacing: .04em; }
-  .content { padding: 20px; flex: 1; }
+/* ── LAYOUT ── */
+#app { height: 100%; display: flex; flex-direction: column; }
+.page { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+.page.active { display: flex; }
+.topbar {
+display: flex; align-items: center; justify-content: space-between;
+padding: 16px 20px; border-bottom: 1px solid var(–border);
+background: var(–surface); min-height: 60px; flex-shrink: 0;
+}
+.topbar-title { font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+.content { padding: 20px; flex: 1; }
 
-  /* ── BUTTONS ── */
-  .btn {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 14px 24px; border-radius: var(--radius); border: none;
-    font-family: var(--sans); font-size: 14px; font-weight: 700;
-    letter-spacing: .04em; cursor: pointer; transition: all .15s ease;
-    text-transform: uppercase;
-  }
-  .btn:active { transform: scale(.97); }
-  .btn-primary { background: var(--accent); color: #000; }
-  .btn-primary:hover { background: #6fffbc; }
-  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-  .btn-danger { background: var(--warn); color: #fff; }
-  .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
-  .btn-full { width: 100%; }
-  .btn:disabled { opacity: .35; cursor: not-allowed; }
+/* ── BUTTONS ── */
+.btn {
+display: flex; align-items: center; justify-content: center; gap: 8px;
+padding: 14px 24px; border-radius: var(–radius); border: none;
+font-family: var(–sans); font-size: 14px; font-weight: 700;
+letter-spacing: .04em; cursor: pointer; transition: all .15s ease;
+text-transform: uppercase;
+}
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(–accent); color: #000; }
+.btn-primary:hover { background: #6fffbc; }
+.btn-secondary { background: var(–surface2); color: var(–text); border: 1px solid var(–border); }
+.btn-danger { background: var(–warn); color: #fff; }
+.btn-ghost { background: transparent; color: var(–text2); border: 1px solid var(–border); }
+.btn-full { width: 100%; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
 
-  /* ── INPUTS ── */
-  .input-group { margin-bottom: 16px; }
-  .input-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--text2); text-transform: uppercase; margin-bottom: 6px; display: block; }
-  .input {
-    width: 100%; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 12px 16px; color: var(--text);
-    font-family: var(--mono); font-size: 16px; outline: none; transition: border-color .15s;
-  }
-  .input:focus { border-color: var(--accent); }
-  .input::placeholder { color: var(--text3); }
+/* ── INPUTS ── */
+.input-group { margin-bottom: 16px; }
+.input-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(–text2); text-transform: uppercase; margin-bottom: 6px; display: block; }
+.input {
+width: 100%; background: var(–surface2); border: 1px solid var(–border);
+border-radius: var(–radius); padding: 12px 16px; color: var(–text);
+font-family: var(–mono); font-size: 16px; outline: none; transition: border-color .15s;
+}
+.input:focus { border-color: var(–accent); }
+.input::placeholder { color: var(–text3); }
 
-  /* ── CARDS ── */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
-  .card-row { display: flex; align-items: center; justify-content: space-between; }
+/* ── CARDS ── */
+.card { background: var(–surface); border: 1px solid var(–border); border-radius: var(–radius); padding: 16px; margin-bottom: 12px; }
+.card-row { display: flex; align-items: center; justify-content: space-between; }
 
-  /* ── TAGS ── */
-  .tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-  .tag-green { background: rgba(79,255,176,.15); color: var(--accent); }
-  .tag-purple { background: rgba(124,106,255,.15); color: var(--accent2); }
-  .tag-red { background: rgba(255,107,74,.15); color: var(--warn); }
-  .tag-gray { background: var(--surface2); color: var(--text2); }
-  .tag-yellow { background: rgba(255,200,50,.15); color: #ffc832; }
+/* ── TAGS ── */
+.tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.tag-green { background: rgba(79,255,176,.15); color: var(–accent); }
+.tag-purple { background: rgba(124,106,255,.15); color: var(–accent2); }
+.tag-red { background: rgba(255,107,74,.15); color: var(–warn); }
+.tag-gray { background: var(–surface2); color: var(–text2); }
+.tag-yellow { background: rgba(255,200,50,.15); color: #ffc832; }
 
-  /* ── SPLASH ── */
-  #page-splash {
-    align-items: center; justify-content: center;
-    background: radial-gradient(ellipse at 30% 20%, rgba(124,106,255,.18) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 80%, rgba(79,255,176,.12) 0%, transparent 50%),
-                var(--bg);
-  }
-  .splash-logo { text-align: center; margin-bottom: 60px; }
-  .splash-logo .logo-mark { font-size: 64px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
-  .splash-logo .logo-mark span { color: var(--accent); }
-  .splash-logo .logo-sub { font-size: 12px; font-weight: 600; letter-spacing: .25em; color: var(--text2); text-transform: uppercase; margin-top: 6px; }
-  .splash-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
+/* ── SPLASH ── */
+#page-splash {
+align-items: center; justify-content: center;
+background: radial-gradient(ellipse at 30% 20%, rgba(124,106,255,.18) 0%, transparent 60%),
+radial-gradient(ellipse at 80% 80%, rgba(79,255,176,.12) 0%, transparent 50%),
+var(–bg);
+}
+.splash-logo { text-align: center; margin-bottom: 60px; }
+.splash-logo .logo-mark { font-size: 64px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+.splash-logo .logo-mark span { color: var(–accent); }
+.splash-logo .logo-sub { font-size: 12px; font-weight: 600; letter-spacing: .25em; color: var(–text2); text-transform: uppercase; margin-top: 6px; }
+.splash-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
 
-  /* ── LOGIN ── */
-  #page-login { align-items: center; justify-content: center; padding: 32px 24px; }
-  .login-box { width: 100%; max-width: 360px; }
-  .login-header { margin-bottom: 32px; }
-  .login-header h1 { font-size: 28px; font-weight: 800; }
-  .login-header p { color: var(--text2); font-size: 14px; margin-top: 4px; }
-  .code-input-wrap { position: relative; }
-  .code-input { font-size: 28px !important; letter-spacing: .3em; text-align: center; padding: 20px !important; }
-  .error-msg { color: var(--warn); font-size: 13px; margin-top: 8px; display: none; }
-  .error-msg.show { display: block; }
+/* ── LOGIN ── */
+#page-login { align-items: center; justify-content: center; padding: 32px 24px; }
+.login-box { width: 100%; max-width: 360px; }
+.login-header { margin-bottom: 32px; }
+.login-header h1 { font-size: 28px; font-weight: 800; }
+.login-header p { color: var(–text2); font-size: 14px; margin-top: 4px; }
+.code-input-wrap { position: relative; }
+.code-input { font-size: 28px !important; letter-spacing: .3em; text-align: center; padding: 20px !important; }
+.error-msg { color: var(–warn); font-size: 13px; margin-top: 8px; display: none; }
+.error-msg.show { display: block; }
 
-  /* ── WORKER HOME ── */
-  .worker-hero { padding: 24px 20px 0; }
-  .worker-name { font-size: 22px; font-weight: 800; }
-  .worker-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
-  .clock-display {
-    margin: 24px 20px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: 16px; padding: 24px;
-    text-align: center;
-  }
-  .clock-time { font-family: var(--mono); font-size: 52px; font-weight: 500; letter-spacing: -.02em; line-height: 1; }
-  .clock-date { font-size: 12px; color: var(--text2); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
-  .clock-status { margin-top: 16px; }
-  .day-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 0 20px 24px; }
-  .stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; text-align: center; }
-  .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 500; }
-  .stat-lbl { font-size: 10px; color: var(--text2); letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
-  .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px 20px; }
-  .action-btn-big {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 18px 14px; text-align: center;
-    cursor: pointer; transition: all .15s; font-family: var(--sans);
-    font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-    color: var(--text);
-  }
-  .action-btn-big:active { transform: scale(.97); }
-  .action-btn-big.start { border-color: var(--accent); color: var(--accent); }
-  .action-btn-big.pause { border-color: #ffc832; color: #ffc832; }
-  .action-btn-big.resume { border-color: var(--accent2); color: var(--accent2); }
-  .action-btn-big.end { border-color: var(--warn); color: var(--warn); }
-  .action-btn-big:disabled { opacity: .25; cursor: not-allowed; }
-  .action-icon { font-size: 28px; }
-  .bottom-nav {
-    display: grid; grid-template-columns: repeat(5, 1fr);
-    border-top: 1px solid var(--border); background: var(--surface);
-    padding-bottom: env(safe-area-inset-bottom, 0px); flex-shrink: 0;
-  }
-  .nav-item {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 10px 4px; gap: 4px; cursor: pointer; transition: color .15s;
-    font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-    color: var(--text3); border: none; background: none; font-family: var(--sans);
-  }
-  .nav-item.active { color: var(--accent); }
-  .nav-item svg { width: 20px; height: 20px; }
+/* ── WORKER HOME ── */
+.worker-hero { padding: 24px 20px 0; }
+.worker-name { font-size: 22px; font-weight: 800; }
+.worker-sub { font-size: 13px; color: var(–text2); margin-top: 2px; }
+.clock-display {
+margin: 24px 20px; background: var(–surface);
+border: 1px solid var(–border); border-radius: 16px; padding: 24px;
+text-align: center;
+}
+.clock-time { font-family: var(–mono); font-size: 52px; font-weight: 500; letter-spacing: -.02em; line-height: 1; }
+.clock-date { font-size: 12px; color: var(–text2); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
+.clock-status { margin-top: 16px; }
+.day-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 0 20px 24px; }
+.stat-box { background: var(–surface); border: 1px solid var(–border); border-radius: var(–radius); padding: 14px; text-align: center; }
+.stat-val { font-family: var(–mono); font-size: 20px; font-weight: 500; }
+.stat-lbl { font-size: 10px; color: var(–text2); letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px 20px; }
+.action-btn-big {
+background: var(–surface); border: 1px solid var(–border);
+border-radius: var(–radius); padding: 18px 14px; text-align: center;
+cursor: pointer; transition: all .15s; font-family: var(–sans);
+font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+display: flex; flex-direction: column; align-items: center; gap: 10px;
+color: var(–text);
+}
+.action-btn-big:active { transform: scale(.97); }
+.action-btn-big.start { border-color: var(–accent); color: var(–accent); }
+.action-btn-big.pause { border-color: #ffc832; color: #ffc832; }
+.action-btn-big.resume { border-color: var(–accent2); color: var(–accent2); }
+.action-btn-big.end { border-color: var(–warn); color: var(–warn); }
+.action-btn-big:disabled { opacity: .25; cursor: not-allowed; }
+.action-icon { font-size: 28px; }
+.bottom-nav {
+display: grid; grid-template-columns: repeat(5, 1fr);
+border-top: 1px solid var(–border); background: var(–surface);
+padding-bottom: env(safe-area-inset-bottom, 0px); flex-shrink: 0;
+}
+.nav-item {
+display: flex; flex-direction: column; align-items: center; justify-content: center;
+padding: 10px 4px; gap: 4px; cursor: pointer; transition: color .15s;
+font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+color: var(–text3); border: none; background: none; font-family: var(–sans);
+}
+.nav-item.active { color: var(–accent); }
+.nav-item svg { width: 20px; height: 20px; }
 
-  /* ── HISTORY ── */
-  .month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-  .month-nav-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--text); font-family: var(--sans); font-weight: 700; cursor: pointer; font-size: 13px; }
-  .month-nav-title { font-size: 16px; font-weight: 800; }
-  .history-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; }
-  .history-row:active { background: var(--surface2); }
-  .history-date { font-family: var(--mono); font-size: 13px; color: var(--text2); width: 68px; flex-shrink: 0; }
-  .history-info { flex: 1; }
-  .history-hours { font-family: var(--mono); font-size: 14px; font-weight: 500; }
-  .history-status { font-size: 11px; color: var(--text2); margin-top: 2px; }
-  .history-balance { font-family: var(--mono); font-size: 13px; font-weight: 500; }
-  .balance-pos { color: var(--accent); }
-  .balance-neg { color: var(--warn); }
+/* ── HISTORY ── */
+.month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.month-nav-btn { background: var(–surface2); border: 1px solid var(–border); border-radius: 8px; padding: 8px 14px; color: var(–text); font-family: var(–sans); font-weight: 700; cursor: pointer; font-size: 13px; }
+.month-nav-title { font-size: 16px; font-weight: 800; }
+.history-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(–border); cursor: pointer; transition: background .1s; }
+.history-row:active { background: var(–surface2); }
+.history-date { font-family: var(–mono); font-size: 13px; color: var(–text2); width: 68px; flex-shrink: 0; }
+.history-info { flex: 1; }
+.history-hours { font-family: var(–mono); font-size: 14px; font-weight: 500; }
+.history-status { font-size: 11px; color: var(–text2); margin-top: 2px; }
+.history-balance { font-family: var(–mono); font-size: 13px; font-weight: 500; }
+.balance-pos { color: var(–accent); }
+.balance-neg { color: var(–warn); }
 
-  /* ── DAY DETAIL ── */
-  .timeline { position: relative; padding-left: 24px; }
-  .timeline::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 1px; background: var(--border); }
-  .timeline-item { position: relative; margin-bottom: 20px; }
-  .timeline-dot { position: absolute; left: -21px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent2); border: 2px solid var(--bg); }
-  .timeline-dot.start { background: var(--accent); }
-  .timeline-dot.end { background: var(--warn); }
-  .timeline-dot.pause { background: #ffc832; }
-  .timeline-time { font-family: var(--mono); font-size: 15px; font-weight: 500; }
-  .timeline-type { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+/* ── DAY DETAIL ── */
+.timeline { position: relative; padding-left: 24px; }
+.timeline::before { content: ‘’; position: absolute; left: 7px; top: 0; bottom: 0; width: 1px; background: var(–border); }
+.timeline-item { position: relative; margin-bottom: 20px; }
+.timeline-dot { position: absolute; left: -21px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(–accent2); border: 2px solid var(–bg); }
+.timeline-dot.start { background: var(–accent); }
+.timeline-dot.end { background: var(–warn); }
+.timeline-dot.pause { background: #ffc832; }
+.timeline-time { font-family: var(–mono); font-size: 15px; font-weight: 500; }
+.timeline-type { font-size: 11px; color: var(–text2); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
 
-  /* ── PERMISSIONS ── */
-  .perm-row { padding: 14px 0; border-bottom: 1px solid var(--border); }
-  .perm-dates { font-family: var(--mono); font-size: 13px; color: var(--text2); margin-top: 4px; }
+/* ── PERMISSIONS ── */
+.perm-row { padding: 14px 0; border-bottom: 1px solid var(–border); }
+.perm-dates { font-family: var(–mono); font-size: 13px; color: var(–text2); margin-top: 4px; }
 
-  /* ── ADMIN ── */
-  .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
-  .admin-stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
-  .admin-stat-val { font-family: var(--mono); font-size: 28px; font-weight: 500; }
-  .admin-stat-lbl { font-size: 11px; color: var(--text2); letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
+/* ── ADMIN ── */
+.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+.admin-stat { background: var(–surface); border: 1px solid var(–border); border-radius: var(–radius); padding: 16px; }
+.admin-stat-val { font-family: var(–mono); font-size: 28px; font-weight: 500; }
+.admin-stat-lbl { font-size: 11px; color: var(–text2); letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
 
-  /* ── SETTINGS ── */
-  .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); }
-  .setting-label { font-size: 14px; font-weight: 600; }
-  .setting-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
-  .toggle { width: 44px; height: 24px; background: var(--surface2); border-radius: 12px; position: relative; cursor: pointer; transition: background .2s; border: 1px solid var(--border); flex-shrink: 0; }
-  .toggle.on { background: var(--accent); border-color: var(--accent); }
-  .toggle::after { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: left .2s; }
-  .toggle.on::after { left: 22px; }
+/* ── SETTINGS ── */
+.setting-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(–border); }
+.setting-label { font-size: 14px; font-weight: 600; }
+.setting-sub { font-size: 12px; color: var(–text2); margin-top: 2px; }
+.toggle { width: 44px; height: 24px; background: var(–surface2); border-radius: 12px; position: relative; cursor: pointer; transition: background .2s; border: 1px solid var(–border); flex-shrink: 0; }
+.toggle.on { background: var(–accent); border-color: var(–accent); }
+.toggle::after { content: ‘’; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: left .2s; }
+.toggle.on::after { left: 22px; }
 
-  /* ── PROFILE ── */
-  .profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(--surface2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; flex-shrink: 0; }
-  .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+/* ── PROFILE ── */
+.profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(–surface2); border: 2px solid var(–border); display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; flex-shrink: 0; }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-  /* ── QR PAGE ── */
-  .qr-wrap { display: flex; flex-direction: column; align-items: center; padding: 32px 20px; gap: 24px; }
-  #qr-canvas { border-radius: 12px; background: #fff; padding: 16px; }
+/* ── QR PAGE ── */
+.qr-wrap { display: flex; flex-direction: column; align-items: center; padding: 32px 20px; gap: 24px; }
+#qr-canvas { border-radius: 12px; background: #fff; padding: 16px; }
 
-  /* ── MODAL ── */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
-  .modal-overlay.open { display: flex; }
-  .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px 20px 0 0; width: 100%; max-width: 540px; padding: 24px; max-height: 85vh; overflow-y: auto; }
-  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+/* ── MODAL ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(–surface); border: 1px solid var(–border); border-radius: 20px 20px 0 0; width: 100%; max-width: 540px; padding: 24px; max-height: 85vh; overflow-y: auto; }
+.modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
 
-  /* ── LOADER ── */
-  .loader { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.2); border-top-color: currentColor; border-radius: 50%; animation: spin .6s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* ── LOADER ── */
+.loader { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.2); border-top-color: currentColor; border-radius: 50%; animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── TOAST ── */
-  #toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface); border: 1px solid var(--border); border-radius: 100px; padding: 10px 20px; font-size: 13px; font-weight: 600; white-space: nowrap; z-index: 200; opacity: 0; transition: all .3s; pointer-events: none; }
-  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  #toast.success { border-color: var(--accent); color: var(--accent); }
-  #toast.error { border-color: var(--warn); color: var(--warn); }
+/* ── TOAST ── */
+#toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(–surface); border: 1px solid var(–border); border-radius: 100px; padding: 10px 20px; font-size: 13px; font-weight: 600; white-space: nowrap; z-index: 200; opacity: 0; transition: all .3s; pointer-events: none; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.success { border-color: var(–accent); color: var(–accent); }
+#toast.error { border-color: var(–warn); color: var(–warn); }
 
-  /* ── MISC ── */
-  .section-title { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text2); margin-bottom: 12px; margin-top: 8px; }
-  .empty-state { text-align: center; padding: 48px 20px; color: var(--text3); font-size: 14px; }
-  .sep { height: 1px; background: var(--border); margin: 4px 0; }
-  select.input { appearance: none; }
-  textarea.input { resize: vertical; min-height: 80px; }
-  .flex-gap { display: flex; gap: 10px; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; }
-  .chip.active { background: rgba(79,255,176,.1); border-color: var(--accent); color: var(--accent); }
-  .back-btn { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 20px; padding: 4px; }
-  .workers-list .worker-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
-  .worker-avatar-sm { width: 40px; height: 40px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; flex-shrink: 0; }
-  .worker-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
+/* ── MISC ── */
+.section-title { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(–text2); margin-bottom: 12px; margin-top: 8px; }
+.empty-state { text-align: center; padding: 48px 20px; color: var(–text3); font-size: 14px; }
+.sep { height: 1px; background: var(–border); margin: 4px 0; }
+select.input { appearance: none; }
+textarea.input { resize: vertical; min-height: 80px; }
+.flex-gap { display: flex; gap: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(–surface2); border: 1px solid var(–border); border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.chip.active { background: rgba(79,255,176,.1); border-color: var(–accent); color: var(–accent); }
+.back-btn { background: none; border: none; color: var(–text2); cursor: pointer; font-size: 20px; padding: 4px; }
+.workers-list .worker-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(–border); cursor: pointer; }
+.worker-avatar-sm { width: 40px; height: 40px; border-radius: 50%; background: var(–surface2); border: 1px solid var(–border); display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; flex-shrink: 0; }
+.worker-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
 </style>
+
 </head>
 <body>
 <div id="app">
 
   <!-- ═══════════════════════════════ SPLASH ═══════════════════════════════ -->
+
   <div id="page-splash" class="page">
     <div class="splash-logo">
       <div class="logo-mark">JASL<span>·</span>Time</div>
@@ -251,6 +254,7 @@
   </div>
 
   <!-- ═══════════════════════════════ LOGIN ═══════════════════════════════ -->
+
   <div id="page-login" class="page">
     <div class="login-box">
       <div class="login-header">
@@ -270,6 +274,7 @@
   </div>
 
   <!-- ═══════════════════════════════ WORKER HOME ══════════════════════════ -->
+
   <div id="page-worker-home" class="page">
     <div class="worker-hero">
       <div style="display:flex;align-items:center;gap:14px">
@@ -339,6 +344,7 @@
   </div>
 
   <!-- ═══════════════════════════════ HISTORY ══════════════════════════════ -->
+
   <div id="page-history" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="switchTab('home')">←</button>
@@ -356,6 +362,7 @@
   </div>
 
   <!-- ═══════════════════════════════ DAY DETAIL ═══════════════════════════ -->
+
   <div id="page-day-detail" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="showPage('worker-home'); switchTab('history')">←</button>
@@ -370,6 +377,7 @@
   </div>
 
   <!-- ═══════════════════════════════ PERMISSIONS ══════════════════════════ -->
+
   <div id="page-perms" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="switchTab('home')">←</button>
@@ -382,6 +390,7 @@
   </div>
 
   <!-- ═══════════════════════════════ BALANCE ══════════════════════════════ -->
+
   <div id="page-balance" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="switchTab('home')">←</button>
@@ -394,6 +403,7 @@
   </div>
 
   <!-- ═══════════════════════════════ PROFILE ══════════════════════════════ -->
+
   <div id="page-profile" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="switchTab('home')">←</button>
@@ -416,6 +426,7 @@
   </div>
 
   <!-- ═══════════════════════════════ ADMIN HOME ═══════════════════════════ -->
+
   <div id="page-admin-home" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <div class="topbar-title">⚙ Admin · JASL Time</div>
@@ -437,6 +448,7 @@
   </div>
 
   <!-- ═══════════════════════════════ WORKERS LIST ═══════════════════════════ -->
+
   <div id="page-workers" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="showPage('admin-home')">←</button>
@@ -449,6 +461,7 @@
   </div>
 
   <!-- ═══════════════════════════════ ALL RECORDS ═══════════════════════════ -->
+
   <div id="page-all-records" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="showPage('admin-home')">←</button>
@@ -466,6 +479,7 @@
   </div>
 
   <!-- ═══════════════════════════════ ALL PERMS ════════════════════════════ -->
+
   <div id="page-all-perms" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="showPage('admin-home')">←</button>
@@ -478,6 +492,7 @@
   </div>
 
   <!-- ═══════════════════════════════ ALL BALANCES ═════════════════════════ -->
+
   <div id="page-all-balances" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="showPage('admin-home')">←</button>
@@ -490,6 +505,7 @@
   </div>
 
   <!-- ═══════════════════════════════ EXPORTS ══════════════════════════════ -->
+
   <div id="page-exports" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="showPage('admin-home')">←</button>
@@ -529,6 +545,7 @@
   </div>
 
   <!-- ═══════════════════════════════ CARDS ════════════════════════════════ -->
+
   <div id="page-cards" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="showPage('admin-home')">←</button>
@@ -546,6 +563,7 @@
   </div>
 
   <!-- ═══════════════════════════════ SETTINGS ═════════════════════════════ -->
+
   <div id="page-settings" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
       <button class="back-btn" onclick="showPage('admin-home')">←</button>
@@ -559,6 +577,7 @@
   </div>
 
   <!-- ═══════════════════════════════ QR SCAN ══════════════════════════════ -->
+
   <div id="page-qr-scan" class="page" style="align-items:center;justify-content:center;flex-direction:column;gap:20px">
     <div style="text-align:center">
       <div style="font-size:48px;margin-bottom:12px">◻</div>
@@ -577,6 +596,7 @@
 </div><!-- #app -->
 
 <!-- ═══════════════════════════════ MODALS ════════════════════════════════ -->
+
 <div id="modal-overlay" class="modal-overlay" onclick="closeModalOutside(event)">
   <div class="modal-box" id="modal-box">
     <!-- content injected -->
@@ -586,6 +606,7 @@
 <div id="toast"></div>
 
 <!-- ══════════════════════════ QR LIB ════════════════════════════ -->
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
@@ -728,7 +749,7 @@ async function doLogin() {
     // Try RPC first, fallback to direct query
     let worker;
     try {
-      const res = await rpc('login_by_code', { p_code: code });
+      const res = await rpc('login_by_code', { p_employee_code: code });
       worker = res;
     } catch {
       // fallback: direct query
@@ -787,7 +808,7 @@ async function loadTodaySummary() {
   try {
     let summary;
     try {
-      summary = await rpc('get_today_summary', { p_worker_id: state.worker.id });
+      summary = await rpc('get_today_summary', { p_worker_id: parseInt(state.worker.id) });
     } catch {
       const rows = await dbGet('daily_records', `worker_id=eq.${state.worker.id}&work_date=eq.${today}&select=*`);
       summary = rows[0] || { status: 'NOT_STARTED', worked_minutes: 0, theoretical_minutes: state.worker.daily_theoretical_minutes || 480, balance_minutes: 0 };
@@ -829,7 +850,7 @@ async function doClockAction(action) {
   const rpcName = actionMap[action];
   try {
     try {
-      await rpc(rpcName, { p_worker_id: state.worker.id, p_source_method: 'CODE' });
+      await rpc(rpcName, { p_worker_id: parseInt(state.worker.id) });
     } catch {
       // fallback: insert time_entry directly
       const entryTypeMap = { start: 'START', pause: 'PAUSE_START', resume: 'PAUSE_END', end: 'END' };
@@ -851,7 +872,7 @@ async function doClockAction(action) {
         is_active: true,
       });
       // recalculate daily_records
-      try { await rpc('recalculate_daily_record', { p_worker_id: state.worker.id, p_date: today }); } catch {}
+      try { await rpc('recalculate_daily_record', { p_worker_id: parseInt(state.worker.id), p_work_date: today }); } catch {}
     }
     showToast(labelMap[action], 'success');
     await loadTodaySummary();
@@ -1001,80 +1022,68 @@ function openModal(type, data) {
       <div class="input-group">
         <label class="input-label">Comentari (opcional)</label>
         <textarea id="perm-comment" class="input" placeholder="Descripció…"></textarea>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel·lar</button>
-        <button class="btn btn-primary" style="flex:1" onclick="savePerm()">Guardar</button>
-      </div>`;
-  } else if (type === 'qr-view') {
-    box.innerHTML = `
-      <div class="modal-title" style="text-align:center">El meu QR</div>
-      <div class="qr-wrap">
-        <div id="qr-render"></div>
-        <div style="text-align:center;color:var(--text2);font-size:13px">${state.worker?.qr_token || state.worker?.employee_code}</div>
-      </div>
-      <button class="btn btn-ghost btn-full" onclick="closeModal()">Tancar</button>`;
-    document.getElementById('modal-overlay').classList.add('open');
-    setTimeout(() => {
-      const token = state.worker?.qr_token || state.worker?.employee_code || '';
-      new QRCode(document.getElementById('qr-render'), { text: token, width: 200, height: 200, colorDark: '#000', colorLight: '#fff' });
-    }, 100);
-    return;
-  }
-  document.getElementById('modal-overlay').classList.add('open');
+
+```
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel·lar</button>
+    <button class="btn btn-primary" style="flex:1" onclick="savePerm()">Guardar</button>
+  </div>`;
+```
+
+} else if (type === ‘qr-view’) {
+box.innerHTML = ` <div class="modal-title" style="text-align:center">El meu QR</div> <div class="qr-wrap"> <div id="qr-render"></div> <div style="text-align:center;color:var(--text2);font-size:13px">${state.worker?.qr_token || state.worker?.employee_code}</div> </div> <button class="btn btn-ghost btn-full" onclick="closeModal()">Tancar</button>`;
+document.getElementById(‘modal-overlay’).classList.add(‘open’);
+setTimeout(() => {
+const token = state.worker?.qr_token || state.worker?.employee_code || ‘’;
+new QRCode(document.getElementById(‘qr-render’), { text: token, width: 200, height: 200, colorDark: ‘#000’, colorLight: ‘#fff’ });
+}, 100);
+return;
+}
+document.getElementById(‘modal-overlay’).classList.add(‘open’);
 }
 
 async function savePerm() {
-  const type = document.getElementById('perm-type').value;
-  const start = document.getElementById('perm-start').value;
-  const end = document.getElementById('perm-end').value;
-  const comment = document.getElementById('perm-comment').value;
-  if (!start || !end) { showToast('Dates obligatòries', 'error'); return; }
-  try {
-    try {
-      await rpc('create_day_status', { p_worker_id: state.worker.id, p_day_type: type, p_start_date: start, p_end_date: end, p_comment: comment });
-    } catch {
-      await dbPost('day_status', { worker_id: state.worker.id, day_type: type, start_date: start, end_date: end, compute_mode: 'THEORETICAL_HOURS', comment, is_active: true });
-    }
-    closeModal();
-    showToast('Permís creat', 'success');
-    loadMyPerms();
-  } catch (e) { showToast(e?.message || 'Error creant permís', 'error'); }
+const type = document.getElementById(‘perm-type’).value;
+const start = document.getElementById(‘perm-start’).value;
+const end = document.getElementById(‘perm-end’).value;
+const comment = document.getElementById(‘perm-comment’).value;
+if (!start || !end) { showToast(‘Dates obligatòries’, ‘error’); return; }
+try {
+try {
+await rpc(‘create_day_status’, { p_worker_id: state.worker.id, p_day_type: type, p_start_date: start, p_end_date: end, p_comment: comment });
+} catch {
+await dbPost(‘day_status’, { worker_id: state.worker.id, day_type: type, start_date: start, end_date: end, compute_mode: ‘THEORETICAL_HOURS’, comment, is_active: true });
+}
+closeModal();
+showToast(‘Permís creat’, ‘success’);
+loadMyPerms();
+} catch (e) { showToast(e?.message || ‘Error creant permís’, ‘error’); }
 }
 
-function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
-function closeModalOutside(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+function closeModal() { document.getElementById(‘modal-overlay’).classList.remove(‘open’); }
+function closeModalOutside(e) { if (e.target === document.getElementById(‘modal-overlay’)) closeModal(); }
 
 // ════════════════════════════════════════════════
 // BALANCE
 // ════════════════════════════════════════════════
 async function loadMyBalance() {
-  const el = document.getElementById('balance-content');
-  el.innerHTML = '<div class="empty-state"><span class="loader"></span></div>';
-  try {
-    let data;
-    try { data = await rpc('get_worker_balance', { p_worker_id: state.worker.id }); }
-    catch {
-      const now = new Date();
-      const rows = await dbGet('daily_records', `worker_id=eq.${state.worker.id}&work_date=gte.${now.getFullYear()}-01-01&select=balance_minutes,work_date`);
-      const total = rows.reduce((a, r) => a + (r.balance_minutes || 0), 0);
-      const month = rows.filter(r => r.work_date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).reduce((a,r)=>a+(r.balance_minutes||0),0);
-      data = { annual_balance: total, monthly_balance: month };
-    }
-    const ab = data?.annual_balance || 0;
-    const mb = data?.monthly_balance || 0;
-    el.innerHTML = `
-      <div style="display:grid;gap:12px;margin-bottom:24px">
-        <div class="card">
-          <div class="stat-lbl">Saldo mensual</div>
-          <div style="font-family:var(--mono);font-size:36px;font-weight:500;margin-top:8px;color:${mb>=0?'var(--accent)':'var(--warn)'}">${mb>=0?'+':''}${minsToHM(mb)}</div>
-        </div>
-        <div class="card">
-          <div class="stat-lbl">Saldo anual</div>
-          <div style="font-family:var(--mono);font-size:36px;font-weight:500;margin-top:8px;color:${ab>=0?'var(--accent)':'var(--warn)'}">${ab>=0?'+':''}${minsToHM(ab)}</div>
-        </div>
-      </div>`;
-  } catch { el.innerHTML = '<div class="empty-state">Error carregant saldo</div>'; }
+const el = document.getElementById(‘balance-content’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+let data;
+try { data = await rpc(‘get_worker_balance’, { p_worker_id: state.worker.id }); }
+catch {
+const now = new Date();
+const rows = await dbGet(‘daily_records’, `worker_id=eq.${state.worker.id}&work_date=gte.${now.getFullYear()}-01-01&select=balance_minutes,work_date`);
+const total = rows.reduce((a, r) => a + (r.balance_minutes || 0), 0);
+const month = rows.filter(r => r.work_date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).reduce((a,r)=>a+(r.balance_minutes||0),0);
+data = { annual_balance: total, monthly_balance: month };
+}
+const ab = data?.annual_balance || 0;
+const mb = data?.monthly_balance || 0;
+el.innerHTML = ` <div style="display:grid;gap:12px;margin-bottom:24px"> <div class="card"> <div class="stat-lbl">Saldo mensual</div> <div style="font-family:var(--mono);font-size:36px;font-weight:500;margin-top:8px;color:${mb>=0?'var(--accent)':'var(--warn)'}">${mb>=0?'+':''}${minsToHM(mb)}</div> </div> <div class="card"> <div class="stat-lbl">Saldo anual</div> <div style="font-family:var(--mono);font-size:36px;font-weight:500;margin-top:8px;color:${ab>=0?'var(--accent)':'var(--warn)'}">${ab>=0?'+':''}${minsToHM(ab)}</div> </div> </div>`;
+} catch { el.innerHTML = ‘<div class="empty-state">Error carregant saldo</div>’; }
 }
 
 // ════════════════════════════════════════════════
@@ -1082,239 +1091,194 @@ async function loadMyBalance() {
 // ════════════════════════════════════════════════
 function loadProfile() { /* already populated at login */ }
 
-function openPhotoUpload() { document.getElementById('photo-input').click(); }
+function openPhotoUpload() { document.getElementById(‘photo-input’).click(); }
 
 async function uploadPhoto(event) {
-  const file = event.target.files[0];
-  if (!file || !state.worker) return;
-  const ext = file.name.split('.').pop();
-  const path = `${state.worker.id}.${ext}`;
-  try {
-    const r = await fetch(`${SUPABASE_URL}/storage/v1/object/worker-photos/${path}`, {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': file.type, 'x-upsert': 'true' },
-      body: file,
-    });
-    if (!r.ok) throw new Error('Error pujant foto');
-    await dbPatch('workers', `id=eq.${state.worker.id}`, { photo_path: path });
-    state.worker.photo_path = path;
-    const url = `${SUPABASE_URL}/storage/v1/object/public/worker-photos/${path}`;
-    document.getElementById('profile-avatar').innerHTML = `<img src="${url}">`;
-    document.getElementById('home-avatar').innerHTML = `<img src="${url}">`;
-    showToast('Foto actualitzada', 'success');
-  } catch (e) { showToast(e.message || 'Error', 'error'); }
+const file = event.target.files[0];
+if (!file || !state.worker) return;
+const ext = file.name.split(’.’).pop();
+const path = `${state.worker.id}.${ext}`;
+try {
+const r = await fetch(`${SUPABASE_URL}/storage/v1/object/worker-photos/${path}`, {
+method: ‘POST’,
+headers: { ‘apikey’: SUPABASE_KEY, ‘Authorization’: `Bearer ${SUPABASE_KEY}`, ‘Content-Type’: file.type, ‘x-upsert’: ‘true’ },
+body: file,
+});
+if (!r.ok) throw new Error(‘Error pujant foto’);
+await dbPatch(‘workers’, `id=eq.${state.worker.id}`, { photo_path: path });
+state.worker.photo_path = path;
+const url = `${SUPABASE_URL}/storage/v1/object/public/worker-photos/${path}`;
+document.getElementById(‘profile-avatar’).innerHTML = `<img src="${url}">`;
+document.getElementById(‘home-avatar’).innerHTML = `<img src="${url}">`;
+showToast(‘Foto actualitzada’, ‘success’);
+} catch (e) { showToast(e.message || ‘Error’, ‘error’); }
 }
 
 // ════════════════════════════════════════════════
 // ADMIN
 // ════════════════════════════════════════════════
 async function loadAdminStats() {
-  const el = document.getElementById('admin-stats');
-  try {
-    let data;
-    try { data = await rpc('get_admin_dashboard_summary', {}); }
-    catch {
-      const workers = await dbGet('workers', 'is_active=eq.true&select=id');
-      const today = new Date().toISOString().split('T')[0];
-      const inProgress = await dbGet('daily_records', `work_date=eq.${today}&status=eq.IN_PROGRESS&select=id`);
-      const incidences = await dbGet('daily_records', `work_date=eq.${today}&has_incidence=eq.true&select=id`);
-      data = { total_workers: workers.length, in_progress_today: inProgress.length, incidences_today: incidences.length };
-    }
-    el.innerHTML = `
-      <div class="admin-stat"><div class="admin-stat-val">${data.total_workers || 0}</div><div class="admin-stat-lbl">Treballadors</div></div>
-      <div class="admin-stat"><div class="admin-stat-val" style="color:var(--accent)">${data.in_progress_today || 0}</div><div class="admin-stat-lbl">En curs avui</div></div>
-      <div class="admin-stat"><div class="admin-stat-val" style="color:var(--warn)">${data.incidences_today || 0}</div><div class="admin-stat-lbl">Incidències</div></div>
-      <div class="admin-stat"><div class="admin-stat-val" style="color:var(--accent2)">${data.finished_today || 0}</div><div class="admin-stat-lbl">Finalitzats</div></div>`;
-  } catch { el.innerHTML = '<div style="color:var(--text2);font-size:13px">Error carregant estadístiques</div>'; }
+const el = document.getElementById(‘admin-stats’);
+try {
+let data;
+try { data = await rpc(‘get_admin_dashboard_summary’, {}); }
+catch {
+const workers = await dbGet(‘workers’, ‘is_active=eq.true&select=id’);
+const today = new Date().toISOString().split(‘T’)[0];
+const inProgress = await dbGet(‘daily_records’, `work_date=eq.${today}&status=eq.IN_PROGRESS&select=id`);
+const incidences = await dbGet(‘daily_records’, `work_date=eq.${today}&has_incidence=eq.true&select=id`);
+data = { total_workers: workers.length, in_progress_today: inProgress.length, incidences_today: incidences.length };
+}
+el.innerHTML = ` <div class="admin-stat"><div class="admin-stat-val">${data.total_workers || 0}</div><div class="admin-stat-lbl">Treballadors</div></div> <div class="admin-stat"><div class="admin-stat-val" style="color:var(--accent)">${data.in_progress_today || 0}</div><div class="admin-stat-lbl">En curs avui</div></div> <div class="admin-stat"><div class="admin-stat-val" style="color:var(--warn)">${data.incidences_today || 0}</div><div class="admin-stat-lbl">Incidències</div></div> <div class="admin-stat"><div class="admin-stat-val" style="color:var(--accent2)">${data.finished_today || 0}</div><div class="admin-stat-lbl">Finalitzats</div></div>`;
+} catch { el.innerHTML = ‘<div style="color:var(--text2);font-size:13px">Error carregant estadístiques</div>’; }
 }
 
 async function loadWorkersForAdmin() {
-  try {
-    state.allWorkers = await dbGet('workers', 'is_active=eq.true&order=display_name.asc&select=*');
-  } catch {}
+try {
+state.allWorkers = await dbGet(‘workers’, ‘is_active=eq.true&order=display_name.asc&select=*’);
+} catch {}
 }
 
 async function loadWorkers() {
-  const el = document.getElementById('workers-list');
-  el.innerHTML = '<div class="empty-state"><span class="loader"></span></div>';
-  try {
-    const rows = state.allWorkers.length ? state.allWorkers : await dbGet('workers', 'order=display_name.asc&select=*');
-    if (!rows.length) { el.innerHTML = '<div class="empty-state">Cap treballador</div>'; return; }
-    el.innerHTML = rows.map(w => `
-      <div class="worker-item">
-        <div class="worker-avatar-sm">${w.photo_path ? `<img src="${SUPABASE_URL}/storage/v1/object/public/worker-photos/${w.photo_path}">` : '👤'}</div>
-        <div style="flex:1">
-          <div style="font-weight:700;font-size:14px">${w.display_name || w.employee_code}</div>
-          <div style="color:var(--text2);font-size:12px">${w.employee_code} · ${w.role}</div>
-        </div>
-        <span class="tag ${w.is_active ? 'tag-green' : 'tag-gray'}">${w.is_active ? 'Actiu' : 'Inactiu'}</span>
-      </div>`).join('');
-  } catch { el.innerHTML = '<div class="empty-state">Error carregant treballadors</div>'; }
+const el = document.getElementById(‘workers-list’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+const rows = state.allWorkers.length ? state.allWorkers : await dbGet(‘workers’, ‘order=display_name.asc&select=*’);
+if (!rows.length) { el.innerHTML = ‘<div class="empty-state">Cap treballador</div>’; return; }
+el.innerHTML = rows.map(w => `<div class="worker-item"> <div class="worker-avatar-sm">${w.photo_path ?`<img src="${SUPABASE_URL}/storage/v1/object/public/worker-photos/${w.photo_path}">` : '👤'}</div> <div style="flex:1"> <div style="font-weight:700;font-size:14px">${w.display_name || w.employee_code}</div> <div style="color:var(--text2);font-size:12px">${w.employee_code} · ${w.role}</div> </div> <span class="tag ${w.is_active ? 'tag-green' : 'tag-gray'}">${w.is_active ? 'Actiu' : 'Inactiu'}</span> </div>`).join(’’);
+} catch { el.innerHTML = ‘<div class="empty-state">Error carregant treballadors</div>’; }
 }
 
 async function loadAllRecords() {
-  const m = state.adminMonth;
-  const y = m.getFullYear(), mo = m.getMonth() + 1;
-  document.getElementById('admin-month-title').textContent = m.toLocaleDateString('ca', { month: 'long', year: 'numeric' });
-  const start = `${y}-${String(mo).padStart(2,'0')}-01`;
-  const end = `${y}-${String(mo).padStart(2,'0')}-31`;
-  const el = document.getElementById('all-records-list');
-  el.innerHTML = '<div class="empty-state"><span class="loader"></span></div>';
-  try {
-    let rows;
-    try { rows = await rpc('get_all_daily_records', { p_year: y, p_month: mo }); }
-    catch { rows = await dbGet('daily_records', `work_date=gte.${start}&work_date=lte.${end}&order=work_date.desc,worker_id.asc&select=*,workers(display_name,employee_code)`); }
-    if (!rows?.length) { el.innerHTML = '<div class="empty-state">Cap registre per a aquest mes</div>'; return; }
-    el.innerHTML = rows.map(r => {
-      const name = r.workers?.display_name || r.worker_id;
-      const bal = r.balance_minutes || 0;
-      return `<div class="history-row">
-        <div class="history-date" style="width:80px;font-size:11px">${formatDate(r.work_date)}</div>
-        <div class="history-info">
-          <div class="history-hours" style="font-size:13px">${name}</div>
-          <div class="history-status">${dayStatusTag(r.status)} ${minsToHM(r.worked_minutes||0)}</div>
-        </div>
-        <div class="history-balance ${bal>=0?'balance-pos':'balance-neg'}">${bal>=0?'+':''}${minsToHM(bal)}</div>
-      </div>`;
-    }).join('');
-  } catch { el.innerHTML = '<div class="empty-state">Error</div>'; }
+const m = state.adminMonth;
+const y = m.getFullYear(), mo = m.getMonth() + 1;
+document.getElementById(‘admin-month-title’).textContent = m.toLocaleDateString(‘ca’, { month: ‘long’, year: ‘numeric’ });
+const start = `${y}-${String(mo).padStart(2,'0')}-01`;
+const end = `${y}-${String(mo).padStart(2,'0')}-31`;
+const el = document.getElementById(‘all-records-list’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+let rows;
+try { rows = await rpc(‘get_all_daily_records’, { p_year: y, p_month: mo }); }
+catch { rows = await dbGet(‘daily_records’, `work_date=gte.${start}&work_date=lte.${end}&order=work_date.desc,worker_id.asc&select=*,workers(display_name,employee_code)`); }
+if (!rows?.length) { el.innerHTML = ‘<div class="empty-state">Cap registre per a aquest mes</div>’; return; }
+el.innerHTML = rows.map(r => {
+const name = r.workers?.display_name || r.worker_id;
+const bal = r.balance_minutes || 0;
+return `<div class="history-row"> <div class="history-date" style="width:80px;font-size:11px">${formatDate(r.work_date)}</div> <div class="history-info"> <div class="history-hours" style="font-size:13px">${name}</div> <div class="history-status">${dayStatusTag(r.status)} ${minsToHM(r.worked_minutes||0)}</div> </div> <div class="history-balance ${bal>=0?'balance-pos':'balance-neg'}">${bal>=0?'+':''}${minsToHM(bal)}</div> </div>`;
+}).join(’’);
+} catch { el.innerHTML = ‘<div class="empty-state">Error</div>’; }
 }
 
 function changeAdminMonth(dir) {
-  const m = state.adminMonth;
-  state.adminMonth = new Date(m.getFullYear(), m.getMonth() + dir, 1);
-  loadAllRecords();
+const m = state.adminMonth;
+state.adminMonth = new Date(m.getFullYear(), m.getMonth() + dir, 1);
+loadAllRecords();
 }
 
 async function loadAllPerms() {
-  const el = document.getElementById('all-perms-list');
-  el.innerHTML = '<div class="empty-state"><span class="loader"></span></div>';
-  try {
-    let rows;
-    try { rows = await rpc('get_all_day_statuses', {}); }
-    catch { rows = await dbGet('day_status', 'is_active=eq.true&order=start_date.desc&select=*,workers(display_name,employee_code)'); }
-    if (!rows?.length) { el.innerHTML = '<div class="empty-state">Cap permís</div>'; return; }
-    el.innerHTML = rows.map(p => `
-      <div class="perm-row">
-        <div class="card-row">
-          <span style="font-weight:700">${p.workers?.display_name || p.worker_id}</span>
-          <span class="tag tag-purple">${permTypeLabel(p.day_type)}</span>
-        </div>
-        <div class="perm-dates">${p.start_date} → ${p.end_date}</div>
-        <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between">
-          <span class="tag ${p.compute_mode==='THEORETICAL_HOURS'?'tag-green':'tag-gray'}">${p.compute_mode==='THEORETICAL_HOURS'?'Teòric':'Zero h'}</span>
-          <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="togglePermCompute('${p.id}','${p.compute_mode}')">Canviar còmput</button>
-        </div>
-      </div>`).join('');
-  } catch { el.innerHTML = '<div class="empty-state">Error</div>'; }
+const el = document.getElementById(‘all-perms-list’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+let rows;
+try { rows = await rpc(‘get_all_day_statuses’, {}); }
+catch { rows = await dbGet(‘day_status’, ‘is_active=eq.true&order=start_date.desc&select=*,workers(display_name,employee_code)’); }
+if (!rows?.length) { el.innerHTML = ‘<div class="empty-state">Cap permís</div>’; return; }
+el.innerHTML = rows.map(p => ` <div class="perm-row"> <div class="card-row"> <span style="font-weight:700">${p.workers?.display_name || p.worker_id}</span> <span class="tag tag-purple">${permTypeLabel(p.day_type)}</span> </div> <div class="perm-dates">${p.start_date} → ${p.end_date}</div> <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between"> <span class="tag ${p.compute_mode==='THEORETICAL_HOURS'?'tag-green':'tag-gray'}">${p.compute_mode==='THEORETICAL_HOURS'?'Teòric':'Zero h'}</span> <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="togglePermCompute('${p.id}','${p.compute_mode}')">Canviar còmput</button> </div> </div>`).join(’’);
+} catch { el.innerHTML = ‘<div class="empty-state">Error</div>’; }
 }
 
 async function togglePermCompute(id, current) {
-  const next = current === 'THEORETICAL_HOURS' ? 'ZERO_HOURS' : 'THEORETICAL_HOURS';
-  try {
-    try { await rpc('set_day_status_compute_mode', { p_id: id, p_compute_mode: next }); }
-    catch { await dbPatch('day_status', `id=eq.${id}`, { compute_mode: next }); }
-    showToast('Còmput actualitzat', 'success');
-    loadAllPerms();
-  } catch { showToast('Error', 'error'); }
+const next = current === ‘THEORETICAL_HOURS’ ? ‘ZERO_HOURS’ : ‘THEORETICAL_HOURS’;
+try {
+try { await rpc(‘set_day_status_compute_mode’, { p_id: id, p_compute_mode: next }); }
+catch { await dbPatch(‘day_status’, `id=eq.${id}`, { compute_mode: next }); }
+showToast(‘Còmput actualitzat’, ‘success’);
+loadAllPerms();
+} catch { showToast(‘Error’, ‘error’); }
 }
 
 async function loadAllBalances() {
-  const el = document.getElementById('all-balances-list');
-  el.innerHTML = '<div class="empty-state"><span class="loader"></span></div>';
-  try {
-    let rows;
-    try { rows = await rpc('get_all_balances', {}); }
-    catch {
-      const workers = await dbGet('workers', 'is_active=eq.true&select=id,display_name,employee_code');
-      const now = new Date();
-      rows = await Promise.all(workers.map(async w => {
-        const recs = await dbGet('daily_records', `worker_id=eq.${w.id}&work_date=gte.${now.getFullYear()}-01-01&select=balance_minutes`);
-        return { ...w, annual_balance: recs.reduce((a,r)=>a+(r.balance_minutes||0),0) };
-      }));
-    }
-    if (!rows?.length) { el.innerHTML = '<div class="empty-state">Sense dades</div>'; return; }
-    el.innerHTML = rows.map(w => {
-      const b = w.annual_balance || 0;
-      return `<div class="history-row">
-        <div style="flex:1">
-          <div style="font-weight:700;font-size:14px">${w.display_name || w.employee_code}</div>
-          <div style="color:var(--text2);font-size:12px">${w.employee_code || ''}</div>
-        </div>
-        <div style="font-family:var(--mono);font-size:16px;font-weight:500;color:${b>=0?'var(--accent)':'var(--warn)'}">${b>=0?'+':''}${minsToHM(b)}</div>
-      </div>`;
-    }).join('');
-  } catch { el.innerHTML = '<div class="empty-state">Error</div>'; }
+const el = document.getElementById(‘all-balances-list’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+let rows;
+try { rows = await rpc(‘get_all_balances’, {}); }
+catch {
+const workers = await dbGet(‘workers’, ‘is_active=eq.true&select=id,display_name,employee_code’);
+const now = new Date();
+rows = await Promise.all(workers.map(async w => {
+const recs = await dbGet(‘daily_records’, `worker_id=eq.${w.id}&work_date=gte.${now.getFullYear()}-01-01&select=balance_minutes`);
+return { …w, annual_balance: recs.reduce((a,r)=>a+(r.balance_minutes||0),0) };
+}));
+}
+if (!rows?.length) { el.innerHTML = ‘<div class="empty-state">Sense dades</div>’; return; }
+el.innerHTML = rows.map(w => {
+const b = w.annual_balance || 0;
+return `<div class="history-row"> <div style="flex:1"> <div style="font-weight:700;font-size:14px">${w.display_name || w.employee_code}</div> <div style="color:var(--text2);font-size:12px">${w.employee_code || ''}</div> </div> <div style="font-family:var(--mono);font-size:16px;font-weight:500;color:${b>=0?'var(--accent)':'var(--warn)'}">${b>=0?'+':''}${minsToHM(b)}</div> </div>`;
+}).join(’’);
+} catch { el.innerHTML = ‘<div class="empty-state">Error</div>’; }
 }
 
 async function loadExportWorkers() {
-  const sel = document.getElementById('export-worker-select');
-  if (state.allWorkers.length) {
-    sel.innerHTML = '<option value="">— Selecciona treballador —</option>' +
-      state.allWorkers.map(w => `<option value="${w.id}">${w.display_name || w.employee_code}</option>`).join('');
-  }
+const sel = document.getElementById(‘export-worker-select’);
+if (state.allWorkers.length) {
+sel.innerHTML = ‘<option value="">— Selecciona treballador —</option>’ +
+state.allWorkers.map(w => `<option value="${w.id}">${w.display_name || w.employee_code}</option>`).join(’’);
+}
 }
 
 async function callExport(type) {
-  showToast('Generant exportació…', 'success');
-  try {
-    if (type === 'individual') {
-      const wId = document.getElementById('export-worker-select').value;
-      const month = document.getElementById('export-month').value;
-      const year = document.getElementById('export-year').value;
-      await rpc('generate_worker_excel_report', { p_worker_id: wId, p_month: parseInt(month), p_year: parseInt(year) });
-    } else {
-      await rpc('generate_all_workers_zip', {});
-    }
-    showToast('Exportació completada', 'success');
-  } catch { showToast('Error en la generació (comprova el backend)', 'error'); }
+showToast(‘Generant exportació…’, ‘success’);
+try {
+if (type === ‘individual’) {
+const wId = document.getElementById(‘export-worker-select’).value;
+const month = document.getElementById(‘export-month’).value;
+const year = document.getElementById(‘export-year’).value;
+await rpc(‘generate_worker_excel_report’, { p_worker_id: wId, p_month: parseInt(month), p_year: parseInt(year) });
+} else {
+await rpc(‘generate_all_workers_zip’, {});
+}
+showToast(‘Exportació completada’, ‘success’);
+} catch { showToast(‘Error en la generació (comprova el backend)’, ‘error’); }
 }
 
 async function loadCardsWorkers() {
-  const el = document.getElementById('cards-workers-list');
-  const workers = state.allWorkers.length ? state.allWorkers : await dbGet('workers','is_active=eq.true&select=*');
-  el.innerHTML = workers.map(w => `
-    <div class="worker-item" onclick="this.classList.toggle('selected');state.selectedCardWorker='${w.id}'" style="user-select:none" id="cw-${w.id}">
-      <div class="worker-avatar-sm">${w.photo_path ? `<img src="${SUPABASE_URL}/storage/v1/object/public/worker-photos/${w.photo_path}">` : '👤'}</div>
-      <div style="flex:1"><div style="font-weight:700;font-size:14px">${w.display_name||w.employee_code}</div></div>
-      <input type="checkbox" style="accent-color:var(--accent);width:18px;height:18px">
-    </div>`).join('');
+const el = document.getElementById(‘cards-workers-list’);
+const workers = state.allWorkers.length ? state.allWorkers : await dbGet(‘workers’,‘is_active=eq.true&select=*’);
+el.innerHTML = workers.map(w => `<div class="worker-item" onclick="this.classList.toggle('selected');state.selectedCardWorker='${w.id}'" style="user-select:none" id="cw-${w.id}"> <div class="worker-avatar-sm">${w.photo_path ?`<img src="${SUPABASE_URL}/storage/v1/object/public/worker-photos/${w.photo_path}">` : '👤'}</div> <div style="flex:1"><div style="font-weight:700;font-size:14px">${w.display_name||w.employee_code}</div></div> <input type="checkbox" style="accent-color:var(--accent);width:18px;height:18px"> </div>`).join(’’);
 }
 
 async function generateCards(all) {
-  showToast('Generant targetes…', 'success');
-  try {
-    if (all) await rpc('generate_multiple_cards_pdf', {});
-    else await rpc('generate_worker_card_pdf', { p_worker_id: state.selectedCardWorker });
-    showToast('Targetes generades', 'success');
-  } catch { showToast('Comprova el backend de generació', 'error'); }
+showToast(‘Generant targetes…’, ‘success’);
+try {
+if (all) await rpc(‘generate_multiple_cards_pdf’, {});
+else await rpc(‘generate_worker_card_pdf’, { p_worker_id: state.selectedCardWorker });
+showToast(‘Targetes generades’, ‘success’);
+} catch { showToast(‘Comprova el backend de generació’, ‘error’); }
 }
 
 async function loadSettings() {
-  const el = document.getElementById('settings-list');
-  el.innerHTML = '<div class="empty-state"><span class="loader"></span></div>';
-  try {
-    let rows;
-    try { rows = await rpc('get_app_settings', {}); }
-    catch { rows = await dbGet('app_settings', 'select=*'); }
-    if (!rows?.length) { el.innerHTML = '<div class="empty-state">Cap configuració disponible</div>'; return; }
-    state.settings = {};
-    rows.forEach(r => state.settings[r.setting_key] = r.setting_value);
-    el.innerHTML = rows.map(r => `
-      <div class="setting-row">
-        <div><div class="setting-label">${r.setting_key}</div></div>
-        <input class="input" style="width:160px;padding:8px 12px;font-size:13px" id="setting-${r.setting_key}" value="${r.setting_value || ''}">
-      </div>`).join('');
-  } catch { el.innerHTML = '<div class="empty-state">Error carregant configuració</div>'; }
+const el = document.getElementById(‘settings-list’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+let rows;
+try { rows = await rpc(‘get_app_settings’, {}); }
+catch { rows = await dbGet(‘app_settings’, ‘select=*’); }
+if (!rows?.length) { el.innerHTML = ‘<div class="empty-state">Cap configuració disponible</div>’; return; }
+state.settings = {};
+rows.forEach(r => state.settings[r.setting_key] = r.setting_value);
+el.innerHTML = rows.map(r => ` <div class="setting-row"> <div><div class="setting-label">${r.setting_key}</div></div> <input class="input" style="width:160px;padding:8px 12px;font-size:13px" id="setting-${r.setting_key}" value="${r.setting_value || ''}"> </div>`).join(’’);
+} catch { el.innerHTML = ‘<div class="empty-state">Error carregant configuració</div>’; }
 }
 
 async function saveSettings() {
-  const rows = await dbGet('app_settings', 'select=setting_key');
-  for (const r of rows) {
-    const el = document.getElementById(`setting-${r.setting_key}`);
-    if (el) await dbPatch('app_settings', `setting_key=eq.${r.setting_key}`, { setting_value: el.value });
-  }
-  showToast('Configuració guardada', 'success');
+const rows = await dbGet(‘app_settings’, ‘select=setting_key’);
+for (const r of rows) {
+const el = document.getElementById(`setting-${r.setting_key}`);
+if (el) await dbPatch(‘app_settings’, `setting_key=eq.${r.setting_key}`, { setting_value: el.value });
+}
+showToast(‘Configuració guardada’, ‘success’);
 }
 
 // ════════════════════════════════════════════════
@@ -1322,103 +1286,104 @@ async function saveSettings() {
 // ════════════════════════════════════════════════
 let qrStream = null;
 async function startQRScan() {
-  showPage('qr-scan');
-  try {
-    qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    const video = document.getElementById('qr-video');
-    video.srcObject = qrStream;
-    await video.play();
-    document.getElementById('qr-scan-hint').textContent = '';
-    // simple interval scan with BarcodeDetector if available
-    if ('BarcodeDetector' in window) {
-      const bd = new BarcodeDetector({ formats: ['qr_code'] });
-      const iv = setInterval(async () => {
-        try {
-          const codes = await bd.detect(video);
-          if (codes.length) {
-            clearInterval(iv);
-            stopQR();
-            const token = codes[0].rawValue;
-            await loginByQR(token);
-          }
-        } catch {}
-      }, 500);
-    } else {
-      document.getElementById('qr-scan-hint').textContent = 'BarcodeDetector no disponible al navegador';
-    }
-  } catch { document.getElementById('qr-scan-hint').textContent = 'No s\'ha pogut accedir a la càmera'; }
+showPage(‘qr-scan’);
+try {
+qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: ‘environment’ } });
+const video = document.getElementById(‘qr-video’);
+video.srcObject = qrStream;
+await video.play();
+document.getElementById(‘qr-scan-hint’).textContent = ‘’;
+// simple interval scan with BarcodeDetector if available
+if (‘BarcodeDetector’ in window) {
+const bd = new BarcodeDetector({ formats: [‘qr_code’] });
+const iv = setInterval(async () => {
+try {
+const codes = await bd.detect(video);
+if (codes.length) {
+clearInterval(iv);
+stopQR();
+const token = codes[0].rawValue;
+await loginByQR(token);
+}
+} catch {}
+}, 500);
+} else {
+document.getElementById(‘qr-scan-hint’).textContent = ‘BarcodeDetector no disponible al navegador’;
+}
+} catch { document.getElementById(‘qr-scan-hint’).textContent = ‘No s'ha pogut accedir a la càmera’; }
 }
 
 function stopQR() {
-  if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
 }
 
 async function loginByQR(token) {
-  try {
-    let worker;
-    try { worker = await rpc('login_by_qr', { p_qr_token: token }); }
-    catch {
-      const rows = await dbGet('workers', `qr_token=eq.${encodeURIComponent(token)}&is_active=eq.true&select=*`);
-      worker = rows[0];
-    }
-    if (!worker?.id) throw new Error('QR no vàlid');
-    state.worker = worker;
-    afterLogin();
-  } catch (e) { showToast(e.message || 'QR no reconegut', 'error'); showPage('splash'); }
+try {
+let worker;
+try { worker = await rpc(‘login_by_qr’, { p_qr_token: token }); }
+catch {
+const rows = await dbGet(‘workers’, `qr_token=eq.${encodeURIComponent(token)}&is_active=eq.true&select=*`);
+worker = rows[0];
+}
+if (!worker?.id) throw new Error(‘QR no vàlid’);
+state.worker = worker;
+afterLogin();
+} catch (e) { showToast(e.message || ‘QR no reconegut’, ‘error’); showPage(‘splash’); }
 }
 
 // ════════════════════════════════════════════════
 // UTILS
 // ════════════════════════════════════════════════
 function minsToHM(mins) {
-  const abs = Math.abs(Math.round(mins));
-  const h = Math.floor(abs / 60), m = abs % 60;
-  return `${mins < 0 ? '-' : ''}${h}:${String(m).padStart(2,'0')}`;
+const abs = Math.abs(Math.round(mins));
+const h = Math.floor(abs / 60), m = abs % 60;
+return `${mins < 0 ? '-' : ''}${h}:${String(m).padStart(2,'0')}`;
 }
 
 function formatDate(d) {
-  if (!d) return '—';
-  const [y, m, day] = d.split('-');
-  return `${day}/${m}`;
+if (!d) return ‘—’;
+const [y, m, day] = d.split(’-’);
+return `${day}/${m}`;
 }
 
 function formatDateLong(d) {
-  if (!d) return '—';
-  return new Date(d + 'T12:00:00').toLocaleDateString('ca', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+if (!d) return ‘—’;
+return new Date(d + ‘T12:00:00’).toLocaleDateString(‘ca’, { weekday: ‘long’, day: ‘numeric’, month: ‘long’, year: ‘numeric’ });
 }
 
 function dayStatusTag(status) {
-  const map = {
-    NOT_STARTED: '<span class="tag tag-gray">No iniciat</span>',
-    IN_PROGRESS: '<span class="tag tag-green">En curs</span>',
-    PAUSED: '<span class="tag tag-yellow">Pausat</span>',
-    FINISHED: '<span class="tag tag-purple">Finalitzat</span>',
-    INCIDENCE: '<span class="tag tag-red">Incidència</span>',
-    VACATION: '<span class="tag tag-purple">Vacances</span>',
-    SICK_LEAVE: '<span class="tag tag-red">Baixa</span>',
-    PAID_LEAVE: '<span class="tag tag-yellow">Permís</span>',
-    HOLIDAY: '<span class="tag tag-gray">Festiu</span>',
-  };
-  return map[status] || `<span class="tag tag-gray">${status}</span>`;
+const map = {
+NOT_STARTED: ‘<span class="tag tag-gray">No iniciat</span>’,
+IN_PROGRESS: ‘<span class="tag tag-green">En curs</span>’,
+PAUSED: ‘<span class="tag tag-yellow">Pausat</span>’,
+FINISHED: ‘<span class="tag tag-purple">Finalitzat</span>’,
+INCIDENCE: ‘<span class="tag tag-red">Incidència</span>’,
+VACATION: ‘<span class="tag tag-purple">Vacances</span>’,
+SICK_LEAVE: ‘<span class="tag tag-red">Baixa</span>’,
+PAID_LEAVE: ‘<span class="tag tag-yellow">Permís</span>’,
+HOLIDAY: ‘<span class="tag tag-gray">Festiu</span>’,
+};
+return map[status] || `<span class="tag tag-gray">${status}</span>`;
 }
 
 function permTypeLabel(t) {
-  const m = { VACATION: 'Vacances', SICK_LEAVE: 'Baixa mèdica', PAID_LEAVE: 'Permís retribuït', HOLIDAY: 'Festiu', OTHER: 'Altres' };
-  return m[t] || t;
+const m = { VACATION: ‘Vacances’, SICK_LEAVE: ‘Baixa mèdica’, PAID_LEAVE: ‘Permís retribuït’, HOLIDAY: ‘Festiu’, OTHER: ‘Altres’ };
+return m[t] || t;
 }
 
-function showToast(msg, type = 'success') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `show ${type}`;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('show'), 2800);
+function showToast(msg, type = ‘success’) {
+const el = document.getElementById(‘toast’);
+el.textContent = msg;
+el.className = `show ${type}`;
+clearTimeout(el._t);
+el._t = setTimeout(() => el.classList.remove(‘show’), 2800);
 }
 
 // ════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════
-showPage('splash');
+showPage(‘splash’);
 </script>
+
 </body>
 </html>
