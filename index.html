@@ -1,598 +1,1384 @@
 <!DOCTYPE html>
 
-<html>
+<html lang="ca">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>JASL Time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0D0F14;color:#F1F5F9;font-family:-apple-system,sans-serif;min-height:100vh}
-button,input,select{font-family:inherit}
-.page{display:flex;flex-direction:column;min-height:100vh}
-.top{background:#151820;border-bottom:1px solid #252B3A;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.body{flex:1;padding:16px;max-width:640px;margin:0 auto;width:100%}
-.card{background:#1C2130;border:1px solid #252B3A;border-radius:14px;padding:18px;margin-bottom:12px}
-.nav{background:#151820;border-top:1px solid #252B3A;display:flex;position:sticky;bottom:0;z-index:100}
-.nav button{flex:1;padding:10px 4px;background:none;border:none;color:#475569;font-size:11px;cursor:pointer}
-.nav button.on{color:#3B82F6;font-weight:700}
-.btnP{background:#3B82F6;color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
-.btnG{background:#22C55E;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;flex:1}
-.btnY{background:#F59E0B;color:#000;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;flex:1}
-.btnR{background:#EF4444;color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;flex:1}
-.btnGh{background:transparent;color:#94A3B8;border:1px solid #252B3A;border-radius:9px;padding:8px 14px;font-size:13px;cursor:pointer}
-.inp{background:#151820;border:1px solid #252B3A;border-radius:10px;padding:12px;color:#F1F5F9;font-size:15px;width:100%;outline:none}
-.brow{display:flex;gap:8px;margin-top:4px}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.srow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #252B3A}
-.stats{display:flex;gap:8px;margin-bottom:12px}
-.stat{background:#151820;border-radius:10px;padding:12px;flex:1;text-align:center}
-.sv{font-size:18px;font-weight:700}
-.sl{font-size:10px;color:#94A3B8;margin-top:2px}
-.clk{font-size:42px;font-weight:700;text-align:center;margin:8px 0;letter-spacing:-1px}
-.h3{font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
-.lbl{font-size:12px;color:#94A3B8;margin-bottom:4px;display:block}
-.err{background:#EF444420;border:1px solid #EF444460;border-radius:8px;padding:10px;font-size:13px;color:#EF4444;margin-bottom:10px}
-.inf{background:#3B82F620;border:1px solid #3B82F640;border-radius:8px;padding:10px;font-size:13px;color:#94A3B8;margin-bottom:10px}
-.ld{text-align:center;padding:30px;color:#94A3B8;font-size:14px}
-.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;display:inline-block}
-.tag{border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;display:inline-block;border:1px solid transparent;margin-bottom:10px}
-.av{border-radius:50%;background:#3B82F630;display:flex;align-items:center;justify-content:center;font-weight:700;color:#3B82F6;flex-shrink:0}
-.hrow{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #252B3A;gap:10px;cursor:pointer}
-.erow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #252B3A;font-size:13px}
-.tabs{display:flex;background:#151820;border-radius:10px;padding:3px;margin-bottom:12px;gap:3px}
-.tab{flex:1;padding:7px;border-radius:8px;border:none;cursor:pointer;font-size:13px;color:#94A3B8;background:transparent}
-.tab.on{background:#1C2130;color:#F1F5F9;font-weight:600}
-.csm{background:#1C2130;border:1px solid #252B3A;border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer}
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #4fffb0;
+    --accent2: #7c6aff;
+    --warn: #ff6b4a;
+    --text: #e8e8f0;
+    --text2: #8888aa;
+    --text3: #555570;
+    --radius: 12px;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+
+/* ── LAYOUT ── */
+#app { height: 100%; display: flex; flex-direction: column; }
+.page { display: none; flex: 1; overflow-y: auto; flex-direction: column; }
+.page.active { display: flex; }
+.topbar {
+display: flex; align-items: center; justify-content: space-between;
+padding: 16px 20px; border-bottom: 1px solid var(–border);
+background: var(–surface); min-height: 60px; flex-shrink: 0;
+}
+.topbar-title { font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+.content { padding: 20px; flex: 1; }
+
+/* ── BUTTONS ── */
+.btn {
+display: flex; align-items: center; justify-content: center; gap: 8px;
+padding: 14px 24px; border-radius: var(–radius); border: none;
+font-family: var(–sans); font-size: 14px; font-weight: 700;
+letter-spacing: .04em; cursor: pointer; transition: all .15s ease;
+text-transform: uppercase;
+}
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(–accent); color: #000; }
+.btn-primary:hover { background: #6fffbc; }
+.btn-secondary { background: var(–surface2); color: var(–text); border: 1px solid var(–border); }
+.btn-danger { background: var(–warn); color: #fff; }
+.btn-ghost { background: transparent; color: var(–text2); border: 1px solid var(–border); }
+.btn-full { width: 100%; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ── INPUTS ── */
+.input-group { margin-bottom: 16px; }
+.input-label { font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(–text2); text-transform: uppercase; margin-bottom: 6px; display: block; }
+.input {
+width: 100%; background: var(–surface2); border: 1px solid var(–border);
+border-radius: var(–radius); padding: 12px 16px; color: var(–text);
+font-family: var(–mono); font-size: 16px; outline: none; transition: border-color .15s;
+}
+.input:focus { border-color: var(–accent); }
+.input::placeholder { color: var(–text3); }
+
+/* ── CARDS ── */
+.card { background: var(–surface); border: 1px solid var(–border); border-radius: var(–radius); padding: 16px; margin-bottom: 12px; }
+.card-row { display: flex; align-items: center; justify-content: space-between; }
+
+/* ── TAGS ── */
+.tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.tag-green { background: rgba(79,255,176,.15); color: var(–accent); }
+.tag-purple { background: rgba(124,106,255,.15); color: var(–accent2); }
+.tag-red { background: rgba(255,107,74,.15); color: var(–warn); }
+.tag-gray { background: var(–surface2); color: var(–text2); }
+.tag-yellow { background: rgba(255,200,50,.15); color: #ffc832; }
+
+/* ── SPLASH ── */
+#page-splash {
+align-items: center; justify-content: center;
+background: radial-gradient(ellipse at 30% 20%, rgba(124,106,255,.18) 0%, transparent 60%),
+radial-gradient(ellipse at 80% 80%, rgba(79,255,176,.12) 0%, transparent 50%),
+var(–bg);
+}
+.splash-logo { text-align: center; margin-bottom: 60px; }
+.splash-logo .logo-mark { font-size: 64px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+.splash-logo .logo-mark span { color: var(–accent); }
+.splash-logo .logo-sub { font-size: 12px; font-weight: 600; letter-spacing: .25em; color: var(–text2); text-transform: uppercase; margin-top: 6px; }
+.splash-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 320px; }
+
+/* ── LOGIN ── */
+#page-login { align-items: center; justify-content: center; padding: 32px 24px; }
+.login-box { width: 100%; max-width: 360px; }
+.login-header { margin-bottom: 32px; }
+.login-header h1 { font-size: 28px; font-weight: 800; }
+.login-header p { color: var(–text2); font-size: 14px; margin-top: 4px; }
+.code-input-wrap { position: relative; }
+.code-input { font-size: 28px !important; letter-spacing: .3em; text-align: center; padding: 20px !important; }
+.error-msg { color: var(–warn); font-size: 13px; margin-top: 8px; display: none; }
+.error-msg.show { display: block; }
+
+/* ── WORKER HOME ── */
+.worker-hero { padding: 24px 20px 0; }
+.worker-name { font-size: 22px; font-weight: 800; }
+.worker-sub { font-size: 13px; color: var(–text2); margin-top: 2px; }
+.clock-display {
+margin: 24px 20px; background: var(–surface);
+border: 1px solid var(–border); border-radius: 16px; padding: 24px;
+text-align: center;
+}
+.clock-time { font-family: var(–mono); font-size: 52px; font-weight: 500; letter-spacing: -.02em; line-height: 1; }
+.clock-date { font-size: 12px; color: var(–text2); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
+.clock-status { margin-top: 16px; }
+.day-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 0 20px 24px; }
+.stat-box { background: var(–surface); border: 1px solid var(–border); border-radius: var(–radius); padding: 14px; text-align: center; }
+.stat-val { font-family: var(–mono); font-size: 20px; font-weight: 500; }
+.stat-lbl { font-size: 10px; color: var(–text2); letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px 20px; }
+.action-btn-big {
+background: var(–surface); border: 1px solid var(–border);
+border-radius: var(–radius); padding: 18px 14px; text-align: center;
+cursor: pointer; transition: all .15s; font-family: var(–sans);
+font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+display: flex; flex-direction: column; align-items: center; gap: 10px;
+color: var(–text);
+}
+.action-btn-big:active { transform: scale(.97); }
+.action-btn-big.start { border-color: var(–accent); color: var(–accent); }
+.action-btn-big.pause { border-color: #ffc832; color: #ffc832; }
+.action-btn-big.resume { border-color: var(–accent2); color: var(–accent2); }
+.action-btn-big.end { border-color: var(–warn); color: var(–warn); }
+.action-btn-big:disabled { opacity: .25; cursor: not-allowed; }
+.action-icon { font-size: 28px; }
+.bottom-nav {
+display: grid; grid-template-columns: repeat(5, 1fr);
+border-top: 1px solid var(–border); background: var(–surface);
+padding-bottom: env(safe-area-inset-bottom, 0px); flex-shrink: 0;
+}
+.nav-item {
+display: flex; flex-direction: column; align-items: center; justify-content: center;
+padding: 10px 4px; gap: 4px; cursor: pointer; transition: color .15s;
+font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+color: var(–text3); border: none; background: none; font-family: var(–sans);
+}
+.nav-item.active { color: var(–accent); }
+.nav-item svg { width: 20px; height: 20px; }
+
+/* ── HISTORY ── */
+.month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.month-nav-btn { background: var(–surface2); border: 1px solid var(–border); border-radius: 8px; padding: 8px 14px; color: var(–text); font-family: var(–sans); font-weight: 700; cursor: pointer; font-size: 13px; }
+.month-nav-title { font-size: 16px; font-weight: 800; }
+.history-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(–border); cursor: pointer; transition: background .1s; }
+.history-row:active { background: var(–surface2); }
+.history-date { font-family: var(–mono); font-size: 13px; color: var(–text2); width: 68px; flex-shrink: 0; }
+.history-info { flex: 1; }
+.history-hours { font-family: var(–mono); font-size: 14px; font-weight: 500; }
+.history-status { font-size: 11px; color: var(–text2); margin-top: 2px; }
+.history-balance { font-family: var(–mono); font-size: 13px; font-weight: 500; }
+.balance-pos { color: var(–accent); }
+.balance-neg { color: var(–warn); }
+
+/* ── DAY DETAIL ── */
+.timeline { position: relative; padding-left: 24px; }
+.timeline::before { content: ‘’; position: absolute; left: 7px; top: 0; bottom: 0; width: 1px; background: var(–border); }
+.timeline-item { position: relative; margin-bottom: 20px; }
+.timeline-dot { position: absolute; left: -21px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(–accent2); border: 2px solid var(–bg); }
+.timeline-dot.start { background: var(–accent); }
+.timeline-dot.end { background: var(–warn); }
+.timeline-dot.pause { background: #ffc832; }
+.timeline-time { font-family: var(–mono); font-size: 15px; font-weight: 500; }
+.timeline-type { font-size: 11px; color: var(–text2); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+
+/* ── PERMISSIONS ── */
+.perm-row { padding: 14px 0; border-bottom: 1px solid var(–border); }
+.perm-dates { font-family: var(–mono); font-size: 13px; color: var(–text2); margin-top: 4px; }
+
+/* ── ADMIN ── */
+.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+.admin-stat { background: var(–surface); border: 1px solid var(–border); border-radius: var(–radius); padding: 16px; }
+.admin-stat-val { font-family: var(–mono); font-size: 28px; font-weight: 500; }
+.admin-stat-lbl { font-size: 11px; color: var(–text2); letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
+
+/* ── SETTINGS ── */
+.setting-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(–border); }
+.setting-label { font-size: 14px; font-weight: 600; }
+.setting-sub { font-size: 12px; color: var(–text2); margin-top: 2px; }
+.toggle { width: 44px; height: 24px; background: var(–surface2); border-radius: 12px; position: relative; cursor: pointer; transition: background .2s; border: 1px solid var(–border); flex-shrink: 0; }
+.toggle.on { background: var(–accent); border-color: var(–accent); }
+.toggle::after { content: ‘’; position: absolute; width: 18px; height: 18px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: left .2s; }
+.toggle.on::after { left: 22px; }
+
+/* ── PROFILE ── */
+.profile-avatar { width: 80px; height: 80px; border-radius: 50%; background: var(–surface2); border: 2px solid var(–border); display: flex; align-items: center; justify-content: center; font-size: 32px; overflow: hidden; flex-shrink: 0; }
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── QR PAGE ── */
+.qr-wrap { display: flex; flex-direction: column; align-items: center; padding: 32px 20px; gap: 24px; }
+#qr-canvas { border-radius: 12px; background: #fff; padding: 16px; }
+
+/* ── MODAL ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(–surface); border: 1px solid var(–border); border-radius: 20px 20px 0 0; width: 100%; max-width: 540px; padding: 24px; max-height: 85vh; overflow-y: auto; }
+.modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+/* ── LOADER ── */
+.loader { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.2); border-top-color: currentColor; border-radius: 50%; animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TOAST ── */
+#toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(–surface); border: 1px solid var(–border); border-radius: 100px; padding: 10px 20px; font-size: 13px; font-weight: 600; white-space: nowrap; z-index: 200; opacity: 0; transition: all .3s; pointer-events: none; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.success { border-color: var(–accent); color: var(–accent); }
+#toast.error { border-color: var(–warn); color: var(–warn); }
+
+/* ── MISC ── */
+.section-title { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(–text2); margin-bottom: 12px; margin-top: 8px; }
+.empty-state { text-align: center; padding: 48px 20px; color: var(–text3); font-size: 14px; }
+.sep { height: 1px; background: var(–border); margin: 4px 0; }
+select.input { appearance: none; }
+textarea.input { resize: vertical; min-height: 80px; }
+.flex-gap { display: flex; gap: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: var(–surface2); border: 1px solid var(–border); border-radius: 100px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.chip.active { background: rgba(79,255,176,.1); border-color: var(–accent); color: var(–accent); }
+.back-btn { background: none; border: none; color: var(–text2); cursor: pointer; font-size: 20px; padding: 4px; }
+.workers-list .worker-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(–border); cursor: pointer; }
+.worker-avatar-sm { width: 40px; height: 40px; border-radius: 50%; background: var(–surface2); border: 1px solid var(–border); display: flex; align-items: center; justify-content: center; font-size: 16px; overflow: hidden; flex-shrink: 0; }
+.worker-avatar-sm img { width: 100%; height: 100%; object-fit: cover; }
 </style>
+
 </head>
 <body>
-<div id="app"><div class="ld">Carregant...</div></div>
+<div id="app">
+
+  <!-- ═══════════════════════════════ SPLASH ═══════════════════════════════ -->
+
+  <div id="page-splash" class="page">
+    <div class="splash-logo">
+      <div class="logo-mark">JASL<span>·</span>Time</div>
+      <div class="logo-sub">Control de jornada</div>
+    </div>
+    <div class="splash-actions">
+      <button class="btn btn-primary btn-full" onclick="showPage('login','code')">
+        <span>⌨</span> Entrar amb codi
+      </button>
+      <button class="btn btn-ghost btn-full" onclick="showPage('qr-scan')">
+        <span>◻</span> Escanejar QR
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ LOGIN ═══════════════════════════════ -->
+
+  <div id="page-login" class="page">
+    <div class="login-box">
+      <div class="login-header">
+        <h1>Identifica't</h1>
+        <p>Introdueix el teu codi personal</p>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Codi</label>
+        <input id="login-code" type="text" inputmode="text" class="input code-input"
+               placeholder="——" maxlength="20" autocomplete="off"
+               onkeydown="if(event.key==='Enter')doLogin()">
+        <div id="login-error" class="error-msg"></div>
+      </div>
+      <button id="login-btn" class="btn btn-primary btn-full" onclick="doLogin()">Entrar</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:10px" onclick="showPage('splash')">← Tornar</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ WORKER HOME ══════════════════════════ -->
+
+  <div id="page-worker-home" class="page">
+    <div class="worker-hero">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="profile-avatar" id="home-avatar"><span>👤</span></div>
+        <div>
+          <div class="worker-name" id="home-name">—</div>
+          <div class="worker-sub" id="home-code">—</div>
+        </div>
+        <button class="btn btn-ghost" style="margin-left:auto;padding:8px 12px;font-size:12px" onclick="doLogout()">Sortir</button>
+      </div>
+    </div>
+    <div class="clock-display">
+      <div class="clock-time" id="clock-time">00:00:00</div>
+      <div class="clock-date" id="clock-date">—</div>
+      <div class="clock-status" id="clock-status-tag"></div>
+    </div>
+    <div class="day-stats">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-worked">0:00</div>
+        <div class="stat-lbl">Treballat</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-theoretical">0:00</div>
+        <div class="stat-lbl">Teòric</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-balance">0:00</div>
+        <div class="stat-lbl">Saldo</div>
+      </div>
+    </div>
+    <div class="action-grid">
+      <button id="btn-start" class="action-btn-big start" onclick="doClockAction('start')">
+        <span class="action-icon">▶</span> Iniciar
+      </button>
+      <button id="btn-pause" class="action-btn-big pause" onclick="doClockAction('pause')">
+        <span class="action-icon">⏸</span> Pausa
+      </button>
+      <button id="btn-resume" class="action-btn-big resume" onclick="doClockAction('resume')">
+        <span class="action-icon">⏯</span> Reprendre
+      </button>
+      <button id="btn-end" class="action-btn-big end" onclick="doClockAction('end')">
+        <span class="action-icon">⏹</span> Finalitzar
+      </button>
+    </div>
+    <div class="bottom-nav" id="worker-nav">
+      <button class="nav-item active" onclick="switchTab('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+        Inici
+      </button>
+      <button class="nav-item" onclick="switchTab('history')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Historial
+      </button>
+      <button class="nav-item" onclick="switchTab('perms')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Permisos
+      </button>
+      <button class="nav-item" onclick="switchTab('balance')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Saldo
+      </button>
+      <button class="nav-item" onclick="switchTab('profile')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Perfil
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ HISTORY ══════════════════════════════ -->
+
+  <div id="page-history" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="switchTab('home')">←</button>
+      <div class="topbar-title">Historial mensual</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div class="month-nav">
+        <button class="month-nav-btn" onclick="changeMonth(-1)">‹</button>
+        <div class="month-nav-title" id="history-month-title">—</div>
+        <button class="month-nav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ DAY DETAIL ═══════════════════════════ -->
+
+  <div id="page-day-detail" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="showPage('worker-home'); switchTab('history')">←</button>
+      <div class="topbar-title" id="day-detail-title">Detall del dia</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div id="day-summary-cards" style="margin-bottom:24px"></div>
+      <div class="section-title">Cronologia</div>
+      <div id="day-timeline" class="timeline"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ PERMISSIONS ══════════════════════════ -->
+
+  <div id="page-perms" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="switchTab('home')">←</button>
+      <div class="topbar-title">Permisos</div>
+      <button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="openModal('new-perm')">+ Nou</button>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div id="perms-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ BALANCE ══════════════════════════════ -->
+
+  <div id="page-balance" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="switchTab('home')">←</button>
+      <div class="topbar-title">Saldo d'hores</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div id="balance-content"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ PROFILE ══════════════════════════════ -->
+
+  <div id="page-profile" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="switchTab('home')">←</button>
+      <div class="topbar-title">El meu perfil</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div style="display:flex;flex-direction:column;align-items:center;padding:24px 0 32px;gap:16px">
+        <div class="profile-avatar" id="profile-avatar" style="width:100px;height:100px;font-size:48px"><span>👤</span></div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:800" id="profile-name">—</div>
+          <div style="color:var(--text2);font-size:14px;margin-top:4px" id="profile-code">—</div>
+        </div>
+      </div>
+      <div class="section-title">Accions</div>
+      <button class="btn btn-secondary btn-full" style="margin-bottom:10px" onclick="openModal('qr-view')">◻ Veure el meu QR</button>
+      <button class="btn btn-secondary btn-full" onclick="openPhotoUpload()">📷 Canviar foto</button>
+      <input type="file" id="photo-input" accept="image/*" capture="user" style="display:none" onchange="uploadPhoto(event)">
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ ADMIN HOME ═══════════════════════════ -->
+
+  <div id="page-admin-home" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <div class="topbar-title">⚙ Admin · JASL Time</div>
+      <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="doLogout()">Sortir</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px">
+      <div class="admin-grid" id="admin-stats"></div>
+      <div class="section-title">Gestió</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-secondary btn-full" onclick="showAdminPage('workers')">👥 Treballadors</button>
+        <button class="btn btn-secondary btn-full" onclick="showAdminPage('all-records')">📋 Registres globals</button>
+        <button class="btn btn-secondary btn-full" onclick="showAdminPage('all-perms')">🛡 Permisos globals</button>
+        <button class="btn btn-secondary btn-full" onclick="showAdminPage('all-balances')">💰 Saldos globals</button>
+        <button class="btn btn-secondary btn-full" onclick="showAdminPage('exports')">📤 Exportacions</button>
+        <button class="btn btn-secondary btn-full" onclick="showAdminPage('cards')">🪪 Targetes</button>
+        <button class="btn btn-secondary btn-full" onclick="showAdminPage('settings')">⚙ Configuració</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ WORKERS LIST ═══════════════════════════ -->
+
+  <div id="page-workers" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="showPage('admin-home')">←</button>
+      <div class="topbar-title">Treballadors</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div class="workers-list" id="workers-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ ALL RECORDS ═══════════════════════════ -->
+
+  <div id="page-all-records" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="showPage('admin-home')">←</button>
+      <div class="topbar-title">Registres globals</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div class="month-nav" style="margin-bottom:16px">
+        <button class="month-nav-btn" onclick="changeAdminMonth(-1)">‹</button>
+        <div class="month-nav-title" id="admin-month-title">—</div>
+        <button class="month-nav-btn" onclick="changeAdminMonth(1)">›</button>
+      </div>
+      <div id="all-records-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ ALL PERMS ════════════════════════════ -->
+
+  <div id="page-all-perms" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="showPage('admin-home')">←</button>
+      <div class="topbar-title">Permisos globals</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div id="all-perms-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ ALL BALANCES ═════════════════════════ -->
+
+  <div id="page-all-balances" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="showPage('admin-home')">←</button>
+      <div class="topbar-title">Saldos globals</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div id="all-balances-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ EXPORTS ══════════════════════════════ -->
+
+  <div id="page-exports" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="showPage('admin-home')">←</button>
+      <div class="topbar-title">Exportacions</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div class="section-title">Exportació individual</div>
+      <div class="input-group">
+        <label class="input-label">Treballador</label>
+        <select id="export-worker-select" class="input">
+          <option value="">— Selecciona treballador —</option>
+        </select>
+      </div>
+      <div class="flex-gap" style="margin-bottom:24px">
+        <div class="input-group" style="flex:1;margin-bottom:0">
+          <label class="input-label">Mes</label>
+          <select id="export-month" class="input">
+            <option value="1">Gener</option><option value="2">Febrer</option>
+            <option value="3">Març</option><option value="4">Abril</option>
+            <option value="5">Maig</option><option value="6">Juny</option>
+            <option value="7">Juliol</option><option value="8">Agost</option>
+            <option value="9">Setembre</option><option value="10">Octubre</option>
+            <option value="11">Novembre</option><option value="12">Desembre</option>
+          </select>
+        </div>
+        <div class="input-group" style="flex:1;margin-bottom:0">
+          <label class="input-label">Any</label>
+          <input type="number" id="export-year" class="input" value="2025">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-bottom:12px" onclick="callExport('individual')">📊 Excel individual</button>
+      <div class="sep" style="margin:20px 0"></div>
+      <div class="section-title">Exportació massiva</div>
+      <button class="btn btn-secondary btn-full" onclick="callExport('all')">📦 ZIP tots els treballadors</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ CARDS ════════════════════════════════ -->
+
+  <div id="page-cards" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="showPage('admin-home')">←</button>
+      <div class="topbar-title">Targetes identificatives</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div class="section-title">Selecciona treballadors</div>
+      <div id="cards-workers-list" class="workers-list"></div>
+      <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-primary btn-full" onclick="generateCards(false)">🪪 Generar targeta seleccionada</button>
+        <button class="btn btn-secondary btn-full" onclick="generateCards(true)">📋 Generar totes les targetes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ SETTINGS ═════════════════════════════ -->
+
+  <div id="page-settings" class="page" style="display:none;flex-direction:column">
+    <div class="topbar">
+      <button class="back-btn" onclick="showPage('admin-home')">←</button>
+      <div class="topbar-title">Configuració</div>
+      <div style="width:28px"></div>
+    </div>
+    <div class="content" style="flex:1;overflow-y:auto">
+      <div id="settings-list"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:24px" onclick="saveSettings()">💾 Guardar canvis</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ QR SCAN ══════════════════════════════ -->
+
+  <div id="page-qr-scan" class="page" style="align-items:center;justify-content:center;flex-direction:column;gap:20px">
+    <div style="text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">◻</div>
+      <div style="font-size:18px;font-weight:800">Escaneja el QR</div>
+      <div style="color:var(--text2);font-size:13px;margin-top:6px">Apunta la càmera al codi QR de la targeta</div>
+    </div>
+    <div style="width:250px;height:250px;border:2px solid var(--accent);border-radius:16px;display:flex;align-items:center;justify-content:center;position:relative">
+      <div style="position:absolute;inset:0;border-radius:14px;overflow:hidden">
+        <video id="qr-video" style="width:100%;height:100%;object-fit:cover" playsinline></video>
+      </div>
+      <div style="color:var(--text3);font-size:13px;z-index:1" id="qr-scan-hint">Iniciant càmera…</div>
+    </div>
+    <button class="btn btn-ghost" onclick="stopQR(); showPage('splash')">Cancel·lar</button>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ═══════════════════════════════ MODALS ════════════════════════════════ -->
+
+<div id="modal-overlay" class="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal-box" id="modal-box">
+    <!-- content injected -->
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══════════════════════════ QR LIB ════════════════════════════ -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 <script>
-var SB  = "https://fywkafpfcnqynvjdedfj.supabase.co";
-var KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ";
+// ════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════
+const SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
-function dbGet(table, query) {
-return fetch(SB + “/rest/v1/” + table + “?” + query, {
-headers: { “apikey”: KEY, “Authorization”: “Bearer “ + KEY }
-}).then(function(r) { return r.text().then(function(t) { if (!r.ok) throw new Error(“HTTP “ + r.status); return t ? JSON.parse(t) : []; }); });
-}
-function dbPost(table, body) {
-return fetch(SB + “/rest/v1/” + table, {
-method: “POST”,
-headers: { “apikey”: KEY, “Authorization”: “Bearer “ + KEY, “Content-Type”: “application/json”, “Prefer”: “return=representation” },
-body: JSON.stringify(body)
-}).then(function(r) { return r.text().then(function(t) { if (!r.ok) throw new Error(“HTTP “ + r.status + “: “ + t); return t ? JSON.parse(t) : null; }); });
-}
-function dbPatch(table, query, body) {
-return fetch(SB + “/rest/v1/” + table + “?” + query, {
-method: “PATCH”,
-headers: { “apikey”: KEY, “Authorization”: “Bearer “ + KEY, “Content-Type”: “application/json”, “Prefer”: “return=representation” },
-body: JSON.stringify(body)
-}).then(function(r) { return r.text().then(function(t) { if (!r.ok) throw new Error(“HTTP “ + r.status + “: “ + t); return t ? JSON.parse(t) : null; }); });
-}
-
-function pad(n) { return String(n).padStart(2,“0”); }
-function fmt(m) { var s=m<0?”-”:”+”,a=Math.abs(m); return s+pad(Math.floor(a/60))+“h”+pad(a%60)+“m”; }
-function fmtP(m) { return pad(Math.floor(m/60))+“h”+pad(m%60)+“m”; }
-function fmtS(s) { return pad(Math.floor(s/3600))+”:”+pad(Math.floor((s%3600)/60))+”:”+pad(s%60); }
-function nowTime() { var n=new Date(); return pad(n.getHours())+”:”+pad(n.getMinutes()); }
-function todayStr() { var d=new Date(); return d.getFullYear()+”-”+pad(d.getMonth()+1)+”-”+pad(d.getDate()); }
-function dateLabel(d) { return new Date(d+“T12:00:00”).toLocaleDateString(“ca-ES”,{weekday:“short”,day:“numeric”,month:“short”}); }
-function statusColor(s) { return ({CLOSED:”#22C55E”,VACATION:”#A855F7”,SICK:”#F59E0B”,WEEKEND:”#475569”,OPEN:”#3B82F6”,NOT_STARTED:”#475569”})[s]||”#94A3B8”; }
-function statusLabel(s) { return ({CLOSED:“Tancat”,VACATION:“Vacances”,SICK:“Baixa”,WEEKEND:“Cap de setmana”,OPEN:“En curs”,NOT_STARTED:“Pendent”})[s]||s; }
-var EL = {START:“Inici”,END:“Final”,PAUSE_START:“Pausa”,PAUSE_END:“Represa”};
-
-function mk(tag,cls,css) { var e=document.createElement(tag); if(cls)e.className=cls; if(css)e.style.cssText=css; return e; }
-function ap() { var p=arguments[0]; for(var i=1;i<arguments.length;i++){var c=arguments[i];if(c==null)continue;if(typeof c===“string”){p.appendChild(document.createTextNode(c));}else{p.appendChild(c);}} return p; }
-function mkAv(name,sz) { var e=mk(“div”,“av”,“width:”+sz+“px;height:”+sz+“px;font-size:”+Math.floor(sz*0.38)+“px”); e.textContent=(name||”?”).split(” “).map(function(n){return n[0];}).slice(0,2).join(””).toUpperCase(); return e; }
-function mkBadge(t,c) { var e=mk(“span”,“badge”); e.style.background=c+“22”; e.style.color=c; e.textContent=t; return e; }
-function mkTag(t,c) { var e=mk(“span”,“tag”); e.style.background=c+“18”; e.style.color=c; e.style.borderColor=c+“44”; e.textContent=t; return e; }
-function mkSpin() { var e=mk(“div”,“ld”); e.textContent=“Carregant…”; return e; }
-function mkErr(m) { var e=mk(“div”,“err”); e.textContent=“Error: “+m; return e; }
-function mkInf(m) { var e=mk(“div”,“inf”); e.textContent=m; return e; }
-
-function mkTopBar(title,onBack,right) {
-var bar=mk(“div”,“top”); var backEl;
-if(onBack){backEl=mk(“button”,“btnGh”);backEl.textContent=“Tornar”;backEl.onclick=onBack;}else{backEl=mk(“div”,””,“width:70px”);}
-var tt=mk(“div”,””,“font-weight:700;font-size:16px”); tt.textContent=title;
-ap(bar,backEl,tt,right||mk(“div”,””,“width:70px”)); return bar;
-}
-function mkWNav(active) {
-var nav=mk(“nav”,“nav”);
-[{sc:“workerHome”,id:“h”,lb:“Avui”},{sc:“monthHistory”,id:“hi”,lb:“Historial”},{sc:“permissions”,id:“p”,lb:“Permisos”},{sc:“balance”,id:“b”,lb:“Saldo”},{sc:“profile”,id:“pr”,lb:“Perfil”}].forEach(function(item){
-var btn=mk(“button”,active===item.id?“on”:””); btn.textContent=item.lb; btn.onclick=function(){goTo({screen:item.sc});}; ap(nav,btn);
-}); return nav;
-}
-function mkANav(active) {
-var nav=mk(“nav”,“nav”);
-[{sc:“adminHome”,id:“ah”,lb:“Inici”},{sc:“workers”,id:“wk”,lb:“Equip”},{sc:“records”,id:“rc”,lb:“Registres”},{sc:“exports”,id:“ex”,lb:“Exports”},{sc:“settings”,id:“st”,lb:“Config.”}].forEach(function(item){
-var btn=mk(“button”,active===item.id?“on”:””); btn.textContent=item.lb; btn.onclick=function(){goTo({screen:item.sc});}; ap(nav,btn);
-}); return nav;
-}
-
-var APP={screen:“splash”,worker:null,selDay:null};
-var tickIv=null,elapsedIv=null;
-function goTo(updates) {
-if(tickIv){clearInterval(tickIv);tickIv=null;}
-if(elapsedIv){clearInterval(elapsedIv);elapsedIv=null;}
-for(var k in updates)APP[k]=updates[k];
-renderApp();
-}
-
-function screenSplash() {
-var page=mk(“div”,“page”,“justify-content:center;align-items:center;padding:32px”);
-var box=mk(“div”,””,“text-align:center;max-width:300px”);
-var ttl=mk(“div”,””,“font-size:26px;font-weight:800;margin-bottom:4px”);
-var span=mk(“span”,””,“color:#3B82F6”); span.textContent=“Time”;
-ttl.appendChild(document.createTextNode(“JASL”)); ttl.appendChild(span);
-var sub=mk(“div”,””,“font-size:14px;color:#94A3B8;margin-bottom:32px”); sub.textContent=“Registre de jornada”;
-var btn=mk(“button”,“btnP”); btn.textContent=“Entrar amb codi”; btn.onclick=function(){goTo({screen:“login”});};
-ap(box,ttl,sub,btn); ap(page,box); return page;
-}
-
-function screenLogin() {
-var page=mk(“div”,“page”);
-ap(page,mkTopBar(“JASL Time”,function(){goTo({screen:“splash”});}));
-var body=mk(“div”,“body”,“display:flex;flex-direction:column;justify-content:center”);
-var errD=mk(“div”);
-var inp=mk(“input”,“inp”); inp.type=“password”; inp.placeholder=“Codi personal”; inp.maxLength=20;
-inp.style.cssText=“font-size:22px;text-align:center;letter-spacing:8px;margin-bottom:12px”;
-var btn=mk(“button”,“btnP”); btn.textContent=“Entrar”;
-function doLogin() {
-var code=inp.value.trim(); if(!code)return;
-btn.textContent=“Verificant…”; btn.disabled=true; errD.innerHTML=””;
-dbGet(“workers”,“employee_code=eq.”+code+”&is_active=eq.true&select=*”).then(function(ws){
-if(ws&&ws.length>0){goTo({worker:ws[0],screen:ws[0].role===“ADMIN”?“adminHome”:“workerHome”});}
-else{ap(errD,mkErr(“Codi incorrecte o treballador inactiu.”));btn.textContent=“Entrar”;btn.disabled=false;}
-}).catch(function(e){ap(errD,mkErr(e.message));btn.textContent=“Entrar”;btn.disabled=false;});
-}
-btn.onclick=doLogin; inp.onkeydown=function(e){if(e.key===“Enter”)doLogin();};
-var card=mk(“div”,“card”,“text-align:center”);
-var ttl=mk(“div”,””,“font-size:20px;font-weight:700;margin-bottom:4px”); ttl.textContent=“Identificacio”;
-var sub=mk(“div”,””,“font-size:13px;color:#94A3B8;margin-bottom:18px”); sub.textContent=“Introdueix el teu codi personal”;
-ap(card,ttl,sub,inp,errD,btn); ap(body,card); ap(page,body); return page;
-}
-
-function screenWorkerHome() {
-var w=APP.worker; var page=mk(“div”,“page”);
-var top=mk(“div”,“top”); var wi=mk(“div”,””,“display:flex;align-items:center;gap:10px”);
-var wname=mk(“div”,””,“font-size:13px;font-weight:600”); wname.textContent=w.display_name;
-var wcode=mk(“div”,””,“font-size:11px;color:#94A3B8”); wcode.textContent=”#”+w.employee_code;
-var winfo=mk(“div”); ap(winfo,wname,wcode); ap(wi,mkAv(w.display_name,30),winfo);
-var outBtn=mk(“button”,“btnGh”); outBtn.textContent=“Sortir”; outBtn.onclick=function(){goTo({screen:“splash”,worker:null});};
-ap(top,wi,outBtn); ap(page,top);
-var body=mk(“div”,“body”); var errD=mk(“div”); ap(body,errD);
-var cc=mk(“div”,“card”,“text-align:center”);
-var stTag=mk(“div”,””,“margin-bottom:10px”);
-var clkEl=mk(“div”,“clk”); clkEl.textContent=nowTime();
-var subEl=mk(“div”,””,“font-size:13px;color:#94A3B8;margin-bottom:14px”);
-subEl.textContent=new Date().toLocaleDateString(“ca-ES”,{weekday:“long”,day:“numeric”,month:“long”});
-var brow=mk(“div”,“brow”); var ldEl=mk(“div”,“ld”); ldEl.textContent=“Carregant…”;
-ap(cc,stTag,clkEl,subEl,ldEl,brow); ap(body,cc);
-var ec=mk(“div”,“card”,“display:none”);
-var eH=mk(“div”,””,“display:flex;justify-content:space-between;margin-bottom:8px”);
-var eTtl=mk(“div”,“h3”); eTtl.textContent=“Fitxades d’avui”;
-var eRef=mk(“button”,“btnGh”,“font-size:11px;padding:3px 8px”); eRef.textContent=“Actualitzar”; eRef.onclick=loadData;
-var eList=mk(“div”); ap(eH,eTtl,eRef); ap(ec,eH,eList); ap(body,ec);
-var sr=mk(“div”,“stats”,“display:none”); ap(body,sr);
-ap(page,body,mkWNav(“h”));
-tickIv=setInterval(function(){clkEl.textContent=nowTime();},1000);
-var entries=[],summary=null,busy=false;
-function getState() {
-if(!entries.length)return “NOT_STARTED”;
-var last=entries[entries.length-1];
-if(last.entry_type===“END”)return “FINISHED”;
-if(last.entry_type===“PAUSE_START”)return “PAUSED”;
-return “RUNNING”;
-}
-function updateElapsed() {
-if(elapsedIv){clearInterval(elapsedIv);elapsedIv=null;}
-var worked=0,t0=null;
-entries.forEach(function(e){
-if(e.entry_type===“START”||e.entry_type===“PAUSE_END”)t0=new Date(e.entry_datetime).getTime();
-if((e.entry_type===“PAUSE_START”||e.entry_type===“END”)&&t0){worked+=new Date(e.entry_datetime).getTime()-t0;t0=null;}
-});
-var last=entries.length?entries[entries.length-1]:null;
-if(t0&&last&&last.entry_type!==“END”){
-var base=t0; elapsedIv=setInterval(function(){subEl.textContent=“Treballat: “+fmtS(Math.floor((worked+Date.now()-base)/1000));},1000);
-} else {
-var secs=Math.floor(worked/1000);
-subEl.textContent=secs>0?“Treballat: “+fmtS(secs):new Date().toLocaleDateString(“ca-ES”,{weekday:“long”,day:“numeric”,month:“long”});
-}
-}
-function renderButtons() {
-brow.innerHTML=””; var st=getState();
-var colors={NOT_STARTED:”#475569”,RUNNING:”#22C55E”,PAUSED:”#F59E0B”,FINISHED:”#3B82F6”};
-var labels={NOT_STARTED:“Jornada no iniciada”,RUNNING:“Jornada en curs”,PAUSED:“En pausa”,FINISHED:“Jornada finalitzada”};
-stTag.innerHTML=””; ap(stTag,mkTag(labels[st],colors[st]));
-if(st===“NOT_STARTED”){var b=mk(“button”,“btnG”);b.textContent=“Iniciar jornada”;b.onclick=function(){doAction(“START”);};ap(brow,b);}
-if(st===“RUNNING”){var bp=mk(“button”,“btnY”);bp.textContent=“Pausa”;bp.onclick=function(){doAction(“PAUSE_START”);};var bf=mk(“button”,“btnR”);bf.textContent=“Finalitzar”;bf.onclick=function(){doAction(“END”);};ap(brow,bp,bf);}
-if(st===“PAUSED”){var br=mk(“button”,“btnG”);br.textContent=“Reprendre”;br.onclick=function(){doAction(“PAUSE_END”);};var bf2=mk(“button”,“btnR”);bf2.textContent=“Finalitzar”;bf2.onclick=function(){doAction(“END”);};ap(brow,br,bf2);}
-if(st===“FINISHED”){var t=mkTag(“Jornada completada”,”#22C55E”);t.style.cssText=“padding:12px 24px;width:100%;text-align:center;display:block”;ap(brow,t);}
-}
-function renderEntries() {
-eList.innerHTML=””;
-entries.forEach(function(e,i){
-var row=mk(“div”,“erow”); row.style.borderBottom=i<entries.length-1?“1px solid #252B3A”:“none”;
-var lbl=mk(“span”); lbl.textContent=EL[e.entry_type]||e.entry_type;
-var t=mk(“span”,””,“color:#94A3B8”); t.textContent=new Date(e.entry_datetime).toLocaleTimeString(“ca-ES”,{hour:“2-digit”,minute:“2-digit”,second:“2-digit”});
-ap(row,lbl,t); eList.appendChild(row);
-});
-ec.style.display=entries.length?””:“none”;
-}
-function renderStats() {
-sr.innerHTML=””; if(!summary){sr.style.display=“none”;return;} sr.style.display=“flex”;
-var bal=summary.balance_minutes||0;
-[[fmtP(summary.theoretical_minutes||w.daily_theoretical_minutes||480),“Teoriques”,”#22C55E”],[fmtP(summary.worked_minutes||0),“Treballat”,”#3B82F6”],[fmt(bal),“Saldo”,bal>=0?”#22C55E”:”#EF4444”]].forEach(function(d){
-var s=mk(“div”,“stat”);var sv=mk(“div”,“sv”);sv.style.color=d[2];sv.textContent=d[0];var sl=mk(“div”,“sl”);sl.textContent=d[1];ap(s,sv,sl);ap(sr,s);
-});
-}
-function doAction(type) {
-if(busy)return; busy=true;
-brow.innerHTML=”<div style='color:#94A3B8;padding:8px;text-align:center'>Guardant…</div>”;
-var pn=0; entries.forEach(function(e){if(e.entry_type===“PAUSE_START”)pn++;});
-var pnum=type===“PAUSE_START”?pn+1:type===“PAUSE_END”?pn:null;
-dbPost(“time_entries”,{worker_id:w.id,entry_date:todayStr(),entry_datetime:new Date().toISOString(),entry_type:type,pause_number:pnum,source_method:“CODE”,is_active:true,created_by_worker_id:w.id})
-.then(function(){return loadData();}).catch(function(e){errD.innerHTML=””;ap(errD,mkErr(e.message));renderButtons();}).then(function(){busy=false;});
-}
-function loadData() {
-var td=todayStr();
-return Promise.all([
-dbGet(“daily_records”,“worker_id=eq.”+w.id+”&work_date=eq.”+td+”&select=*”),
-dbGet(“time_entries”,“worker_id=eq.”+w.id+”&entry_date=eq.”+td+”&is_active=eq.true&select=*&order=entry_datetime.asc”)
-]).then(function(res){
-summary=res[0]&&res[0][0]?res[0][0]:null; entries=res[1]||[];
-ldEl.style.display=“none”; renderButtons(); renderEntries(); renderStats(); updateElapsed();
-}).catch(function(e){ldEl.style.display=“none”;ap(errD,mkErr(e.message));renderButtons();});
-}
-loadData(); return page;
-}
-
-function screenMonthHistory() {
-var w=APP.worker; var page=mk(“div”,“page”);
-var mnEl=mk(“span”,””,“font-size:12px;color:#94A3B8”);
-mnEl.textContent=new Date().toLocaleDateString(“ca-ES”,{month:“long”,year:“numeric”});
-ap(page,mkTopBar(“Historial”,function(){goTo({screen:“workerHome”});},mnEl));
-var body=mk(“div”,“body”); var ldEl=mkSpin(); ap(body,ldEl); ap(page,body,mkWNav(“hi”));
-var td=new Date(),from=td.getFullYear()+”-”+pad(td.getMonth()+1)+”-01”;
-dbGet(“daily_records”,“worker_id=eq.”+w.id+”&work_date=gte.”+from+”&select=*&order=work_date.desc”).then(function(recs){
-ldEl.remove(); var records=recs||[],total=0,bal=0,inc=0;
-records.forEach(function(r){total+=r.worked_minutes||0;bal+=r.balance_minutes||0;if(r.has_incidence)inc++;});
-var sr=mk(“div”,“stats”);
-[[fmtP(total),“Treballat”,”#F1F5F9”],[fmt(bal),“Saldo”,bal>=0?”#22C55E”:”#EF4444”],[String(inc),“Incid.”,inc>0?”#F59E0B”:”#22C55E”]].forEach(function(d){
-var s=mk(“div”,“stat”);var sv=mk(“div”,“sv”);sv.style.color=d[2];sv.textContent=d[0];var sl=mk(“div”,“sl”);sl.textContent=d[1];ap(s,sv,sl);ap(sr,s);
-}); ap(body,sr);
-var card=mk(“div”,“card”);
-if(!records.length){var emp=mk(“div”,””,“color:#94A3B8;text-align:center;padding:20px”);emp.textContent=“Sense registres aquest mes”;ap(card,emp);}
-records.forEach(function(r,i){
-var row=mk(“div”,“hrow”); row.style.borderBottom=i<records.length-1?“1px solid #252B3A”:“none”;
-row.onclick=function(){goTo({screen:“dayDetail”,selDay:r});};
-var db=mk(“div”,””,“width:34px;text-align:center”);
-var dn=mk(“div”,””,“font-size:15px;font-weight:700”); dn.textContent=(r.work_date||””).split(”-”)[2]||””;
-var dw=mk(“div”,””,“font-size:10px;color:#475569”); dw.textContent=dateLabel(r.work_date).split(” “)[0];
-ap(db,dn,dw);
-var mid=mk(“div”,””,“flex:1”); var bdg=mk(“div”,””,“display:flex;gap:6px;align-items:center;margin-bottom:2px”);
-ap(bdg,mkBadge(statusLabel(r.status),statusColor(r.status)));
-if(r.has_incidence)ap(bdg,mkBadge(”!”,”#F59E0B”)); ap(mid,bdg);
-if(r.worked_minutes>0){var wm=mk(“div”,””,“font-size:11px;color:#94A3B8”);wm.textContent=fmtP(r.worked_minutes);ap(mid,wm);}
-var balEl=mk(“div”,””,“font-size:13px;font-weight:600;color:”+((r.balance_minutes||0)>=0?”#22C55E”:”#EF4444”));
-balEl.textContent=fmt(r.balance_minutes||0); ap(row,db,mid,balEl); ap(card,row);
-}); ap(body,card);
-}).catch(function(e){ldEl.remove();ap(body,mkErr(e.message));}); return page;
-}
-
-function screenDayDetail() {
-var w=APP.worker,r=APP.selDay; var page=mk(“div”,“page”);
-ap(page,mkTopBar(“Detall del dia”,function(){goTo({screen:“monthHistory”});}));
-var body=mk(“div”,“body”);
-if(r){
-var card=mk(“div”,“card”); var topR=mk(“div”,“row”); var left=mk(“div”);
-var dLbl=mk(“div”,””,“font-size:17px;font-weight:700;margin-bottom:4px”); dLbl.textContent=dateLabel(r.work_date);
-ap(left,dLbl,mkBadge(statusLabel(r.status),statusColor(r.status)));
-var bBox=mk(“div”,””,“text-align:right”);
-var bVal=mk(“div”,””,“font-size:22px;font-weight:700;color:”+((r.balance_minutes||0)>=0?”#22C55E”:”#EF4444”)); bVal.textContent=fmt(r.balance_minutes||0);
-var bLbl=mk(“div”,””,“font-size:11px;color:#94A3B8”); bLbl.textContent=“Saldo”;
-ap(bBox,bVal,bLbl); ap(topR,left,bBox); ap(card,topR);
-var divl=mk(“div”,””,“height:1px;background:#252B3A;margin:12px 0”); ap(card,divl);
-var srow=mk(“div”,””,“display:flex;gap:10px”);
-[[fmtP(r.worked_minutes||0),“Treballades”],[fmtP(r.theoretical_minutes||480),“Teoriques”]].forEach(function(d){
-var box=mk(“div”,””,“flex:1;text-align:center”); var v=mk(“div”,””,“font-weight:600”); v.textContent=d[0];
-var l=mk(“div”,””,“font-size:11px;color:#94A3B8”); l.textContent=d[1]; ap(box,v,l); ap(srow,box);
-}); ap(card,srow); ap(body,card);
-}
-var ec=mk(“div”,“card”); var hh=mk(“div”,“h3”); hh.textContent=“Cronologia”;
-var eList=mk(“div”); ap(eList,mkSpin()); ap(ec,hh,eList); ap(body,ec); ap(page,body);
-if(r){
-dbGet(“time_entries”,“worker_id=eq.”+w.id+”&entry_date=eq.”+r.work_date+”&is_active=eq.true&select=*&order=entry_datetime.asc”).then(function(ents){
-eList.innerHTML=””; var entries=ents||[];
-if(!entries.length){var emp=mk(“div”,””,“color:#94A3B8;font-size:13px”);emp.textContent=“Sense fitxades”;ap(eList,emp);return;}
-entries.forEach(function(e,i){
-var row=mk(“div”,“erow”); row.style.borderBottom=i<entries.length-1?“1px solid #252B3A”:“none”;
-var t=mk(“span”,””,“font-weight:600;min-width:52px”); t.textContent=new Date(e.entry_datetime).toLocaleTimeString(“ca-ES”,{hour:“2-digit”,minute:“2-digit”});
-var l=mk(“span”); l.textContent=” “+(EL[e.entry_type]||e.entry_type); ap(row,t,l); ap(eList,row);
-});
-}).catch(function(e){eList.innerHTML=””;ap(eList,mkErr(e.message));});
-} return page;
-}
-
-function screenPermissions() {
-var w=APP.worker; var page=mk(“div”,“page”);
-ap(page,mkTopBar(“Permisos”,function(){goTo({screen:“workerHome”});}));
-var body=mk(“div”,“body”); var errD=mk(“div”); ap(body,errD);
-var types={VACATION:{lb:“Vacances”,c:”#A855F7”},SICK:{lb:“Baixa medica”,c:”#EF4444”},PAID_LEAVE:{lb:“Permis retribuit”,c:”#3B82F6”},HOLIDAY:{lb:“Festiu”,c:”#F59E0B”}};
-var form={start_date:””,end_date:””,day_type:“VACATION”,comment:””};
-var fc=mk(“div”,“card”); var ft=mk(“div”,“h3”); ft.textContent=“Nou permis”; ap(fc,ft);
-var dr=mk(“div”,””,“display:flex;gap:10px;margin-bottom:10px”);
-var si=mk(“input”,“inp”); si.type=“date”; si.oninput=function(e){form.start_date=e.target.value;};
-var ei=mk(“input”,“inp”); ei.type=“date”; ei.oninput=function(e){form.end_date=e.target.value;};
-var d1=mk(“div”,””,“flex:1”); var l1=mk(“label”,“lbl”); l1.textContent=“Data inici”; ap(d1,l1,si);
-var d2=mk(“div”,””,“flex:1”); var l2=mk(“label”,“lbl”); l2.textContent=“Data fi”; ap(d2,l2,ei);
-ap(dr,d1,d2); ap(fc,dr);
-var sel=mk(“select”,“inp”,“margin-bottom:10px”);
-Object.keys(types).forEach(function(k){var o=mk(“option”);o.value=k;o.textContent=types[k].lb;ap(sel,o);});
-sel.onchange=function(e){form.day_type=e.target.value;};
-var tl=mk(“label”,“lbl”); tl.textContent=“Tipus”; ap(fc,tl,sel);
-var ci=mk(“input”,“inp”,“margin-bottom:12px”); ci.placeholder=“Comentari (opcional)”; ci.oninput=function(e){form.comment=e.target.value;}; ap(fc,ci);
-var addBtn=mk(“button”,“btnP”); addBtn.textContent=“Registrar permis”;
-addBtn.onclick=function(){
-if(!form.start_date){errD.innerHTML=””;ap(errD,mkErr(“Cal indicar la data d’inici”));return;}
-addBtn.textContent=“Guardant…”; addBtn.disabled=true;
-dbPost(“day_status”,{worker_id:w.id,start_date:form.start_date,end_date:form.end_date||form.start_date,day_type:form.day_type,compute_mode:“THEORETICAL_HOURS”,comment:form.comment,is_active:true})
-.then(function(){addBtn.textContent=“Afegit!”;setTimeout(function(){addBtn.textContent=“Registrar permis”;addBtn.disabled=false;},2000);loadList();})
-.catch(function(e){ap(errD,mkErr(e.message));addBtn.textContent=“Registrar permis”;addBtn.disabled=false;});
-};
-ap(fc,addBtn); ap(body,fc);
-var lc=mk(“div”,“card”); var lt=mk(“div”,“h3”); lt.textContent=“Permisos registrats”; var ld=mk(“div”); ap(ld,mkSpin()); ap(lc,lt,ld); ap(body,lc);
-ap(page,body,mkWNav(“p”));
-function loadList(){
-ld.innerHTML=””;
-dbGet(“day_status”,“worker_id=eq.”+w.id+”&is_active=eq.true&select=*&order=start_date.desc”).then(function(recs){
-var list=recs||[];
-if(!list.length){var emp=mk(“div”,””,“color:#94A3B8;font-size:13px”);emp.textContent=“Sense permisos”;ap(ld,emp);return;}
-list.forEach(function(p,i){
-var t=types[p.day_type]; var row=mk(“div”,””,“padding:10px 0;border-bottom:”+(i<list.length-1?“1px solid #252B3A”:“none”));
-var tr=mk(“div”,””,“display:flex;justify-content:space-between;margin-bottom:3px”);
-var cm=mk(“span”,””,“font-size:11px;color:#94A3B8”); cm.textContent=p.compute_mode===“ZERO_HOURS”?“0 hores”:“Jornada teorica”;
-ap(tr,mkBadge(t?t.lb:p.day_type,t?t.c:”#94A3B8”),cm);
-var dl=mk(“div”,””,“font-size:12px;color:#94A3B8;margin-top:2px”); dl.textContent=p.start_date+(p.end_date&&p.end_date!==p.start_date?” a “+p.end_date:””);
-ap(row,tr,dl);
-if(p.comment){var cmt=mk(“div”,””,“font-size:11px;color:#475569”);cmt.textContent=p.comment;ap(row,cmt);}
-ap(ld,row);
-});
-}).catch(function(e){ld.innerHTML=””;ap(ld,mkErr(e.message));});
-}
-loadList(); return page;
-}
-
-function screenBalance() {
-var w=APP.worker; var page=mk(“div”,“page”);
-ap(page,mkTopBar(“Saldo”,function(){goTo({screen:“workerHome”});}));
-var body=mk(“div”,“body”); var ldEl=mkSpin(); ap(body,ldEl); ap(page,body,mkWNav(“b”));
-var td=new Date(),from=td.getFullYear()+”-”+pad(td.getMonth()+1)+”-01”;
-dbGet(“daily_records”,“worker_id=eq.”+w.id+”&work_date=gte.”+from+”&select=*”).then(function(recs){
-ldEl.remove(); var records=recs||[],bal=0,worked=0,wd=0;
-records.forEach(function(r){bal+=r.balance_minutes||0;worked+=r.worked_minutes||0;if(r.status===“CLOSED”)wd++;});
-var bc=mk(“div”,“card”,“text-align:center”);
-var bl=mk(“div”,””,“font-size:12px;color:#94A3B8;margin-bottom:6px”); bl.textContent=“Saldo acumulat del mes”;
-var bv=mk(“div”,””,“font-size:42px;font-weight:800;color:”+(bal>=0?”#22C55E”:”#EF4444”)); bv.textContent=fmt(bal);
-ap(bc,bl,bv); ap(body,bc);
-var rc=mk(“div”,“card”); var rt=mk(“div”,“h3”); rt.textContent=“Resum mensual”; ap(rc,rt);
-[[“Dies treballats”,String(wd)],[“Total treballades”,fmtP(worked)],[“Total teoriques”,fmtP(wd*(w.daily_theoretical_minutes||480))],[“Saldo net”,fmt(bal)]].forEach(function(d,i,arr){
-var row=mk(“div”,“srow”); row.style.borderBottom=i<arr.length-1?“1px solid #252B3A”:“none”;
-var ll=mk(“div”,””,“font-size:14px”); ll.textContent=d[0]; var vv=mk(“div”,””,“font-weight:700”); vv.textContent=d[1]; ap(row,ll,vv); ap(rc,row);
-}); ap(body,rc);
-}).catch(function(e){ldEl.remove();ap(body,mkErr(e.message));}); return page;
-}
-
-function screenProfile() {
-var w=APP.worker; var page=mk(“div”,“page”);
-var outBtn=mk(“button”,“btnGh”); outBtn.textContent=“Sortir”; outBtn.onclick=function(){goTo({screen:“splash”,worker:null});};
-ap(page,mkTopBar(“Perfil”,function(){goTo({screen:“workerHome”});},outBtn));
-var body=mk(“div”,“body”);
-var pc=mk(“div”,“card”,“text-align:center”);
-var nm=mk(“div”,””,“margin-top:12px;font-size:20px;font-weight:700”); nm.textContent=w.display_name;
-var cd=mk(“div”,””,“color:#94A3B8;font-size:13px”); cd.textContent=”#”+w.employee_code;
-ap(pc,mkAv(w.display_name,72),nm,cd); ap(body,pc);
-var dc=mk(“div”,“card”); var dt=mk(“div”,“h3”); dt.textContent=“Dades”; ap(dc,dt);
-[[“Jornada teorica”,fmtP(w.daily_theoretical_minutes||480)],[“Rol”,w.role],[“ID”,String(w.id)]].forEach(function(d,i){
-var row=mk(“div”,“srow”); row.style.borderBottom=i<2?“1px solid #252B3A”:“none”;
-var ll=mk(“div”,””,“font-size:14px”); ll.textContent=d[0]; var vv=mk(“div”,””,“font-size:13px;color:#94A3B8”); vv.textContent=d[1]; ap(row,ll,vv); ap(dc,row);
-}); ap(body,dc);
-var lb=mk(“button”,“btnP”,“background:#EF4444;margin-top:8px”); lb.textContent=“Tancar sessio”; lb.onclick=function(){goTo({screen:“splash”,worker:null});};
-ap(body,lb); ap(page,body,mkWNav(“pr”)); return page;
-}
-
-function screenAdminHome() {
-var w=APP.worker; var page=mk(“div”,“page”);
-var top=mk(“div”,“top”); var wi=mk(“div”,””,“display:flex;align-items:center;gap:10px”);
-var wname=mk(“div”,””,“font-size:13px;font-weight:600”); wname.textContent=w.display_name;
-var winfo=mk(“div”); ap(winfo,wname,mkBadge(“Admin”,”#3B82F6”)); ap(wi,mkAv(w.display_name,30),winfo);
-var out=mk(“button”,“btnGh”); out.textContent=“Sortir”; out.onclick=function(){goTo({screen:“splash”,worker:null});};
-ap(top,wi,out); ap(page,top);
-var body=mk(“div”,“body”);
-var t1=mk(“div”,””,“font-size:22px;font-weight:700;margin-bottom:4px”); t1.textContent=“Dashboard”;
-var t2=mk(“div”,””,“font-size:13px;color:#94A3B8;margin-bottom:14px”); t2.textContent=new Date().toLocaleDateString(“ca-ES”,{weekday:“long”,day:“numeric”,month:“long”});
-ap(body,t1,t2);
-var sr=mk(“div”,“stats”);
-function mkStat(v,lb,c){var s=mk(“div”,“stat”);var sv=mk(“div”,“sv”);sv.style.color=c;sv.textContent=v;var sl=mk(“div”,“sl”);sl.textContent=lb;ap(s,sv,sl);return s;}
-var wSt=mkStat(”…”,“Treballadors”,”#3B82F6”),oSt=mkStat(”…”,“Fitxats avui”,”#22C55E”),iSt=mkStat(”…”,“Incidencies”,”#F59E0B”);
-ap(sr,wSt,oSt,iSt); ap(body,sr);
-Promise.all([dbGet(“workers”,“is_active=eq.true&select=id”),dbGet(“daily_records”,“work_date=eq.”+todayStr()+”&status=eq.OPEN&select=id”),dbGet(“daily_records”,“work_date=eq.”+todayStr()+”&has_incidence=eq.true&select=id”)]).then(function(res){
-wSt.firstChild.textContent=String((res[0]||[]).length); oSt.firstChild.textContent=String((res[1]||[]).length); iSt.firstChild.textContent=String((res[2]||[]).length);
-}).catch(function(){});
-[[“workers”,“Treballadors”,“Gestiona l’equip”],[“records”,“Registres diaris”,“Tots els fitxatges”],[“allStatus”,“Permisos globals”,“Vacances, baixes, festius”],[“allBalances”,“Saldos globals”,“Resum per treballador”],[“exports”,“Exportacions”,“Excel i ZIP”],[“cards”,“Targetes PDF”,“Identificatius amb QR”],[“settings”,“Configuracio”,“Parametres globals”]].forEach(function(m){
-var c=mk(“div”,“csm”); c.onclick=function(){goTo({screen:m[0]});};
-var info=mk(“div”,””,“flex:1”); var l1=mk(“div”,””,“font-weight:600;font-size:14px”); l1.textContent=m[1]; var l2=mk(“div”,””,“font-size:11px;color:#94A3B8”); l2.textContent=m[2];
-var arr=mk(“span”,””,“color:#475569;font-size:18px”); arr.textContent=”>”;
-ap(info,l1,l2); ap(c,info,arr); ap(body,c);
-}); ap(page,body,mkANav(“ah”)); return page;
-}
-
-function screenWorkers() {
-var page=mk(“div”,“page”); ap(page,mkTopBar(“Treballadors”,function(){goTo({screen:“adminHome”});}));
-var body=mk(“div”,“body”); var ldEl=mkSpin(); ap(body,ldEl); ap(page,body,mkANav(“wk”));
-dbGet(“workers”,“is_active=eq.true&select=*&order=display_name.asc”).then(function(ws){
-ldEl.remove(); (ws||[]).forEach(function(w){
-var c=mk(“div”,“csm”); c.style.cursor=“default”; var info=mk(“div”,””,“flex:1”);
-var l1=mk(“div”,””,“font-weight:600”); l1.textContent=w.display_name; var l2=mk(“div”,””,“font-size:11px;color:#94A3B8”); l2.textContent=“Codi: “+w.employee_code+” / “+w.role; ap(info,l1,l2);
-var right=mk(“div”,””,“text-align:right”); var th=mk(“div”,””,“font-size:11px;color:#94A3B8;margin-bottom:3px”); th.textContent=fmtP(w.daily_theoretical_minutes||480)+”/dia”;
-ap(right,th,mkBadge(“Actiu”,”#22C55E”)); ap(c,mkAv(w.display_name,42),info,right); ap(body,c);
-});
-}).catch(function(e){ldEl.remove();ap(body,mkErr(e.message));}); return page;
-}
-
-function screenRecords() {
-var page=mk(“div”,“page”); ap(page,mkTopBar(“Registres diaris”,function(){goTo({screen:“adminHome”});}));
-var body=mk(“div”,“body”); var tabs=mk(“div”,“tabs”); var filter=“ALL”;
-var tAll=mk(“button”,“tab on”); tAll.textContent=“Tots”; var tInc=mk(“button”,“tab”); tInc.textContent=“Incidencies”;
-tAll.onclick=function(){filter=“ALL”;tAll.className=“tab on”;tInc.className=“tab”;renderList();};
-tInc.onclick=function(){filter=“INC”;tInc.className=“tab on”;tAll.className=“tab”;renderList();};
-ap(tabs,tAll,tInc); ap(body,tabs); var ld=mk(“div”); ap(ld,mkSpin()); ap(body,ld); ap(page,body,mkANav(“rc”));
-var allRecs=[],wMap={}; var td=new Date(),from=td.getFullYear()+”-”+pad(td.getMonth()+1)+”-01”;
-Promise.all([dbGet(“daily_records”,“work_date=gte.”+from+”&select=*&order=work_date.desc&limit=100”),dbGet(“workers”,“select=id,display_name”)]).then(function(res){
-(res[1]||[]).forEach(function(w){wMap[w.id]=w.display_name;}); allRecs=res[0]||[]; renderList();
-}).catch(function(e){ld.innerHTML=””;ap(ld,mkErr(e.message));});
-function renderList(){
-ld.innerHTML=””; var shown=filter===“ALL”?allRecs:allRecs.filter(function(r){return r.has_incidence;});
-if(!shown.length){var emp=mk(“div”,””,“color:#94A3B8;text-align:center;padding:20px”);emp.textContent=“Sense registres”;ap(ld,emp);return;}
-shown.forEach(function(r){
-var row=mk(“div”,””,“display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #252B3A;gap:10px”);
-var mid=mk(“div”,””,“flex:1”); var n=mk(“div”,””,“font-size:13px;font-weight:600”); n.textContent=wMap[r.worker_id]||String(r.worker_id); var d=mk(“div”,””,“font-size:11px;color:#94A3B8”); d.textContent=dateLabel(r.work_date); ap(mid,n,d);
-var right=mk(“div”,””,“text-align:right”); ap(right,mkBadge(statusLabel(r.status),statusColor(r.status)));
-if(r.has_incidence){var ib=mk(“div”,””,“margin-top:2px”);ap(ib,mkBadge(”!”,”#F59E0B”));ap(right,ib);}
-var balEl=mk(“div”,””,“font-size:13px;font-weight:600;color:”+((r.balance_minutes||0)>=0?”#22C55E”:”#EF4444”)+”;min-width:50px;text-align:right”); balEl.textContent=fmt(r.balance_minutes||0);
-ap(row,mkAv(wMap[r.worker_id]||”?”,30),mid,right,balEl); ap(ld,row);
-});
-} return page;
-}
-
-function screenAllStatus() {
-var page=mk(“div”,“page”); ap(page,mkTopBar(“Permisos globals”,function(){goTo({screen:“adminHome”});}));
-var body=mk(“div”,“body”); ap(body,mkInf(“Canvia el compute de cada permis.”)); var ld=mk(“div”); ap(ld,mkSpin()); ap(body,ld); ap(page,body,mkANav(“ah”));
-var types={VACATION:{lb:“Vacances”,c:”#A855F7”},SICK:{lb:“Baixa”,c:”#EF4444”},PAID_LEAVE:{lb:“Permis”,c:”#3B82F6”},HOLIDAY:{lb:“Festiu”,c:”#F59E0B”}};
-var items=[],wMap={};
-Promise.all([dbGet(“day_status”,“is_active=eq.true&select=*&order=start_date.desc&limit=50”),dbGet(“workers”,“select=id,display_name”)]).then(function(res){
-(res[1]||[]).forEach(function(w){wMap[w.id]=w.display_name;}); items=res[0]||[]; renderList();
-}).catch(function(e){ld.innerHTML=””;ap(ld,mkErr(e.message));});
-function renderList(){
-ld.innerHTML=””; if(!items.length){var emp=mk(“div”,””,“color:#94A3B8;text-align:center”);emp.textContent=“Sense permisos”;ap(ld,emp);return;}
-items.forEach(function(it){
-var t=types[it.day_type]; var card=mk(“div”,“card”); var row=mk(“div”,“row”); var left=mk(“div”);
-var wn=mk(“div”,””,“font-weight:600;margin-bottom:2px”); wn.textContent=wMap[it.worker_id]||String(it.worker_id);
-var dl=mk(“div”,””,“font-size:12px;color:#94A3B8;margin-bottom:4px”); dl.textContent=it.start_date+(it.end_date!==it.start_date?” a “+it.end_date:””);
-ap(left,wn,dl,mkBadge(t?t.lb:it.day_type,t?t.c:”#94A3B8”));
-var isZero=it.compute_mode===“ZERO_HOURS”;
-var sw=mk(“div”,””,“text-align:right;cursor:pointer”);
-var swL=mk(“div”,””,“font-size:12px;font-weight:600;color:”+(isZero?”#EF4444”:”#22C55E”)+”;margin-bottom:4px”); swL.textContent=isZero?“0 hores”:“Teorica”;
-var track=mk(“div”,””,“width:34px;height:19px;border-radius:10px;background:”+(isZero?”#EF4444”:”#22C55E”)+”;position:relative;display:inline-block”);
-var thumb=mk(“div”,””,“width:15px;height:15px;border-radius:8px;background:#fff;position:absolute;top:2px;left:”+(isZero?“2px”:“17px”));
-ap(track,thumb); ap(sw,swL,track);
-sw.onclick=function(){var nm=it.compute_mode===“ZERO_HOURS”?“THEORETICAL_HOURS”:“ZERO_HOURS”;dbPatch(“day_status”,“id=eq.”+it.id,{compute_mode:nm}).then(function(){it.compute_mode=nm;renderList();}).catch(function(){});};
-ap(row,left,sw); ap(card,row); ap(ld,card);
-});
-} return page;
-}
-
-function screenAllBalances() {
-var page=mk(“div”,“page”); ap(page,mkTopBar(“Saldos globals”,function(){goTo({screen:“adminHome”});}));
-var body=mk(“div”,“body”); var ldEl=mkSpin(); ap(body,ldEl); ap(page,body,mkANav(“ah”));
-var td=new Date(),from=td.getFullYear()+”-”+pad(td.getMonth()+1)+”-01”;
-Promise.all([dbGet(“workers”,“is_active=eq.true&select=id,display_name,daily_theoretical_minutes”),dbGet(“daily_records”,“work_date=gte.”+from+”&select=worker_id,worked_minutes,balance_minutes”)]).then(function(res){
-ldEl.remove(); var byW={};
-(res[1]||[]).forEach(function(r){if(!byW[r.worker_id])byW[r.worker_id]={worked:0,balance:0};byW[r.worker_id].worked+=r.worked_minutes||0;byW[r.worker_id].balance+=r.balance_minutes||0;});
-(res[0]||[]).forEach(function(w){
-var d=byW[w.id]||{worked:0,balance:0}; var c=mk(“div”,“csm”); c.style.cursor=“default”; var info=mk(“div”,””,“flex:1”);
-var l1=mk(“div”,””,“font-weight:600”); l1.textContent=w.display_name; var l2=mk(“div”,””,“font-size:11px;color:#94A3B8”); l2.textContent=fmtP(d.worked)+” treballades”; ap(info,l1,l2);
-var right=mk(“div”,””,“text-align:right”); var bv=mk(“div”,””,“font-size:18px;font-weight:700;color:”+(d.balance>=0?”#22C55E”:”#EF4444”)); bv.textContent=fmt(d.balance); var bl=mk(“div”,””,“font-size:10px;color:#94A3B8”); bl.textContent=“saldo mensual”;
-ap(right,bv,bl); ap(c,mkAv(w.display_name,42),info,right); ap(body,c);
-});
-}).catch(function(e){ldEl.remove();ap(body,mkErr(e.message));}); return page;
-}
-
-function screenExports() {
-var page=mk(“div”,“page”); ap(page,mkTopBar(“Exportacions”,function(){goTo({screen:“adminHome”});}));
-var body=mk(“div”,“body”); ap(body,mkInf(“Les exportacions reals es generen via Edge Functions de Supabase.”));
-var card=mk(“div”,“card”); var ht=mk(“div”,“h3”); ht.textContent=“Excel individual”; ap(card,ht); var ld=mk(“div”); ap(ld,mkSpin()); ap(card,ld); ap(body,card);
-var zc=mk(“div”,“card”); var zt=mk(“div”,“h3”); zt.textContent=“ZIP massiu”; ap(zc,zt);
-var zb=mk(“button”,“btnP”); zb.textContent=“Generar ZIP massiu”; zb.onclick=function(){zb.textContent=“Generant…”;zb.disabled=true;setTimeout(function(){zb.textContent=“ZIP generat”;},2000);};
-ap(zc,zb); ap(body,zc); ap(page,body,mkANav(“ex”));
-dbGet(“workers”,“is_active=eq.true&select=id,display_name”).then(function(ws){
-ld.innerHTML=””; (ws||[]).forEach(function(w){
-var row=mk(“div”,””,“display:flex;align-items:center;padding:9px 0;border-bottom:1px solid #252B3A;gap:10px”);
-var nm=mk(“div”,””,“flex:1;font-size:13px;font-weight:500”); nm.textContent=w.display_name;
-var btn=mk(“button”,“btnGh”); btn.textContent=“Excel”; btn.onclick=function(){btn.textContent=“Generant…”;btn.disabled=true;setTimeout(function(){btn.textContent=“Generat”;},2000);};
-ap(row,mkAv(w.display_name,30),nm,btn); ap(ld,row);
-});
-}).catch(function(e){ld.innerHTML=””;ap(ld,mkErr(e.message));}); return page;
-}
-
-function screenCards() {
-var page=mk(“div”,“page”); ap(page,mkTopBar(“Targetes PDF”,function(){goTo({screen:“adminHome”});}));
-var body=mk(“div”,“body”); var ldEl=mkSpin(); ap(body,ldEl); ap(page,body,mkANav(“ah”));
-dbGet(“workers”,“is_active=eq.true&select=id,display_name,employee_code,qr_token”).then(function(ws){
-ldEl.remove(); (ws||[]).forEach(function(w){
-var card=mk(“div”,“card”); var top2=mk(“div”,””,“display:flex;align-items:center;gap:12px;margin-bottom:12px”); var info=mk(“div”,””,“flex:1”);
-var l1=mk(“div”,””,“font-weight:700”); l1.textContent=w.display_name; var l2=mk(“div”,””,“font-size:12px;color:#94A3B8”); l2.textContent=”#”+w.employee_code;
-ap(info,l1,l2); ap(top2,mkAv(w.display_name,46),info);
-var btn=mk(“button”,“btnGh”,“width:100%”); btn.textContent=“Generar PDF”; btn.onclick=function(){btn.textContent=“Generant…”;btn.disabled=true;setTimeout(function(){btn.textContent=“PDF generat”;},1500);};
-ap(card,top2,btn); ap(body,card);
-});
-var ac=mk(“div”,“card”,“background:#3B82F620;border:1px solid #3B82F640”); var at=mk(“div”,””,“font-weight:600;margin-bottom:6px”); at.textContent=“Totes les targetes”;
-var ab=mk(“button”,“btnP”); ab.textContent=“Generar totes les targetes”; ab.onclick=function(){ab.textContent=“Generant…”;ab.disabled=true;setTimeout(function(){ab.textContent=“PDF global generat”;},2000);};
-ap(ac,at,ab); ap(body,ac);
-}).catch(function(e){ldEl.remove();ap(body,mkErr(e.message));}); return page;
-}
-
-function screenSettings() {
-var page=mk(“div”,“page”); ap(page,mkTopBar(“Configuracio”,function(){goTo({screen:“adminHome”});}));
-var body=mk(“div”,“body”); var ldEl=mkSpin(); ap(body,ldEl); ap(page,body,mkANav(“st”));
-var settings=[];
-dbGet(“app_settings”,“select=*”).then(function(s){
-ldEl.remove(); settings=s||[];
-if(!settings.length){ap(body,mkInf(“La taula app_settings es buida.”));return;}
-var card=mk(“div”,“card”); var ct=mk(“div”,“h3”); ct.textContent=“Parametres globals”; ap(card,ct);
-settings.forEach(function(s,i){
-var row=mk(“div”,“srow”); row.style.borderBottom=i<settings.length-1?“1px solid #252B3A”:“none”;
-var kk=mk(“div”,””,“font-size:12px;font-family:monospace;color:#94A3B8”); kk.textContent=s.setting_key;
-var vi=mk(“input”,“inp”,“width:140px;text-align:right”); vi.value=s.setting_value||””; vi.oninput=function(e){s.setting_value=e.target.value;};
-ap(row,kk,vi); ap(card,row);
-}); ap(body,card);
-var sb=mk(“button”,“btnP”); sb.textContent=“Guardar configuracio”;
-sb.onclick=function(){
-sb.textContent=“Guardant…”; sb.disabled=true; var chain=Promise.resolve();
-settings.forEach(function(s){chain=chain.then(function(){return dbPatch(“app_settings”,“setting_key=eq.”+s.setting_key,{setting_value:s.setting_value}).catch(function(){});});});
-chain.then(function(){sb.textContent=“Guardat!”;setTimeout(function(){sb.textContent=“Guardar configuracio”;sb.disabled=false;},2000);});
-}; ap(body,sb);
-}).catch(function(e){ldEl.remove();ap(body,mkErr(e.message));}); return page;
-}
-
-var SCREENS={
-splash:screenSplash,login:screenLogin,
-workerHome:screenWorkerHome,monthHistory:screenMonthHistory,dayDetail:screenDayDetail,
-permissions:screenPermissions,balance:screenBalance,profile:screenProfile,
-adminHome:screenAdminHome,workers:screenWorkers,records:screenRecords,
-allStatus:screenAllStatus,allBalances:screenAllBalances,
-exports:screenExports,cards:screenCards,settings:screenSettings
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+let state = {
+  worker: null,
+  todaySummary: null,
+  historyMonth: new Date(),
+  adminMonth: new Date(),
+  allWorkers: [],
+  settings: {},
+  selectedCardWorker: null,
 };
 
-function renderApp() {
-var root=document.getElementById(“app”);
-root.innerHTML=””;
+// ════════════════════════════════════════════════
+// API HELPERS
+// ════════════════════════════════════════════════
+const headers = () => ({
+  'Content-Type': 'application/json',
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Prefer': 'return=representation',
+});
+
+async function dbGet(table, params = '') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, { headers: headers() });
+  if (!r.ok) throw await r.json();
+  return r.json();
+}
+
+async function dbPost(table, body) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST', headers: headers(), body: JSON.stringify(body)
+  });
+  if (!r.ok) throw await r.json();
+  return r.json();
+}
+
+async function dbPatch(table, params, body) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
+    method: 'PATCH', headers: headers(), body: JSON.stringify(body)
+  });
+  if (!r.ok) throw await r.json();
+  return r.json();
+}
+
+async function rpc(fn, body = {}) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST', headers: headers(), body: JSON.stringify(body)
+  });
+  if (!r.ok) throw await r.json();
+  return r.json();
+}
+
+// ════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.display = 'none';
+  });
+  const page = document.getElementById(`page-${pageId}`);
+  if (page) {
+    page.style.display = 'flex';
+    page.classList.add('active');
+  }
+}
+
+function showAdminPage(name) {
+  showPage(name === 'all-records' ? 'all-records' :
+           name === 'all-perms' ? 'all-perms' :
+           name === 'all-balances' ? 'all-balances' : name);
+  if (name === 'workers') loadWorkers();
+  if (name === 'all-records') loadAllRecords();
+  if (name === 'all-perms') loadAllPerms();
+  if (name === 'all-balances') loadAllBalances();
+  if (name === 'exports') loadExportWorkers();
+  if (name === 'cards') loadCardsWorkers();
+  if (name === 'settings') loadSettings();
+}
+
+function switchTab(tab) {
+  // update nav
+  document.querySelectorAll('#worker-nav .nav-item').forEach((el, i) => {
+    const tabs = ['home','history','perms','balance','profile'];
+    el.classList.toggle('active', tabs[i] === tab);
+  });
+  // show right subpage inside worker-home
+  const subpages = { home: 'worker-home', history: 'history', perms: 'perms', balance: 'balance', profile: 'profile' };
+  showPage(subpages[tab] || 'worker-home');
+  // attach nav to current page
+  const nav = document.getElementById('worker-nav');
+  const page = document.getElementById(`page-${subpages[tab]}`);
+  if (page && tab !== 'home') page.appendChild(nav);
+  else document.getElementById('page-worker-home').appendChild(nav);
+  // load data
+  if (tab === 'history') loadMonthHistory();
+  if (tab === 'perms') loadMyPerms();
+  if (tab === 'balance') loadMyBalance();
+  if (tab === 'profile') loadProfile();
+}
+
+// ════════════════════════════════════════════════
+// CLOCK
+// ════════════════════════════════════════════════
+let clockInterval;
+function startClock() {
+  clearInterval(clockInterval);
+  function tick() {
+    const now = new Date();
+    document.getElementById('clock-time').textContent =
+      now.toLocaleTimeString('ca', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    document.getElementById('clock-date').textContent =
+      now.toLocaleDateString('ca', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  tick();
+  clockInterval = setInterval(tick, 1000);
+}
+
+// ════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════
+async function doLogin() {
+  const code = document.getElementById('login-code').value.trim();
+  if (!code) return;
+  const btn = document.getElementById('login-btn');
+  btn.innerHTML = '<span class="loader"></span>';
+  btn.disabled = true;
+  document.getElementById('login-error').classList.remove('show');
+  try {
+    // Try RPC first, fallback to direct query
+    let worker;
+    try {
+      const res = await rpc('login_by_code', { p_code: code });
+      worker = res;
+    } catch {
+      // fallback: direct query
+      const rows = await dbGet('workers', `employee_code=eq.${encodeURIComponent(code)}&is_active=eq.true&select=*`);
+      worker = rows[0] || null;
+    }
+    if (!worker || !worker.id) throw new Error('Codi no trobat');
+    state.worker = worker;
+    afterLogin();
+  } catch (e) {
+    const err = document.getElementById('login-error');
+    err.textContent = e.message || 'Error d\'autenticació';
+    err.classList.add('show');
+  } finally {
+    btn.innerHTML = 'Entrar';
+    btn.disabled = false;
+  }
+}
+
+async function afterLogin() {
+  const w = state.worker;
+  document.getElementById('home-name').textContent = w.display_name || w.employee_code;
+  document.getElementById('home-code').textContent = `Codi: ${w.employee_code}`;
+  document.getElementById('profile-name').textContent = w.display_name || w.employee_code;
+  document.getElementById('profile-code').textContent = `Codi: ${w.employee_code}`;
+  if (w.photo_path) {
+    const url = `${SUPABASE_URL}/storage/v1/object/public/worker-photos/${w.photo_path}`;
+    document.getElementById('home-avatar').innerHTML = `<img src="${url}">`;
+    document.getElementById('profile-avatar').innerHTML = `<img src="${url}">`;
+  }
+  if (w.role === 'ADMIN') {
+    showPage('admin-home');
+    loadAdminStats();
+    loadWorkersForAdmin();
+    return;
+  }
+  showPage('worker-home');
+  startClock();
+  await loadTodaySummary();
+}
+
+function doLogout() {
+  state.worker = null;
+  state.todaySummary = null;
+  clearInterval(clockInterval);
+  document.getElementById('login-code').value = '';
+  showPage('splash');
+}
+
+// ════════════════════════════════════════════════
+// TODAY SUMMARY & CLOCK ACTIONS
+// ════════════════════════════════════════════════
+async function loadTodaySummary() {
+  if (!state.worker) return;
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    let summary;
+    try {
+      summary = await rpc('get_today_summary', { p_worker_id: state.worker.id });
+    } catch {
+      const rows = await dbGet('daily_records', `worker_id=eq.${state.worker.id}&work_date=eq.${today}&select=*`);
+      summary = rows[0] || { status: 'NOT_STARTED', worked_minutes: 0, theoretical_minutes: state.worker.daily_theoretical_minutes || 480, balance_minutes: 0 };
+    }
+    state.todaySummary = summary;
+    renderTodaySummary(summary);
+  } catch (e) {
+    showToast('Error carregant resum del dia', 'error');
+  }
+}
+
+function renderTodaySummary(s) {
+  const status = s?.status || 'NOT_STARTED';
+  const statusMap = {
+    'NOT_STARTED': { label: 'No iniciat', cls: 'tag-gray' },
+    'IN_PROGRESS': { label: 'En curs', cls: 'tag-green' },
+    'PAUSED': { label: 'En pausa', cls: 'tag-yellow' },
+    'FINISHED': { label: 'Finalitzat', cls: 'tag-purple' },
+    'INCIDENCE': { label: 'Incidència', cls: 'tag-red' },
+  };
+  const st = statusMap[status] || statusMap['NOT_STARTED'];
+  document.getElementById('clock-status-tag').innerHTML = `<span class="tag ${st.cls}">${st.label}</span>`;
+  document.getElementById('stat-worked').textContent = minsToHM(s?.worked_minutes || 0);
+  document.getElementById('stat-theoretical').textContent = minsToHM(s?.theoretical_minutes || 480);
+  const bal = s?.balance_minutes || 0;
+  const balEl = document.getElementById('stat-balance');
+  balEl.textContent = (bal >= 0 ? '+' : '') + minsToHM(bal);
+  balEl.style.color = bal >= 0 ? 'var(--accent)' : 'var(--warn)';
+  // buttons
+  document.getElementById('btn-start').disabled = status !== 'NOT_STARTED';
+  document.getElementById('btn-pause').disabled = status !== 'IN_PROGRESS';
+  document.getElementById('btn-resume').disabled = status !== 'PAUSED';
+  document.getElementById('btn-end').disabled = !['IN_PROGRESS','PAUSED'].includes(status);
+}
+
+async function doClockAction(action) {
+  const actionMap = { start: 'clock_start', pause: 'clock_pause', resume: 'clock_resume', end: 'clock_end' };
+  const labelMap = { start: 'Jornada iniciada', pause: 'Pausa registrada', resume: 'Jornada represa', end: 'Jornada finalitzada' };
+  const rpcName = actionMap[action];
+  try {
+    try {
+      await rpc(rpcName, { p_worker_id: state.worker.id, p_source_method: 'CODE' });
+    } catch {
+      // fallback: insert time_entry directly
+      const entryTypeMap = { start: 'START', pause: 'PAUSE_START', resume: 'PAUSE_END', end: 'END' };
+      const today = new Date().toISOString().split('T')[0];
+      // get pause count for numbering
+      let pauseNum = null;
+      if (action === 'pause' || action === 'resume') {
+        const entries = await dbGet('time_entries', `worker_id=eq.${state.worker.id}&entry_date=eq.${today}&is_active=eq.true&select=pause_number&order=entry_datetime.asc`);
+        const pauses = entries.filter(e => e.pause_number !== null);
+        pauseNum = action === 'pause' ? (pauses.length + 1) : (pauses.length > 0 ? pauses[pauses.length - 1].pause_number : 1);
+      }
+      await dbPost('time_entries', {
+        worker_id: state.worker.id,
+        entry_date: today,
+        entry_datetime: new Date().toISOString(),
+        entry_type: entryTypeMap[action],
+        pause_number: pauseNum,
+        source_method: 'CODE',
+        is_active: true,
+      });
+      // recalculate daily_records
+      try { await rpc('recalculate_daily_record', { p_worker_id: state.worker.id, p_date: today }); } catch {}
+    }
+    showToast(labelMap[action], 'success');
+    await loadTodaySummary();
+  } catch (e) {
+    showToast(e?.message || 'Error en el fitxatge', 'error');
+  }
+}
+
+// ════════════════════════════════════════════════
+// MONTH HISTORY
+// ════════════════════════════════════════════════
+async function loadMonthHistory() {
+  const m = state.historyMonth;
+  const y = m.getFullYear(), mo = m.getMonth() + 1;
+  document.getElementById('history-month-title').textContent =
+    m.toLocaleDateString('ca', { month: 'long', year: 'numeric' });
+  const start = `${y}-${String(mo).padStart(2,'0')}-01`;
+  const end = `${y}-${String(mo).padStart(2,'0')}-31`;
+  const el = document.getElementById('history-list');
+  el.innerHTML = '<div class="empty-state"><span class="loader"></span></div>';
+  try {
+    let rows;
+    try {
+      rows = await rpc('get_month_history', { p_worker_id: state.worker.id, p_year: y, p_month: mo });
+    } catch {
+      rows = await dbGet('daily_records', `worker_id=eq.${state.worker.id}&work_date=gte.${start}&work_date=lte.${end}&order=work_date.asc&select=*`);
+    }
+    if (!rows || !rows.length) { el.innerHTML = '<div class="empty-state">Cap registre per a aquest mes</div>'; return; }
+    el.innerHTML = rows.map(r => {
+      const bal = r.balance_minutes || 0;
+      const balStr = (bal >= 0 ? '+' : '') + minsToHM(bal);
+      const balCls = bal >= 0 ? 'balance-pos' : 'balance-neg';
+      const statusTag = dayStatusTag(r.status);
+      return `<div class="history-row" onclick="loadDayDetail('${r.work_date}')">
+        <div class="history-date">${formatDate(r.work_date)}</div>
+        <div class="history-info">
+          <div class="history-hours">${minsToHM(r.worked_minutes || 0)} / ${minsToHM(r.theoretical_minutes || 0)}</div>
+          <div class="history-status">${statusTag} ${r.has_incidence ? '⚠' : ''}</div>
+        </div>
+        <div class="history-balance ${balCls}">${balStr}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<div class="empty-state">Error carregant historial</div>';
+  }
+}
+
+function changeMonth(dir) {
+  const m = state.historyMonth;
+  state.historyMonth = new Date(m.getFullYear(), m.getMonth() + dir, 1);
+  loadMonthHistory();
+}
+
+async function loadDayDetail(date) {
+  document.getElementById('day-detail-title').textContent = formatDateLong(date);
+  document.getElementById('day-summary-cards').innerHTML = '<div class="empty-state"><span class="loader"></span></div>';
+  document.getElementById('day-timeline').innerHTML = '';
+  showPage('day-detail');
+  try {
+    let entries, record;
+    try {
+      const detail = await rpc('get_day_detail', { p_worker_id: state.worker.id, p_date: date });
+      entries = detail.entries || [];
+      record = detail.record || {};
+    } catch {
+      entries = await dbGet('time_entries', `worker_id=eq.${state.worker.id}&entry_date=eq.${date}&is_active=eq.true&order=entry_datetime.asc&select=*`);
+      const recs = await dbGet('daily_records', `worker_id=eq.${state.worker.id}&work_date=eq.${date}&select=*`);
+      record = recs[0] || {};
+    }
+    // summary
+    const bal = record.balance_minutes || 0;
+    document.getElementById('day-summary-cards').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        <div class="stat-box"><div class="stat-val">${minsToHM(record.worked_minutes||0)}</div><div class="stat-lbl">Treballat</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:${bal>=0?'var(--accent)':'var(--warn)'}">${(bal>=0?'+':'')}${minsToHM(bal)}</div><div class="stat-lbl">Saldo</div></div>
+      </div>
+      ${record.status ? `<div>${dayStatusTag(record.status)}</div>` : ''}
+    `;
+    // timeline
+    const tl = document.getElementById('day-timeline');
+    if (!entries.length) { tl.innerHTML = '<div class="empty-state">Cap entrada per a aquest dia</div>'; return; }
+    tl.innerHTML = entries.map(e => {
+      const t = new Date(e.entry_datetime).toLocaleTimeString('ca', { hour: '2-digit', minute: '2-digit' });
+      const typeLabels = { START: 'Inici de jornada', END: 'Final de jornada', PAUSE_START: `Inici pausa ${e.pause_number||''}`, PAUSE_END: `Fi pausa ${e.pause_number||''}` };
+      const dotClass = e.entry_type === 'START' ? 'start' : e.entry_type === 'END' ? 'end' : 'pause';
+      return `<div class="timeline-item">
+        <div class="timeline-dot ${dotClass}"></div>
+        <div class="timeline-time">${t}</div>
+        <div class="timeline-type">${typeLabels[e.entry_type] || e.entry_type}</div>
+      </div>`;
+    }).join('');
+  } catch { document.getElementById('day-summary-cards').innerHTML = '<div class="empty-state">Error carregant detall</div>'; }
+}
+
+// ════════════════════════════════════════════════
+// PERMISSIONS
+// ════════════════════════════════════════════════
+async function loadMyPerms() {
+  const el = document.getElementById('perms-list');
+  el.innerHTML = '<div class="empty-state"><span class="loader"></span></div>';
+  try {
+    let rows;
+    try { rows = await rpc('get_worker_day_statuses', { p_worker_id: state.worker.id }); }
+    catch { rows = await dbGet('day_status', `worker_id=eq.${state.worker.id}&is_active=eq.true&order=start_date.desc&select=*`); }
+    if (!rows || !rows.length) { el.innerHTML = '<div class="empty-state">Cap permís registrat</div>'; return; }
+    el.innerHTML = rows.map(p => `
+      <div class="perm-row">
+        <div class="card-row">
+          <span style="font-weight:700">${permTypeLabel(p.day_type)}</span>
+          <span class="tag ${p.compute_mode === 'THEORETICAL_HOURS' ? 'tag-green' : 'tag-gray'}">${p.compute_mode === 'THEORETICAL_HOURS' ? 'Còmput teòric' : 'Zero hores'}</span>
+        </div>
+        <div class="perm-dates">${p.start_date} → ${p.end_date}</div>
+        ${p.comment ? `<div style="color:var(--text2);font-size:12px;margin-top:4px">${p.comment}</div>` : ''}
+      </div>`).join('');
+  } catch { el.innerHTML = '<div class="empty-state">Error carregant permisos</div>'; }
+}
+
+function openModal(type, data) {
+  const box = document.getElementById('modal-box');
+  if (type === 'new-perm') {
+    box.innerHTML = `
+      <div class="modal-title">Nou permís</div>
+      <div class="input-group">
+        <label class="input-label">Tipus</label>
+        <select id="perm-type" class="input">
+          <option value="VACATION">Vacances</option>
+          <option value="SICK_LEAVE">Baixa mèdica</option>
+          <option value="PAID_LEAVE">Permís retribuït</option>
+          <option value="HOLIDAY">Festiu</option>
+          <option value="OTHER">Altres</option>
+        </select>
+      </div>
+      <div class="flex-gap">
+        <div class="input-group" style="flex:1">
+          <label class="input-label">Inici</label>
+          <input type="date" id="perm-start" class="input">
+        </div>
+        <div class="input-group" style="flex:1">
+          <label class="input-label">Fi</label>
+          <input type="date" id="perm-end" class="input">
+        </div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">Comentari (opcional)</label>
+        <textarea id="perm-comment" class="input" placeholder="Descripció…"></textarea>
+
+```
+  </div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel·lar</button>
+    <button class="btn btn-primary" style="flex:1" onclick="savePerm()">Guardar</button>
+  </div>`;
+```
+
+} else if (type === ‘qr-view’) {
+box.innerHTML = ` <div class="modal-title" style="text-align:center">El meu QR</div> <div class="qr-wrap"> <div id="qr-render"></div> <div style="text-align:center;color:var(--text2);font-size:13px">${state.worker?.qr_token || state.worker?.employee_code}</div> </div> <button class="btn btn-ghost btn-full" onclick="closeModal()">Tancar</button>`;
+document.getElementById(‘modal-overlay’).classList.add(‘open’);
+setTimeout(() => {
+const token = state.worker?.qr_token || state.worker?.employee_code || ‘’;
+new QRCode(document.getElementById(‘qr-render’), { text: token, width: 200, height: 200, colorDark: ‘#000’, colorLight: ‘#fff’ });
+}, 100);
+return;
+}
+document.getElementById(‘modal-overlay’).classList.add(‘open’);
+}
+
+async function savePerm() {
+const type = document.getElementById(‘perm-type’).value;
+const start = document.getElementById(‘perm-start’).value;
+const end = document.getElementById(‘perm-end’).value;
+const comment = document.getElementById(‘perm-comment’).value;
+if (!start || !end) { showToast(‘Dates obligatòries’, ‘error’); return; }
 try {
-var fn=SCREENS[APP.screen]||screenSplash;
-root.appendChild(fn());
-} catch(e) {
-root.innerHTML=”<div style='padding:20px;color:#EF4444'><strong>Error a “+APP.screen+”:</strong><br>”+e.message+”</div>”;
+try {
+await rpc(‘create_day_status’, { p_worker_id: state.worker.id, p_day_type: type, p_start_date: start, p_end_date: end, p_comment: comment });
+} catch {
+await dbPost(‘day_status’, { worker_id: state.worker.id, day_type: type, start_date: start, end_date: end, compute_mode: ‘THEORETICAL_HOURS’, comment, is_active: true });
+}
+closeModal();
+showToast(‘Permís creat’, ‘success’);
+loadMyPerms();
+} catch (e) { showToast(e?.message || ‘Error creant permís’, ‘error’); }
+}
+
+function closeModal() { document.getElementById(‘modal-overlay’).classList.remove(‘open’); }
+function closeModalOutside(e) { if (e.target === document.getElementById(‘modal-overlay’)) closeModal(); }
+
+// ════════════════════════════════════════════════
+// BALANCE
+// ════════════════════════════════════════════════
+async function loadMyBalance() {
+const el = document.getElementById(‘balance-content’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+let data;
+try { data = await rpc(‘get_worker_balance’, { p_worker_id: state.worker.id }); }
+catch {
+const now = new Date();
+const rows = await dbGet(‘daily_records’, `worker_id=eq.${state.worker.id}&work_date=gte.${now.getFullYear()}-01-01&select=balance_minutes,work_date`);
+const total = rows.reduce((a, r) => a + (r.balance_minutes || 0), 0);
+const month = rows.filter(r => r.work_date.startsWith(`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`)).reduce((a,r)=>a+(r.balance_minutes||0),0);
+data = { annual_balance: total, monthly_balance: month };
+}
+const ab = data?.annual_balance || 0;
+const mb = data?.monthly_balance || 0;
+el.innerHTML = ` <div style="display:grid;gap:12px;margin-bottom:24px"> <div class="card"> <div class="stat-lbl">Saldo mensual</div> <div style="font-family:var(--mono);font-size:36px;font-weight:500;margin-top:8px;color:${mb>=0?'var(--accent)':'var(--warn)'}">${mb>=0?'+':''}${minsToHM(mb)}</div> </div> <div class="card"> <div class="stat-lbl">Saldo anual</div> <div style="font-family:var(--mono);font-size:36px;font-weight:500;margin-top:8px;color:${ab>=0?'var(--accent)':'var(--warn)'}">${ab>=0?'+':''}${minsToHM(ab)}</div> </div> </div>`;
+} catch { el.innerHTML = ‘<div class="empty-state">Error carregant saldo</div>’; }
+}
+
+// ════════════════════════════════════════════════
+// PROFILE
+// ════════════════════════════════════════════════
+function loadProfile() { /* already populated at login */ }
+
+function openPhotoUpload() { document.getElementById(‘photo-input’).click(); }
+
+async function uploadPhoto(event) {
+const file = event.target.files[0];
+if (!file || !state.worker) return;
+const ext = file.name.split(’.’).pop();
+const path = `${state.worker.id}.${ext}`;
+try {
+const r = await fetch(`${SUPABASE_URL}/storage/v1/object/worker-photos/${path}`, {
+method: ‘POST’,
+headers: { ‘apikey’: SUPABASE_KEY, ‘Authorization’: `Bearer ${SUPABASE_KEY}`, ‘Content-Type’: file.type, ‘x-upsert’: ‘true’ },
+body: file,
+});
+if (!r.ok) throw new Error(‘Error pujant foto’);
+await dbPatch(‘workers’, `id=eq.${state.worker.id}`, { photo_path: path });
+state.worker.photo_path = path;
+const url = `${SUPABASE_URL}/storage/v1/object/public/worker-photos/${path}`;
+document.getElementById(‘profile-avatar’).innerHTML = `<img src="${url}">`;
+document.getElementById(‘home-avatar’).innerHTML = `<img src="${url}">`;
+showToast(‘Foto actualitzada’, ‘success’);
+} catch (e) { showToast(e.message || ‘Error’, ‘error’); }
+}
+
+// ════════════════════════════════════════════════
+// ADMIN
+// ════════════════════════════════════════════════
+async function loadAdminStats() {
+const el = document.getElementById(‘admin-stats’);
+try {
+let data;
+try { data = await rpc(‘get_admin_dashboard_summary’, {}); }
+catch {
+const workers = await dbGet(‘workers’, ‘is_active=eq.true&select=id’);
+const today = new Date().toISOString().split(‘T’)[0];
+const inProgress = await dbGet(‘daily_records’, `work_date=eq.${today}&status=eq.IN_PROGRESS&select=id`);
+const incidences = await dbGet(‘daily_records’, `work_date=eq.${today}&has_incidence=eq.true&select=id`);
+data = { total_workers: workers.length, in_progress_today: inProgress.length, incidences_today: incidences.length };
+}
+el.innerHTML = ` <div class="admin-stat"><div class="admin-stat-val">${data.total_workers || 0}</div><div class="admin-stat-lbl">Treballadors</div></div> <div class="admin-stat"><div class="admin-stat-val" style="color:var(--accent)">${data.in_progress_today || 0}</div><div class="admin-stat-lbl">En curs avui</div></div> <div class="admin-stat"><div class="admin-stat-val" style="color:var(--warn)">${data.incidences_today || 0}</div><div class="admin-stat-lbl">Incidències</div></div> <div class="admin-stat"><div class="admin-stat-val" style="color:var(--accent2)">${data.finished_today || 0}</div><div class="admin-stat-lbl">Finalitzats</div></div>`;
+} catch { el.innerHTML = ‘<div style="color:var(--text2);font-size:13px">Error carregant estadístiques</div>’; }
+}
+
+async function loadWorkersForAdmin() {
+try {
+state.allWorkers = await dbGet(‘workers’, ‘is_active=eq.true&order=display_name.asc&select=*’);
+} catch {}
+}
+
+async function loadWorkers() {
+const el = document.getElementById(‘workers-list’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+const rows = state.allWorkers.length ? state.allWorkers : await dbGet(‘workers’, ‘order=display_name.asc&select=*’);
+if (!rows.length) { el.innerHTML = ‘<div class="empty-state">Cap treballador</div>’; return; }
+el.innerHTML = rows.map(w => `<div class="worker-item"> <div class="worker-avatar-sm">${w.photo_path ?`<img src="${SUPABASE_URL}/storage/v1/object/public/worker-photos/${w.photo_path}">` : '👤'}</div> <div style="flex:1"> <div style="font-weight:700;font-size:14px">${w.display_name || w.employee_code}</div> <div style="color:var(--text2);font-size:12px">${w.employee_code} · ${w.role}</div> </div> <span class="tag ${w.is_active ? 'tag-green' : 'tag-gray'}">${w.is_active ? 'Actiu' : 'Inactiu'}</span> </div>`).join(’’);
+} catch { el.innerHTML = ‘<div class="empty-state">Error carregant treballadors</div>’; }
+}
+
+async function loadAllRecords() {
+const m = state.adminMonth;
+const y = m.getFullYear(), mo = m.getMonth() + 1;
+document.getElementById(‘admin-month-title’).textContent = m.toLocaleDateString(‘ca’, { month: ‘long’, year: ‘numeric’ });
+const start = `${y}-${String(mo).padStart(2,'0')}-01`;
+const end = `${y}-${String(mo).padStart(2,'0')}-31`;
+const el = document.getElementById(‘all-records-list’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+let rows;
+try { rows = await rpc(‘get_all_daily_records’, { p_year: y, p_month: mo }); }
+catch { rows = await dbGet(‘daily_records’, `work_date=gte.${start}&work_date=lte.${end}&order=work_date.desc,worker_id.asc&select=*,workers(display_name,employee_code)`); }
+if (!rows?.length) { el.innerHTML = ‘<div class="empty-state">Cap registre per a aquest mes</div>’; return; }
+el.innerHTML = rows.map(r => {
+const name = r.workers?.display_name || r.worker_id;
+const bal = r.balance_minutes || 0;
+return `<div class="history-row"> <div class="history-date" style="width:80px;font-size:11px">${formatDate(r.work_date)}</div> <div class="history-info"> <div class="history-hours" style="font-size:13px">${name}</div> <div class="history-status">${dayStatusTag(r.status)} ${minsToHM(r.worked_minutes||0)}</div> </div> <div class="history-balance ${bal>=0?'balance-pos':'balance-neg'}">${bal>=0?'+':''}${minsToHM(bal)}</div> </div>`;
+}).join(’’);
+} catch { el.innerHTML = ‘<div class="empty-state">Error</div>’; }
+}
+
+function changeAdminMonth(dir) {
+const m = state.adminMonth;
+state.adminMonth = new Date(m.getFullYear(), m.getMonth() + dir, 1);
+loadAllRecords();
+}
+
+async function loadAllPerms() {
+const el = document.getElementById(‘all-perms-list’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+let rows;
+try { rows = await rpc(‘get_all_day_statuses’, {}); }
+catch { rows = await dbGet(‘day_status’, ‘is_active=eq.true&order=start_date.desc&select=*,workers(display_name,employee_code)’); }
+if (!rows?.length) { el.innerHTML = ‘<div class="empty-state">Cap permís</div>’; return; }
+el.innerHTML = rows.map(p => ` <div class="perm-row"> <div class="card-row"> <span style="font-weight:700">${p.workers?.display_name || p.worker_id}</span> <span class="tag tag-purple">${permTypeLabel(p.day_type)}</span> </div> <div class="perm-dates">${p.start_date} → ${p.end_date}</div> <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between"> <span class="tag ${p.compute_mode==='THEORETICAL_HOURS'?'tag-green':'tag-gray'}">${p.compute_mode==='THEORETICAL_HOURS'?'Teòric':'Zero h'}</span> <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="togglePermCompute('${p.id}','${p.compute_mode}')">Canviar còmput</button> </div> </div>`).join(’’);
+} catch { el.innerHTML = ‘<div class="empty-state">Error</div>’; }
+}
+
+async function togglePermCompute(id, current) {
+const next = current === ‘THEORETICAL_HOURS’ ? ‘ZERO_HOURS’ : ‘THEORETICAL_HOURS’;
+try {
+try { await rpc(‘set_day_status_compute_mode’, { p_id: id, p_compute_mode: next }); }
+catch { await dbPatch(‘day_status’, `id=eq.${id}`, { compute_mode: next }); }
+showToast(‘Còmput actualitzat’, ‘success’);
+loadAllPerms();
+} catch { showToast(‘Error’, ‘error’); }
+}
+
+async function loadAllBalances() {
+const el = document.getElementById(‘all-balances-list’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+let rows;
+try { rows = await rpc(‘get_all_balances’, {}); }
+catch {
+const workers = await dbGet(‘workers’, ‘is_active=eq.true&select=id,display_name,employee_code’);
+const now = new Date();
+rows = await Promise.all(workers.map(async w => {
+const recs = await dbGet(‘daily_records’, `worker_id=eq.${w.id}&work_date=gte.${now.getFullYear()}-01-01&select=balance_minutes`);
+return { …w, annual_balance: recs.reduce((a,r)=>a+(r.balance_minutes||0),0) };
+}));
+}
+if (!rows?.length) { el.innerHTML = ‘<div class="empty-state">Sense dades</div>’; return; }
+el.innerHTML = rows.map(w => {
+const b = w.annual_balance || 0;
+return `<div class="history-row"> <div style="flex:1"> <div style="font-weight:700;font-size:14px">${w.display_name || w.employee_code}</div> <div style="color:var(--text2);font-size:12px">${w.employee_code || ''}</div> </div> <div style="font-family:var(--mono);font-size:16px;font-weight:500;color:${b>=0?'var(--accent)':'var(--warn)'}">${b>=0?'+':''}${minsToHM(b)}</div> </div>`;
+}).join(’’);
+} catch { el.innerHTML = ‘<div class="empty-state">Error</div>’; }
+}
+
+async function loadExportWorkers() {
+const sel = document.getElementById(‘export-worker-select’);
+if (state.allWorkers.length) {
+sel.innerHTML = ‘<option value="">— Selecciona treballador —</option>’ +
+state.allWorkers.map(w => `<option value="${w.id}">${w.display_name || w.employee_code}</option>`).join(’’);
 }
 }
 
-window.onerror=function(msg,src,line){
-document.getElementById(“app”).innerHTML=”<div style='padding:20px;color:#EF4444'><strong>Error JS linia “+line+”:</strong><br>”+msg+”</div>”;
-return false;
+async function callExport(type) {
+showToast(‘Generant exportació…’, ‘success’);
+try {
+if (type === ‘individual’) {
+const wId = document.getElementById(‘export-worker-select’).value;
+const month = document.getElementById(‘export-month’).value;
+const year = document.getElementById(‘export-year’).value;
+await rpc(‘generate_worker_excel_report’, { p_worker_id: wId, p_month: parseInt(month), p_year: parseInt(year) });
+} else {
+await rpc(‘generate_all_workers_zip’, {});
+}
+showToast(‘Exportació completada’, ‘success’);
+} catch { showToast(‘Error en la generació (comprova el backend)’, ‘error’); }
+}
+
+async function loadCardsWorkers() {
+const el = document.getElementById(‘cards-workers-list’);
+const workers = state.allWorkers.length ? state.allWorkers : await dbGet(‘workers’,‘is_active=eq.true&select=*’);
+el.innerHTML = workers.map(w => `<div class="worker-item" onclick="this.classList.toggle('selected');state.selectedCardWorker='${w.id}'" style="user-select:none" id="cw-${w.id}"> <div class="worker-avatar-sm">${w.photo_path ?`<img src="${SUPABASE_URL}/storage/v1/object/public/worker-photos/${w.photo_path}">` : '👤'}</div> <div style="flex:1"><div style="font-weight:700;font-size:14px">${w.display_name||w.employee_code}</div></div> <input type="checkbox" style="accent-color:var(--accent);width:18px;height:18px"> </div>`).join(’’);
+}
+
+async function generateCards(all) {
+showToast(‘Generant targetes…’, ‘success’);
+try {
+if (all) await rpc(‘generate_multiple_cards_pdf’, {});
+else await rpc(‘generate_worker_card_pdf’, { p_worker_id: state.selectedCardWorker });
+showToast(‘Targetes generades’, ‘success’);
+} catch { showToast(‘Comprova el backend de generació’, ‘error’); }
+}
+
+async function loadSettings() {
+const el = document.getElementById(‘settings-list’);
+el.innerHTML = ‘<div class="empty-state"><span class="loader"></span></div>’;
+try {
+let rows;
+try { rows = await rpc(‘get_app_settings’, {}); }
+catch { rows = await dbGet(‘app_settings’, ‘select=*’); }
+if (!rows?.length) { el.innerHTML = ‘<div class="empty-state">Cap configuració disponible</div>’; return; }
+state.settings = {};
+rows.forEach(r => state.settings[r.setting_key] = r.setting_value);
+el.innerHTML = rows.map(r => ` <div class="setting-row"> <div><div class="setting-label">${r.setting_key}</div></div> <input class="input" style="width:160px;padding:8px 12px;font-size:13px" id="setting-${r.setting_key}" value="${r.setting_value || ''}"> </div>`).join(’’);
+} catch { el.innerHTML = ‘<div class="empty-state">Error carregant configuració</div>’; }
+}
+
+async function saveSettings() {
+const rows = await dbGet(‘app_settings’, ‘select=setting_key’);
+for (const r of rows) {
+const el = document.getElementById(`setting-${r.setting_key}`);
+if (el) await dbPatch(‘app_settings’, `setting_key=eq.${r.setting_key}`, { setting_value: el.value });
+}
+showToast(‘Configuració guardada’, ‘success’);
+}
+
+// ════════════════════════════════════════════════
+// QR SCAN (camera)
+// ════════════════════════════════════════════════
+let qrStream = null;
+async function startQRScan() {
+showPage(‘qr-scan’);
+try {
+qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: ‘environment’ } });
+const video = document.getElementById(‘qr-video’);
+video.srcObject = qrStream;
+await video.play();
+document.getElementById(‘qr-scan-hint’).textContent = ‘’;
+// simple interval scan with BarcodeDetector if available
+if (‘BarcodeDetector’ in window) {
+const bd = new BarcodeDetector({ formats: [‘qr_code’] });
+const iv = setInterval(async () => {
+try {
+const codes = await bd.detect(video);
+if (codes.length) {
+clearInterval(iv);
+stopQR();
+const token = codes[0].rawValue;
+await loginByQR(token);
+}
+} catch {}
+}, 500);
+} else {
+document.getElementById(‘qr-scan-hint’).textContent = ‘BarcodeDetector no disponible al navegador’;
+}
+} catch { document.getElementById(‘qr-scan-hint’).textContent = ‘No s'ha pogut accedir a la càmera’; }
+}
+
+function stopQR() {
+if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+}
+
+async function loginByQR(token) {
+try {
+let worker;
+try { worker = await rpc(‘login_by_qr’, { p_qr_token: token }); }
+catch {
+const rows = await dbGet(‘workers’, `qr_token=eq.${encodeURIComponent(token)}&is_active=eq.true&select=*`);
+worker = rows[0];
+}
+if (!worker?.id) throw new Error(‘QR no vàlid’);
+state.worker = worker;
+afterLogin();
+} catch (e) { showToast(e.message || ‘QR no reconegut’, ‘error’); showPage(‘splash’); }
+}
+
+// ════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════
+function minsToHM(mins) {
+const abs = Math.abs(Math.round(mins));
+const h = Math.floor(abs / 60), m = abs % 60;
+return `${mins < 0 ? '-' : ''}${h}:${String(m).padStart(2,'0')}`;
+}
+
+function formatDate(d) {
+if (!d) return ‘—’;
+const [y, m, day] = d.split(’-’);
+return `${day}/${m}`;
+}
+
+function formatDateLong(d) {
+if (!d) return ‘—’;
+return new Date(d + ‘T12:00:00’).toLocaleDateString(‘ca’, { weekday: ‘long’, day: ‘numeric’, month: ‘long’, year: ‘numeric’ });
+}
+
+function dayStatusTag(status) {
+const map = {
+NOT_STARTED: ‘<span class="tag tag-gray">No iniciat</span>’,
+IN_PROGRESS: ‘<span class="tag tag-green">En curs</span>’,
+PAUSED: ‘<span class="tag tag-yellow">Pausat</span>’,
+FINISHED: ‘<span class="tag tag-purple">Finalitzat</span>’,
+INCIDENCE: ‘<span class="tag tag-red">Incidència</span>’,
+VACATION: ‘<span class="tag tag-purple">Vacances</span>’,
+SICK_LEAVE: ‘<span class="tag tag-red">Baixa</span>’,
+PAID_LEAVE: ‘<span class="tag tag-yellow">Permís</span>’,
+HOLIDAY: ‘<span class="tag tag-gray">Festiu</span>’,
 };
+return map[status] || `<span class="tag tag-gray">${status}</span>`;
+}
 
-renderApp();
+function permTypeLabel(t) {
+const m = { VACATION: ‘Vacances’, SICK_LEAVE: ‘Baixa mèdica’, PAID_LEAVE: ‘Permís retribuït’, HOLIDAY: ‘Festiu’, OTHER: ‘Altres’ };
+return m[t] || t;
+}
+
+function showToast(msg, type = ‘success’) {
+const el = document.getElementById(‘toast’);
+el.textContent = msg;
+el.className = `show ${type}`;
+clearTimeout(el._t);
+el._t = setTimeout(() => el.classList.remove(‘show’), 2800);
+}
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+showPage(‘splash’);
 </script>
 
 </body>
