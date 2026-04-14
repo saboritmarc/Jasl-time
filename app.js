@@ -26,7 +26,13 @@ async function doLogin(){
   document.getElementById('login-error').classList.remove('show');
   try{
     var worker;
-    try{ var res=await rpc('login_by_code',{p_employee_code:code}); worker=Array.isArray(res)?res[0]:res; }catch(e1){ var rows=await dbGet('workers','employee_code=eq.'+encodeURIComponent(code)+'&is_active=eq.true&select=*'); worker=rows[0]||null; }
+    try{ var res=await rpc('login_by_code',{p_employee_code:code});
+      var raw=Array.isArray(res)?res[0]:res;
+      if(raw&&raw.worker_id){
+        worker={id:raw.worker_id,display_name:raw.display_name,role:raw.role,photo_path:raw.photo_path,employee_code:code,daily_theoretical_minutes:480};
+      } else {
+        worker=raw;
+      } }catch(e1){ var rows=await dbGet('workers','employee_code=eq.'+encodeURIComponent(code)+'&is_active=eq.true&select=*'); worker=rows[0]||null; }
     if(!worker||!worker.id)throw new Error('Codi no trobat');
     state.worker=worker; afterLogin();
   }catch(e){ var err=document.getElementById('login-error'); err.textContent=e.message||'Error autenticacio'; err.classList.add('show'); }
