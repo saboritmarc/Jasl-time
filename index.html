@@ -659,22 +659,10 @@ var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 
 var state = { worker:null, todaySummary:null, historyMonth:new Date(), adminMonth:new Date(), allWorkers:[], settings:{}, selectedCardWorker:null };
 
-function hdrs() {
-  return { 'Content-Type':'application/json', 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Prefer':'return=representation' };
-}
-async function dbGet(table,params){ params=params||''; var r=await fetch(SUPABASE_URL+'/rest/v1/'+table+'?'+params,{headers:hdrs()}); if(!r.ok)throw await r.json(); return r.json(); }
-async function dbPost(table,body){ var r=await fetch(SUPABASE_URL+'/rest/v1/'+table,{method:'POST',headers:hdrs(),body:JSON.stringify(body)}); if(!r.ok)throw await r.json(); return r.json(); }
-async function dbPatch(table,params,body){ var r=await fetch(SUPABASE_URL+'/rest/v1/'+table+'?'+params,{method:'PATCH',headers:hdrs(),body:JSON.stringify(body)}); if(!r.ok)throw await r.json(); return r.json(); }
-async function rpc(fn,body){ body=body||{}; var r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:hdrs(),body:JSON.stringify(body)}); if(!r.ok)throw await r.json(); return r.json(); }
-
-function showPage(pageId){ document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');p.style.display='none';}); var page=document.getElementById('page-'+pageId); if(page){page.style.display='flex';page.classList.add('active');} }
-
-function showAdminPage(name){ var pm={workers:'workers','all-records':'all-records','all-perms':'all-perms','all-balances':'all-balances',exports:'exports',cards:'cards',settings:'settings'}; showPage(pm[name]||name); if(name==='workers')loadWorkers(); if(name==='all-records')loadAllRecords(); if(name==='all-perms'){loadAllPerms();loadPendingPermsCount();} if(name==='all-balances')loadAllBalances(); if(name==='exports')loadExportWorkers(); if(name==='cards')loadCardsWorkers(); if(name==='settings'){ loadSettings(); loadComputeSettings(); }
-  if(name==='access-logs'){ loadAccessLogs(); } }
-
-function switchTab(tab){ var tabs=['home','history','perms','balance','profile']; document.querySelectorAll('#worker-nav .nav-item').forEach(function(el,i){el.classList.toggle('active',tabs[i]===tab);}); var sp={home:'worker-home',history:'history',perms:'perms',balance:'balance',profile:'profile'}; showPage(sp[tab]||'worker-home'); var nav=document.getElementById('worker-nav'); var page=document.getElementById('page-'+(sp[tab]||'worker-home')); if(page)page.appendChild(nav); if(tab==='history')loadMonthHistory(); if(tab==='perms')loadMyPerms(); if(tab==='balance')loadMyBalance(); if(tab==='profile')loadProfile(); }
-
 var clockInterval;
+
+document.addEventListener('DOMContentLoaded', function() {
+
 function startClock(){ clearInterval(clockInterval); function tick(){ var now=new Date(); document.getElementById('clock-time').textContent=now.toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); document.getElementById('clock-date').textContent=now.toLocaleDateString('ca',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); } tick(); clockInterval=setInterval(tick,1000); }
 
 async function doLogin(){
@@ -2165,6 +2153,45 @@ function resetSessionTimer(){
 document.addEventListener('touchstart', resetSessionTimer);
 document.addEventListener('click', resetSessionTimer);
 document.addEventListener('keypress', resetSessionTimer);
+
+// Exposar funcions a window per als onclick de l'HTML
+  window.adminClockAction=adminClockAction;
+  window.approveAdminPerm=approveAdminPerm;
+  window.callExport=callExport;
+  window.changeAdminMonth=changeAdminMonth;
+  window.changeMonth=changeMonth;
+  window.closeModal=closeModal;
+  window.deleteMyPerm=deleteMyPerm;
+  window.doAdminClockAction=doAdminClockAction;
+  window.doClockAction=doClockAction;
+  window.doLogin=doLogin;
+  window.doLogout=doLogout;
+  window.editMyPerm=editMyPerm;
+  window.generateCards=generateCards;
+  window.loadAllRecords=loadAllRecords;
+  window.loadDayDetail=loadDayDetail;
+  window.openAddWorker=openAddWorker;
+  window.openModal=openModal;
+  window.openPhotoUpload=openPhotoUpload;
+  window.openWorkerDetail=openWorkerDetail;
+  window.requestAdminPermChange=requestAdminPermChange;
+  window.saveEditPerm=saveEditPerm;
+  window.saveNewWorker=saveNewWorker;
+  window.savePerm=savePerm;
+  window.saveSettings=saveSettings;
+  window.saveWorkerDetail=saveWorkerDetail;
+  window.showAdminPage=showAdminPage;
+  window.showPage=showPage;
+  window.startQRScan=startQRScan;
+  window.stopQR=stopQR;
+  window.switchTab=switchTab;
+  window.togglePermCompute=togglePermCompute;
+  window.updateNwCalc=updateNwCalc;
+  window.updatePermComputeInfo=updatePermComputeInfo;
+  window.updateWdCalc=updateWdCalc;
+  window.uploadPhoto=uploadPhoto;
+
+});
 
 </script>
 <script>
