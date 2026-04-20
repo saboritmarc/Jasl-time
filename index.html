@@ -498,7 +498,7 @@
     <div class="topbar">
       <button class="back-btn" onclick="showPage('admin-home')">&#8592;</button>
       <div class="topbar-title">Treballadors</div>
-      <div style="width:28px"></div>
+      <button class="btn btn-primary" style="padding:8px 14px;font-size:12px" onclick="openAddWorker()">+ Nou</button>
     </div>
     <div class="content" style="flex:1;overflow-y:auto">
       <div class="workers-list" id="workers-list"></div>
@@ -851,8 +851,11 @@ async function loadMonthHistory(){
     el.innerHTML=rows.map(function(r){
       var bal=r.balance_minutes||0;
       var balCls=bal>=0?'balance-pos':'balance-neg';
-      var dayIcon='';
-      if(r.day_type==='VACATION'||r.status==='VACATION') dayIcon='&#127958; ';
+      var yr2=r.work_date?r.work_date.split('-')[0]:'2026';
+      var holidaysStr=state.settings?state.settings['holidays_'+yr2]:'';
+      var isHoliday=holidaysStr&&holidaysStr.indexOf(r.work_date)>=0;
+      var dayIcon=isHoliday?'&#128197; ':'';
+      if(!isHoliday&&r.day_type==='VACATION'||r.status==='VACATION') dayIcon='&#127958; ';
       else if(r.day_type==='SICK_LEAVE'||r.status==='SICK_LEAVE') dayIcon='&#127973; ';
       else if(r.day_type==='HOLIDAY'||r.status==='HOLIDAY') dayIcon='&#128197; ';
       else if(r.day_type==='PAID_LEAVE') dayIcon='&#128203; ';
@@ -1274,6 +1277,65 @@ async function loadAdminStats(){
 async function loadWorkersForAdmin(){ try{state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*');}catch(e){} }
 
 function workerAvatar(w){ return w.photo_path?'<img src="'+SUPABASE_URL+'/storage/v1/object/public/worker-photos/'+w.photo_path+'">':'&#128100;'; }
+
+async function openAddWorker(){
+  var dmRow=await dbGet('app_settings','setting_key=eq.daily_minutes&select=setting_value');
+  var baseMins=dmRow[0]?parseInt(dmRow[0].setting_value):450;
+  var box=document.getElementById('modal-box');
+  box.innerHTML=
+    '<div class="modal-title">Nou treballador</div>'+
+    '<div class="flex-gap">'+
+      '<div class="input-group" style="flex:1"><label class="input-label">Nom</label><input class="input" id="nw-fname" placeholder="Marc"></div>'+
+      '<div class="input-group" style="flex:1"><label class="input-label">Cognoms</label><input class="input" id="nw-lname" placeholder="Saborit Toll"></div>'+
+    '</div>'+
+    '<div class="input-group"><label class="input-label">Nom visible</label><input class="input" id="nw-display" placeholder="Marc Saborit"></div>'+
+    '<div class="flex-gap">'+
+      '<div class="input-group" style="flex:1"><label class="input-label">Codi empleat</label><input class="input" id="nw-code" placeholder="SAB001" style="font-family:monospace;text-transform:uppercase"></div>'+
+      '<div class="input-group" style="flex:1"><label class="input-label">Carrec</label><input class="input" id="nw-carrec" placeholder="Tecnic/a"></div>'+
+    '</div>'+
+    '<div class="input-group"><label class="input-label">Percentatge de jornada (%)</label>'+
+      '<div style="display:flex;align-items:center;gap:12px">'+
+        '<input class="input" type="number" id="nw-pct" value="100" min="10" max="100" step="5" style="width:80px;text-align:center;font-size:18px;font-weight:700" oninput="updateNwCalc('+baseMins+')">'+
+        '<div style="font-size:13px;color:var(--text2)">% = <strong id="nw-calc">'+baseMins+' min/dia</strong></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="input-group"><label class="input-label">Rol</label>'+
+      '<select class="input" id="nw-role"><option value="WORKER">Treballador</option><option value="ADMIN">Administrador</option></select>'+
+    '</div>'+
+    '<div class="modal-actions">'+
+      '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel.lar</button>'+
+      '<button class="btn btn-primary" style="flex:1" onclick="saveNewWorker('+baseMins+')">Crear</button>'+
+    '</div>';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+window.updateNwCalc=function(base){
+  var pct=parseFloat(document.getElementById('nw-pct').value)||100;
+  document.getElementById('nw-calc').textContent=Math.round(base*pct/100)+' min/dia';
+};
+
+async function saveNewWorker(baseMins){
+  var fname=document.getElementById('nw-fname').value.trim();
+  var lname=document.getElementById('nw-lname').value.trim();
+  var display=document.getElementById('nw-display').value.trim()||fname+' '+(lname.split(' ')[0]||'');
+  var code=document.getElementById('nw-code').value.trim().toUpperCase();
+  var carrec=document.getElementById('nw-carrec').value.trim();
+  var pct=parseInt(document.getElementById('nw-pct').value)||100;
+  var role=document.getElementById('nw-role').value;
+  var mins=Math.round(baseMins*pct/100);
+  if(!fname||!lname||!code){showToast('Nom, cognoms i codi son obligatoris','error');return;}
+  try{
+    var token='QR-'+code+'-'+Date.now();
+    await dbPost('workers',{first_name:fname,last_name:lname,display_name:display,
+      employee_code:code,qr_token:token,role:role,daily_theoretical_minutes:mins,
+      is_active:true,jornada_pct:pct,carrec:carrec});
+    closeModal();
+    showToast('Treballador creat!','success');
+    state.allWorkers=[];
+    loadWorkers();
+    loadWorkersForAdmin();
+  }catch(e){showToast('Error: codi ja existent?','error');}
+}
 
 async function loadWorkers(){
   var el=document.getElementById('workers-list'); el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
@@ -2104,6 +2166,28 @@ document.addEventListener('touchstart', resetSessionTimer);
 document.addEventListener('click', resetSessionTimer);
 document.addEventListener('keypress', resetSessionTimer);
 
+</script>
+<script>
+(function(){
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isStandalone=window.navigator.standalone===true;
+  if(isIOS&&!isStandalone&&!localStorage.getItem('pwa_ok')){
+    setTimeout(function(){
+      var d=document.createElement('div');
+      d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';
+      var msg=document.createElement('div');
+      msg.style.flex='1';
+      msg.innerHTML='<strong>Instal.la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';
+      var btn=document.createElement('button');
+      btn.textContent='Ara no';
+      btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';
+      btn.onclick=function(){ d.remove(); localStorage.setItem('pwa_ok','1'); };
+      d.appendChild(msg);
+      d.appendChild(btn);
+      document.body.appendChild(d);
+    },3000);
+  }
+})();
 </script>
 <script>
 (function(){
