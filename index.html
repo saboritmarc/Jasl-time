@@ -513,6 +513,11 @@
       <div style="width:28px"></div>
     </div>
     <div class="content" style="flex:1;overflow-y:auto">
+      <div style="margin-bottom:12px">
+        <select id="admin-records-worker-filter" class="input" style="font-size:13px" onchange="loadAllRecords()">
+          <option value="">Tots els treballadors</option>
+        </select>
+      </div>
       <div class="month-nav" style="margin-bottom:16px">
         <button class="month-nav-btn" onclick="changeAdminMonth(-1)">‹</button>
         <div class="month-nav-title" id="admin-month-title"> - </div>
@@ -646,24 +651,9 @@
 </div><!-- #app -->
 
 <!-- ═══════════════════════════════ MODALS ════════════════════════════════ -->
-<div id="modal-overlay" class="modal-overlay" onclick="closeModalOutside(event)">
-  <div class="modal-box" id="modal-box">
-    <!-- content injected -->
-  </div>
-</div>
-
-<div id="toast"></div>
-
-<!-- ══════════════════════════ QR LIB ════════════════════════════ -->
-
-
-
-
+<div id="modal-overlay" class="modal-o
 
 <script>
-
-
-
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -1360,6 +1350,16 @@ async function saveWorkerDetail(workerId, baseMins){
 }
 
 async function loadAllRecords(){
+  // Omplir selector de treballadors
+  var filterEl=document.getElementById('admin-records-worker-filter');
+  if(filterEl&&filterEl.options.length<=1){
+    var ws=state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&order=display_name.asc&select=id,display_name,employee_code').catch(function(){return[];});
+    ws.forEach(function(w){
+      var opt=document.createElement('option');
+      opt.value=w.id; opt.textContent=(w.display_name||w.employee_code);
+      filterEl.appendChild(opt);
+    });
+  }
   var m=state.adminMonth; var y=m.getFullYear(),mo=m.getMonth()+1;
   document.getElementById('admin-month-title').textContent=m.toLocaleDateString('ca',{month:'long',year:'numeric'});
   var moS=String(mo).padStart(2,'0'); var start=y+'-'+moS+'-01'; var end=y+'-'+moS+'-31';
@@ -2103,8 +2103,8 @@ function resetSessionTimer(){
 document.addEventListener('touchstart', resetSessionTimer);
 document.addEventListener('click', resetSessionTimer);
 document.addEventListener('keypress', resetSessionTimer);
-</script>
 
+</script>
 <script>
 (function(){
   var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
