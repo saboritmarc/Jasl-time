@@ -51,7 +51,7 @@ document.getElementById(‘profile-name’).textContent=w.display_name||w.employ
 document.getElementById(‘profile-code’).textContent=‘Codi: ‘+w.employee_code;
 if(w.photo_path){ var url=SUPABASE_URL+’/storage/v1/object/public/worker-photos/’+w.photo_path; document.getElementById(‘home-avatar’).innerHTML=’<img src="'+url+'">’; document.getElementById(‘profile-avatar’).innerHTML=’<img src="'+url+'">’; }
 if(w.role===‘ADMIN’||w.role===‘admin’||w.role===‘Admin’){
-// Si login per codi (no QR) → demanar contrasenya
+// Si login per codi (no QR) -> demanar contrasenya
 if(!state._loginByQR){
 var adminPwd = null;
 try {
@@ -80,11 +80,11 @@ showPage(‘worker-home’); startClock(); await loadTodaySummary();
 
 function doLogout(){ state.worker=null; state.todaySummary=null; state._loginByQR=false; clearInterval(clockInterval); document.getElementById(‘login-code’).value=’’; showPage(‘splash’);
 
-// ── Gestio offline ──
+// – Gestio offline –
 window.addEventListener(‘online’,  function(){ showToast(‘Connexio restaurada’,‘success’); });
 window.addEventListener(‘offline’, function(){ showToast(‘Sense connexio a Internet’,‘error’); });
 
-// ── Timeout de sessio (30 min d inactivitat) ──
+// – Timeout de sessio (30 min d inactivitat) –
 var _sessionTimer = null;
 var SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minuts
 
@@ -183,10 +183,10 @@ el.innerHTML=rows.map(function(r){
 var bal=r.balance_minutes||0;
 var balCls=bal>=0?‘balance-pos’:‘balance-neg’;
 var dayIcon=’’;
-if(r.day_type===‘VACATION’||r.status===‘VACATION’) dayIcon=‘🏖 ‘;
-else if(r.day_type===‘SICK_LEAVE’||r.status===‘SICK_LEAVE’) dayIcon=‘🏥 ‘;
-else if(r.day_type===‘HOLIDAY’||r.status===‘HOLIDAY’) dayIcon=‘📅 ‘;
-else if(r.day_type===‘PAID_LEAVE’) dayIcon=‘📋 ‘;
+if(r.day_type===‘VACATION’||r.status===‘VACATION’) dayIcon=’🏖 ‘;
+else if(r.day_type===‘SICK_LEAVE’||r.status===‘SICK_LEAVE’) dayIcon=’🏥 ‘;
+else if(r.day_type===‘HOLIDAY’||r.status===‘HOLIDAY’) dayIcon=’📅 ‘;
+else if(r.day_type===‘PAID_LEAVE’) dayIcon=’📋 ‘;
 var editedBadge=r.is_edited?’<span style="font-size:9px;background:#FFF3CD;color:#856404;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700;">EDITAT</span>’:’’;
 return ‘<div class="history-row" data-date="'+r.work_date+'" onclick="loadDayDetail(this.dataset.date)">’+’<div class="history-date">’+formatDate(r.work_date)+’</div>’+
 ‘<div class="history-info">’+
@@ -259,7 +259,7 @@ var approvalMap={
 PENDING:  ‘<span class="tag tag-yellow">⏳ Pendent aprovació</span>’,
 APPROVED: ‘<span class="tag tag-green">✓ Aprovada</span>’,
 REJECTED: ‘<span class="tag tag-red">✗ Rebutjada</span>’,
-CHANGE_REQUESTED: ‘<span class="tag tag-yellow">⚠ Canvi sol·licitat</span>’
+CHANGE_REQUESTED: ‘<span class="tag tag-yellow">⚠ Canvi sol.licitat</span>’
 };
 var approvalTag = approvalMap[p.approval_status||‘APPROVED’]||approvalMap[‘APPROVED’];
 var adminNote = (p.admin_note&&(p.approval_status===‘REJECTED’||p.approval_status===‘CHANGE_REQUESTED’))?
@@ -276,7 +276,7 @@ return ‘<div class="perm-row">’+
 ‘<span style="font-weight:700;font-size:14px">’+permTypeLabel(p.day_type)+’</span>’+
 approvalTag+
 ‘</div>’+
-‘<div class="perm-dates">’+formatDateLong(p.start_date)+’ → ‘+formatDateLong(p.end_date)+’</div>’+
+‘<div class="perm-dates">’+formatDateLong(p.start_date)+’ -> ‘+formatDateLong(p.end_date)+’</div>’+
 ‘<div style="margin-top:4px"><span class="tag '+cc+'" style="font-size:10px">’+cl+’ per al saldo</span></div>’+
 adminNote+ch+actions+
 ‘</div>’;
@@ -305,11 +305,11 @@ if(sdRow[0]) maxSickDays = parseInt(sdRow[0].setting_value)||3;
 ```
 function getComputeInfo(type){
   var mode = computeDefaults[type]||'THEORETICAL_HOURS';
-  if(mode==='THEORETICAL_HOURS') return '<span style="color:var(--success);font-weight:700;">✓ Compta com a jornada treballada</span>';
+  if(mode==='THEORETICAL_HOURS') return '<span style="color:var(--success);font-weight:700;">&#10003; Compta com a jornada treballada</span>';
   return '<span style="color:var(--text2);">No compta per al saldo</span>';
 }
 function getSickDayInfo(){
-  return '<div style="background:var(--accent-lt);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text2);margin-bottom:12px;">📋 Màxim <strong>'+maxSickDays+' dies per any</strong> sense justificant mèdic. L\'admin configura aquest límit.</div>';
+  return '<div style="background:var(--accent-lt);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text2);margin-bottom:12px;">&#128203; Màxim <strong>'+maxSickDays+' dies per any</strong> sense justificant mèdic. L\'admin configura aquest límit.</div>';
 }
 
 box.innerHTML=
@@ -317,10 +317,10 @@ box.innerHTML=
   '<div class="input-group">'+
     '<label class="input-label">Tipus de permís</label>'+
     '<select id="perm-type" class="input" onchange="updatePermComputeInfo()">'+
-      '<option value="SICK_LEAVE">🏥 Baixa mèdica (amb justificant)</option>'+
-      '<option value="SICK_DAY">🤒 Malaltia domiciliària (sense justificant)</option>'+
-      '<option value="PAID_LEAVE">📋 Permís legal retribuït</option>'+
-      '<option value="HOLIDAY">📅 Festiu</option>'+
+      '<option value="SICK_LEAVE">&#127973; Baixa mèdica (amb justificant)</option>'+
+      '<option value="SICK_DAY">&#129298; Malaltia domiciliària (sense justificant)</option>'+
+      '<option value="PAID_LEAVE">&#128203; Permís legal retribuït</option>'+
+      '<option value="HOLIDAY">&#128197; Festiu</option>'+
     '</select>'+
   '</div>'+
   '<div id="perm-compute-info" style="margin-bottom:12px;font-size:13px;">'+getComputeInfo('SICK_LEAVE')+'</div>'+
@@ -334,7 +334,7 @@ box.innerHTML=
     '<textarea id="perm-comment" class="input" placeholder="Descripció..."></textarea>'+
   '</div>'+
   '<div class="modal-actions">'+
-    '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel·lar</button>'+
+    '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel.lar</button>'+
     '<button class="btn btn-primary" style="flex:1" onclick="savePerm()">Guardar</button>'+
   '</div>';
 
@@ -422,7 +422,7 @@ loadMyPerms();
 function closeModal(){document.getElementById(‘modal-overlay’).classList.remove(‘open’);}
 
 async function deleteMyPerm(id){
-if(!confirm(‘Segur que vols eliminar aquesta sol·licitud?’)) return;
+if(!confirm(‘Segur que vols eliminar aquesta sol.licitud?’)) return;
 try{
 await dbPatch(‘day_status’,‘id=eq.’+id,{is_active:false});
 showToast(‘Sol.licitud eliminada’,‘success’);
@@ -435,7 +435,7 @@ var rows = await dbGet(‘day_status’,‘id=eq.’+id+’&select=*’);
 var p = rows[0]; if(!p) return;
 var box = document.getElementById(‘modal-box’);
 box.innerHTML=
-‘<div class="modal-title">Editar sol·licitud</div>’+
+‘<div class="modal-title">Editar sol.licitud</div>’+
 ‘<div class="input-group"><label class="input-label">Comentari / justificació</label>’+
 ‘<textarea id="edit-perm-comment" class="input" style="min-height:80px">’+( p.comment||’’)+’</textarea></div>’+
 ‘<div class="flex-gap">’+
@@ -443,7 +443,7 @@ box.innerHTML=
 ‘<div class="input-group" style="flex:1"><label class="input-label">Fi</label><input type="date" id="edit-perm-end" class="input" value="'+p.end_date+'"></div>’+
 ‘</div>’+
 ‘<div class="modal-actions">’+
-‘<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel·lar</button>’+
+‘<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel.lar</button>’+
 ‘<button class="btn btn-primary" style="flex:1" onclick="saveEditPerm(this.dataset.id)" data-id="'+id+'">Guardar</button>’+
 ‘</div>’;
 document.getElementById(‘modal-overlay’).classList.add(‘open’);
@@ -1125,11 +1125,11 @@ try{
 var rows=await dbGet(‘app_settings’,‘select=setting_key,setting_value&order=setting_key.asc’);
 if(!rows||!rows.length){el.innerHTML=’<div class="empty-state">Cap configuració</div>’;return;}
 var typeLabels={
-compute_mode_VACATION:‘Vacances — còmput’,
-compute_mode_SICK_LEAVE:‘Baixa mèdica — còmput’,
-compute_mode_SICK_DAY:‘Malaltia domiciliària — còmput’,
-compute_mode_PAID_LEAVE:‘Permís legal — còmput’,
-compute_mode_HOLIDAY:‘Festiu — còmput’,
+compute_mode_VACATION:‘Vacances - còmput’,
+compute_mode_SICK_LEAVE:‘Baixa mèdica - còmput’,
+compute_mode_SICK_DAY:‘Malaltia domiciliària - còmput’,
+compute_mode_PAID_LEAVE:‘Permís legal - còmput’,
+compute_mode_HOLIDAY:‘Festiu - còmput’,
 max_sick_days_year:‘Màx. dies malaltia/any’
 };
 state.settings={};
@@ -1199,11 +1199,11 @@ function stopQR(){ if(qrStream){qrStream.getTracks().forEach(function(t){t.stop(
 
 async function loginByQR(token){ try{ var worker; try{worker=await rpc(‘login_by_qr’,{p_qr_token:token});}catch(e1){var rows=await dbGet(‘workers’,‘qr_token=eq.’+encodeURIComponent(token)+’&is_active=eq.true&select=*’);worker=rows[0];} if(!worker||!worker.id)throw new Error(‘QR no valid’); state._loginByQR=true; state.worker=worker; afterLogin(); }catch(e){showToast(e.message||‘QR no reconegut’,‘error’);showPage(‘splash’);
 
-// ── Gestio offline ──
+// – Gestio offline –
 window.addEventListener(‘online’,  function(){ showToast(‘Connexio restaurada’,‘success’); });
 window.addEventListener(‘offline’, function(){ showToast(‘Sense connexio a Internet’,‘error’); });
 
-// ── Timeout de sessio (30 min d inactivitat) ──
+// – Timeout de sessio (30 min d inactivitat) –
 var _sessionTimer = null;
 var SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minuts
 
@@ -1241,11 +1241,11 @@ function showToast(msg,type){ type=type||‘success’; var el=document.getEleme
 
 showPage(‘splash’);
 
-// ── Gestio offline ──
+// – Gestio offline –
 window.addEventListener(‘online’,  function(){ showToast(‘Connexio restaurada’,‘success’); });
 window.addEventListener(‘offline’, function(){ showToast(‘Sense connexio a Internet’,‘error’); });
 
-// ── Timeout de sessio (30 min d inactivitat) ──
+// – Timeout de sessio (30 min d inactivitat) –
 var _sessionTimer = null;
 var SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minuts
 
