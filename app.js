@@ -482,6 +482,63 @@ async function loadMyBalance(){
 var el=document.getElementById(‘balance-content’);
 el.innerHTML=’<div class="empty-state"><span class="loader"></span></div>’;
 try{
+var yr=new Date().getFullYear();
+var moS=String(new Date().getMonth()+1).padStart(2,‘0’);
+var rows=await dbGet(‘daily_records’,
+‘worker_id=eq.’+state.worker.id+’&work_date=gte.’+yr+’-01-01’+
+‘&select=balance_minutes,worked_minutes,theoretical_minutes,work_date&order=work_date.asc’);
+var annual=rows.reduce(function(a,r){return a+(r.balance_minutes||0);},0);
+var monthly=rows.filter(function(r){return r.work_date.startsWith(yr+’-’+moS);})
+.reduce(function(a,r){return a+(r.balance_minutes||0);},0);
+var totalW=rows.reduce(function(a,r){return a+(r.worked_minutes||0);},0);
+var totalT=rows.reduce(function(a,r){return a+(r.theoretical_minutes||0);},0);
+var byMonth={};
+rows.forEach(function(r){
+var m=r.work_date.substring(0,7);
+if(!byMonth[m]) byMonth[m]=0;
+byMonth[m]+=(r.balance_minutes||0);
+});
+var mN=[‘Gen’,‘Feb’,‘Mar’,‘Abr’,‘Mai’,‘Jun’,‘Jul’,‘Ago’,‘Set’,‘Oct’,‘Nov’,‘Des’];
+var maxAbs=Math.max.apply(null,Object.values(byMonth).map(Math.abs).concat([1]));
+var bars=mN.map(function(label,i){
+var key=yr+’-’+String(i+1).padStart(2,‘0’);
+var val=byMonth[key]||0;
+var pct=Math.round(Math.abs(val)/maxAbs*100);
+var col=val>=0?‘var(–success)’:‘var(–warn)’;
+return ‘<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1">’+
+‘<div style="font-size:9px;color:var(--text3)">’+(val>=0?’+’:’’)+minsToHM(val)+’</div>’+
+‘<div style="width:100%;background:var(--surface2);border-radius:3px;height:60px;display:flex;align-items:flex-end;justify-content:center">’+
+‘<div style="width:70%;background:'+col+';border-radius:2px 2px 0 0;height:'+pct+'%;min-height:2px"></div></div>’+
+‘<div style="font-size:9px;color:var(--text2);font-weight:700">’+label+’</div></div>’;
+}).join(’’);
+el.innerHTML=
+‘<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">’+
+‘<div class="card" style="text-align:center">’+
+‘<div class="stat-lbl">Saldo mensual</div>’+
+‘<div style="font-family:var(--mono);font-size:32px;font-weight:800;margin-top:6px;color:'+(monthly>=0?'var(--success)':'var(--warn)')+'">’+
+(monthly>=0?’+’:’’)+minsToHM(monthly)+’</div></div>’+
+‘<div class="card" style="text-align:center">’+
+‘<div class="stat-lbl">Saldo anual</div>’+
+‘<div style="font-family:var(--mono);font-size:32px;font-weight:800;margin-top:6px;color:'+(annual>=0?'var(--success)':'var(--warn)')+'">’+
+(annual>=0?’+’:’’)+minsToHM(annual)+’</div></div></div>’+
+‘<div class="card" style="margin-bottom:16px">’+
+‘<div class="section-title" style="margin-top:0">Hores treballades vs teoriques</div>’+
+‘<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">’+
+‘<span>Treballades: <strong>’+minsToHM(totalW)+‘h</strong></span>’+
+‘<span>Teoriques: <strong>’+minsToHM(totalT)+‘h</strong></span></div>’+
+‘<div style="background:var(--surface2);border-radius:6px;height:10px;overflow:hidden">’+
+‘<div style="height:100%;background:var(--accent);border-radius:6px;width:'+
+Math.min(100,totalT>0?Math.round(totalW/totalT*100):0)+'%"></div></div>’+
+‘<div style="text-align:right;font-size:12px;color:var(--text2);margin-top:4px">’+
+(totalT>0?Math.round(totalW/totalT*100):0)+’%</div></div>’+
+‘<div class="card">’+
+‘<div class="section-title" style="margin-top:0">Saldo per mes ‘+yr+’</div>’+
+‘<div style="display:flex;gap:3px;align-items:flex-end;padding:8px 0">’+bars+’</div></div>’;
+}catch(e){el.innerHTML=’<div class="empty-state">Error carregant saldo</div>’;}
+}async function loadMyBalance(){
+var el=document.getElementById(‘balance-content’);
+el.innerHTML=’<div class="empty-state"><span class="loader"></span></div>’;
+try{
 var data;
 try{ var rawbal=await rpc(‘get_worker_balance’,{p_worker_id:parseInt(state.worker.id)}); data=Array.isArray(rawbal)?rawbal[0]:rawbal; }
 catch(e1){
@@ -628,13 +685,88 @@ async function loadWorkersForAdmin(){ try{state.allWorkers=await dbGet(‘worker
 
 function workerAvatar(w){ return w.photo_path?’<img src="'+SUPABASE_URL+'/storage/v1/object/public/worker-photos/'+w.photo_path+'">’:’👤’; }
 
+async function openAddWorker(){
+var dm=await dbGet(‘app_settings’,‘setting_key=eq.daily_minutes&select=setting_value’);
+var base=dm[0]?parseInt(dm[0].setting_value):450;
+var box=document.getElementById(‘modal-box’);
+box.innerHTML=’<div class="modal-title">Nou treballador</div>’+
+‘<div class="flex-gap"><div class="input-group" style="flex:1"><label class="input-label">Nom</label><input class="input" id="nw-fn" placeholder="Marc"></div>’+
+‘<div class="input-group" style="flex:1"><label class="input-label">Cognoms</label><input class="input" id="nw-ln" placeholder="Saborit Toll"></div></div>’+
+‘<div class="input-group"><label class="input-label">Nom visible</label><input class="input" id="nw-dn" placeholder="Marc Saborit"></div>’+
+‘<div class="flex-gap"><div class="input-group" style="flex:1"><label class="input-label">Codi</label><input class="input" id="nw-code" placeholder="SAB001" style="font-family:monospace;text-transform:uppercase"></div>’+
+‘<div class="input-group" style="flex:1"><label class="input-label">Carrec</label><input class="input" id="nw-carrec" placeholder="Tecnic/a"></div></div>’+
+‘<div class="input-group"><label class="input-label">Jornada (%)</label>’+
+‘<div style="display:flex;align-items:center;gap:12px"><input class="input" type="number" id="nw-pct" value="100" min="10" max="100" step="5" style="width:80px;text-align:center;font-size:18px;font-weight:700">’+
+‘<span style="font-size:13px;color:var(--text2)">% = <strong id="nw-calc">’+base+’</strong> min/dia</span></div></div>’+
+‘<div class="input-group"><label class="input-label">Rol</label><select class="input" id="nw-role"><option value="WORKER">Treballador</option><option value="ADMIN">Administrador</option></select></div>’+
+‘<div class="modal-actions"><button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel.lar</button>’+
+‘<button class="btn btn-primary" style="flex:1" onclick="saveNewWorker('+base+')">Crear</button></div>’;
+document.getElementById(‘nw-pct’).addEventListener(‘input’,function(){document.getElementById(‘nw-calc’).textContent=Math.round(base*this.value/100);});
+document.getElementById(‘modal-overlay’).classList.add(‘open’);
+}
+
+async function saveNewWorker(base){
+var fn=document.getElementById(‘nw-fn’).value.trim();
+var ln=document.getElementById(‘nw-ln’).value.trim();
+var dn=document.getElementById(‘nw-dn’).value.trim()||fn+’ ‘+ln.split(’ ‘)[0];
+var code=document.getElementById(‘nw-code’).value.trim().toUpperCase();
+var carrec=document.getElementById(‘nw-carrec’).value.trim();
+var pct=parseInt(document.getElementById(‘nw-pct’).value)||100;
+var role=document.getElementById(‘nw-role’).value;
+if(!fn||!ln||!code){showToast(‘Nom, cognoms i codi obligatoris’,‘error’);return;}
+try{
+await dbPost(‘workers’,{first_name:fn,last_name:ln,display_name:dn,employee_code:code,
+qr_token:‘QR-’+code+’-’+Date.now(),role:role,
+daily_theoretical_minutes:Math.round(base*pct/100),is_active:true,jornada_pct:pct,carrec:carrec});
+closeModal(); showToast(‘Treballador creat!’,‘success’);
+state.allWorkers=[]; loadWorkers();
+}catch(e){showToast(‘Error: codi ja existent?’,‘error’);}
+}
+
 async function loadWorkers(){
 var el=document.getElementById(‘workers-list’); el.innerHTML=’<div class="empty-state"><span class="loader"></span></div>’;
 try{
 var rows=state.allWorkers.length?state.allWorkers:await dbGet(‘workers’,‘order=display_name.asc&select=*’);
 if(!rows.length){el.innerHTML=’<div class="empty-state">Cap treballador</div>’;return;}
-el.innerHTML=rows.map(function(w){ var tc=w.is_active?‘tag-green’:‘tag-gray’; var tl=w.is_active?‘Actiu’:‘Inactiu’; return ‘<div class="worker-item"><div class="worker-avatar-sm">’+workerAvatar(w)+’</div><div style="flex:1"><div style="font-weight:700;font-size:14px">’+(w.display_name||w.employee_code)+’</div><div style="color:var(--text2);font-size:12px">’+w.employee_code+’ · ‘+w.role+’</div></div><span class="tag '+tc+'">’+tl+’</span></div>’; }).join(’’);
+el.innerHTML=rows.map(function(w){ var tc=w.is_active?‘tag-green’:‘tag-gray’; var tl=w.is_active?‘Actiu’:‘Inactiu’; var extra2=(w.jornada_pct&&w.jornada_pct!==100)?’ · ‘+w.jornada_pct+’%’:’’; var carrecTxt=w.carrec?w.carrec+’ · ‘:’’; return ‘<div class="worker-item" onclick="openWorkerDetail('+w.id+')" style="cursor:pointer"><div class="worker-avatar-sm">’+workerAvatar(w)+’</div><div style="flex:1"><div style="font-weight:700;font-size:14px">’+(w.display_name||w.employee_code)+’</div><div style="color:var(--text2);font-size:12px">’+carrecTxt+w.employee_code+extra2+’</div><div style="font-size:11px;color:var(--text3)">’+Math.round((w.daily_theoretical_minutes||450)/60*10)/10+‘h/dia</div></div><span class="tag '+tc+'">’+tl+’</span></div>’; }).join(’’);
 }catch(e){el.innerHTML=’<div class="empty-state">Error carregant treballadors</div>’;}
+}
+
+async function openWorkerDetail(wid){
+if(!state.allWorkers.length){try{state.allWorkers=await dbGet(‘workers’,‘is_active=eq.true&select=*’);}catch(e){}}
+var w=state.allWorkers.find(function(x){return String(x.id)===String(wid);});
+if(!w) return;
+var dm=await dbGet(‘app_settings’,‘setting_key=eq.daily_minutes&select=setting_value’);
+var base=dm[0]?parseInt(dm[0].setting_value):450;
+var box=document.getElementById(‘modal-box’);
+box.innerHTML=’<div class="modal-title">’+(w.display_name||w.employee_code)+’</div>’+
+‘<div class="input-group"><label class="input-label">Nom visible</label><input class="input" id="wd-dn" value="'+(w.display_name||'')+'"></div>’+
+‘<div class="input-group"><label class="input-label">Carrec</label><input class="input" id="wd-carrec" value="'+(w.carrec||'')+'"></div>’+
+‘<div class="input-group"><label class="input-label">Codi</label><input class="input" id="wd-code" value="'+(w.employee_code||'')+'" style="font-family:monospace"></div>’+
+‘<div class="input-group"><label class="input-label">Jornada (%)</label>’+
+‘<div style="display:flex;align-items:center;gap:12px"><input class="input" type="number" id="wd-pct" value="'+(w.jornada_pct||100)+'" min="10" max="100" step="5" style="width:80px;text-align:center;font-size:18px;font-weight:700">’+
+‘<span style="font-size:13px;color:var(--text2)">% = <strong id="wd-calc">’+Math.round(base*(w.jornada_pct||100)/100)+’</strong> min/dia</span></div></div>’+
+‘<div class="input-group"><label class="input-label">Rol</label><select class="input" id="wd-role">’+
+‘<option value=“WORKER”’+(w.role===‘WORKER’?’ selected’:’’)+’>Treballador</option>’+
+‘<option value=“ADMIN”’+(w.role===‘ADMIN’?’ selected’:’’)+’>Administrador</option></select></div>’+
+‘<div class="modal-actions"><button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel.lar</button>’+
+‘<button class="btn btn-primary" style="flex:1" onclick="saveWorkerDetail('+wid+','+base+')">Guardar</button></div>’;
+document.getElementById(‘wd-pct’).addEventListener(‘input’,function(){document.getElementById(‘wd-calc’).textContent=Math.round(base*this.value/100);});
+document.getElementById(‘modal-overlay’).classList.add(‘open’);
+}
+
+async function saveWorkerDetail(wid,base){
+var dn=document.getElementById(‘wd-dn’).value;
+var carrec=document.getElementById(‘wd-carrec’).value;
+var code=document.getElementById(‘wd-code’).value;
+var pct=parseInt(document.getElementById(‘wd-pct’).value)||100;
+var role=document.getElementById(‘wd-role’).value;
+try{
+await dbPatch(‘workers’,‘id=eq.’+wid,{display_name:dn,carrec:carrec,employee_code:code,
+jornada_pct:pct,daily_theoretical_minutes:Math.round(base*pct/100),role:role});
+closeModal(); showToast(‘Treballador actualitzat’,‘success’);
+state.allWorkers=[]; loadWorkers();
+}catch(e){showToast(‘Error guardant’,‘error’);}
 }
 
 async function loadAllRecords(){
@@ -653,13 +785,14 @@ el.innerHTML=rows.map(function(r){ var name=(r.workers&&r.workers.display_name)?
 function changeAdminMonth(dir){ var m=state.adminMonth; state.adminMonth=new Date(m.getFullYear(),m.getMonth()+dir,1); loadAllRecords(); }
 
 async function loadAllPerms(){
+if(!state.allWorkers||!state.allWorkers.length){try{state.allWorkers=await dbGet(‘workers’,‘is_active=eq.true&order=display_name.asc&select=*’);}catch(e){}}
 var el=document.getElementById(‘all-perms-list’); el.innerHTML=’<div class="empty-state"><span class="loader"></span></div>’;
 try{
 var rows;
-try{rows=await rpc(‘get_all_day_statuses’,{});}catch(e1){rows=await dbGet(‘day_status’,‘is_active=eq.true&order=approval_status.asc,start_date.desc&select=*,workers(display_name,employee_code)’);}
+try{rows=await rpc(‘get_all_day_statuses’,{});}catch(e1){rows=await dbGet(‘day_status’,’is_active=eq.true&order=approval_status.asc,start_date.desc&select=*’);}
 if(!rows||!rows.length){el.innerHTML=’<div class="empty-state">Cap permis</div>’;return;}
 el.innerHTML=rows.map(function(p){
-var name2=(p.workers&&p.workers.display_name)?p.workers.display_name:p.worker_id;
+var wData=state.allWorkers.find(function(w){return String(w.id)===String(p.worker_id);}); var name2=wData?(wData.display_name||wData.employee_code):(‘Worker #’+p.worker_id);
 var aStatus=p.approval_status||‘APPROVED’;
 var approvalColors={PENDING:‘tag-yellow’,APPROVED:‘tag-green’,REJECTED:‘tag-red’,CHANGE_REQUESTED:‘tag-yellow’};
 var approvalLabels={PENDING:‘Pendent’,APPROVED:‘Aprovada’,REJECTED:‘Rebutjada’,CHANGE_REQUESTED:‘Canvi sol.licitat’};
@@ -1164,7 +1297,37 @@ try{rows=await rpc(‘get_app_settings’,{});}catch(e1){rows=await dbGet(‘app
 if(!rows||!rows.length){el.innerHTML=’<div class="empty-state">Cap configuracio disponible</div>’;return;}
 state.settings={};
 rows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});
-el.innerHTML=rows.map(function(r){ return ‘<div class="setting-row"><div><div class="setting-label">’+r.setting_key+’</div></div><input class="input" style="width:160px;padding:8px 12px;font-size:13px" id="setting-'+r.setting_key+'" value="'+(r.setting_value||'')+'"></div>’; }).join(’’);
+var lbl={‘company_name’:“Nom de l’empresa”,‘admin_email’:‘Correu admin’,‘admin_password’:‘Contrasenya admin’,‘notify_email_on_perm’:‘Email en permisos’,‘daily_minutes’:‘Minuts/dia’,‘weekly_hours’:‘Hores/setmana’,‘daily_hours’:‘Hores/dia’,‘working_days_per_week’:‘Dies laborables/setm.’,‘annual_working_days’:‘Dies laborables/any’,‘holidays_2025’:‘Festius 2025’,‘holidays_2026’:‘Festius 2026’,‘holidays_2027’:‘Festius 2027’,‘default_compute_vacances’:‘Vacances - comput’,‘default_compute_baixa_medica’:‘Baixa medica - comput’,‘default_compute_permis_retribuit’:‘Permis retribuit - comput’,‘default_compute_festiu’:‘Festiu - comput’,‘requires_approval_VACATION’:‘Vacances - aprovacio’,‘requires_approval_SICK_DAY’:‘Malaltia dom. - aprovacio’,‘requires_approval_PAID_LEAVE’:‘Permis retribuit - aprovacio’,‘requires_approval_SICK_LEAVE’:‘Baixa medica - aprovacio’,‘requires_approval_HOLIDAY’:‘Festiu - aprovacio’,‘allow_end_while_paused’:‘Finalitzar en pausa’,‘allow_worker_edits’:‘Edicions de treballador’,‘show_photo_on_card’:‘Foto a la targeta’,‘show_role_on_card’:‘Carrec a la targeta’};
+var grps={‘Empresa’:[‘company_name’,‘admin_email’,‘admin_password’],‘Horari’:[‘weekly_hours’,‘daily_hours’,‘daily_minutes’,‘working_days_per_week’,‘annual_working_days’],‘Festius’:[‘holidays_2025’,‘holidays_2026’,‘holidays_2027’],‘Comput’:[‘default_compute_vacances’,‘default_compute_baixa_medica’,‘default_compute_permis_retribuit’,‘default_compute_festiu’],‘Aprovacio’:[‘requires_approval_VACATION’,‘requires_approval_SICK_DAY’,‘requires_approval_PAID_LEAVE’,‘requires_approval_SICK_LEAVE’,‘requires_approval_HOLIDAY’],‘Opcions’:[‘allow_end_while_paused’,‘allow_worker_edits’,‘show_photo_on_card’,‘show_role_on_card’,‘notify_email_on_perm’]};
+var allK=Object.values(grps).reduce(function(a,b){return a.concat(b);},[]);
+var html=’’;
+Object.keys(grps).forEach(function(g){
+var gRows=rows.filter(function(r){return grps[g].indexOf(r.setting_key)>=0;});
+if(!gRows.length) return;
+html+=’<div class="section-title" style="margin-top:20px">’+g+’</div>’;
+html+=’<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">’;
+gRows.forEach(function(r,i){
+var label=lbl[r.setting_key]||r.setting_key;
+var border=i>0?‘border-top:1px solid var(–border);’:’’;
+var isBool=r.setting_value===‘true’||r.setting_value===‘false’;
+var isCompute=r.setting_key.startsWith(‘default_compute’);
+var isHol=r.setting_key.startsWith(‘holidays_’);
+var isNum=[‘daily_minutes’,‘working_days_per_week’,‘annual_working_days’].indexOf(r.setting_key)>=0;
+var isH=[‘weekly_hours’,‘daily_hours’].indexOf(r.setting_key)>=0;
+var ctrl;
+if(isCompute) ctrl=’<select class="input" id="setting-'+r.setting_key+'" style="width:180px;padding:7px 10px;font-size:13px"><option value=“THEORETICAL_HOURS”’+(r.setting_value===‘THEORETICAL_HOURS’?’ selected’:’’)+’>Compta al saldo</option><option value=“ZERO_HOURS”’+(r.setting_value===‘ZERO_HOURS’?’ selected’:’’)+’>No compta (0h)</option></select>’;
+else if(isBool) ctrl=’<select class="input" id="setting-'+r.setting_key+'" style="width:100px;padding:7px 10px;font-size:13px"><option value=“true”’+(r.setting_value===‘true’?’ selected’:’’)+’>Si</option><option value=“false”’+(r.setting_value===‘false’?’ selected’:’’)+’>No</option></select>’;
+else if(isHol) ctrl=’<textarea class="input" id="setting-'+r.setting_key+'" rows="2" style="width:100%;font-size:11px;font-family:monospace;margin-top:4px">’+(r.setting_value||’’)+’</textarea>’;
+else if(isNum||isH) ctrl=’<input class="input" type="number" step="'+(isH?'0.5':'1')+'" id="setting-'+r.setting_key+'" value="'+(r.setting_value||0)+'" style="width:90px;text-align:center;padding:7px;font-weight:700">’;
+else if(r.setting_key===‘admin_password’) ctrl=’<input class="input" type="password" id="setting-'+r.setting_key+'" value="'+(r.setting_value||'')+'" style="width:180px;padding:7px 10px">’;
+else ctrl=’<input class="input" type="text" id="setting-'+r.setting_key+'" value="'+(r.setting_value||'')+'" style="width:180px;padding:7px 10px;font-size:13px">’;
+html+=’<div class="setting-row" style="padding:14px 16px;'+border+'"><div><div class="setting-label">’+label+’</div></div>’+ctrl+’</div>’;
+});
+html+=’</div>’;
+});
+var extra=rows.filter(function(r){return allK.indexOf(r.setting_key)<0;});
+if(extra.length){html+=’<div class="section-title" style="margin-top:20px">Altres</div><div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">’;extra.forEach(function(r,i){html+=’<div class="setting-row" style="padding:14px 16px;'+(i>0?'border-top:1px solid var(--border);':'')+'"><div><div class="setting-label">’+r.setting_key+’</div></div><input class="input" type="text" id="setting-'+r.setting_key+'" value="'+(r.setting_value||'')+'" style="width:180px;padding:7px 10px;font-size:13px"></div>’;});html+=’</div>’;}
+el.innerHTML=html;
 }catch(e){el.innerHTML=’<div class="empty-state">Error carregant configuracio</div>’;}
 }
 
@@ -1193,7 +1356,27 @@ methodTag+
 }catch(e){ el.innerHTML=’<div class="empty-state">Error carregant registre</div>’; }
 }
 
-async function saveSettings(){ try{ var rows=await dbGet(‘app_settings’,‘select=setting_key’); for(var i=0;i<rows.length;i++){var el=document.getElementById(‘setting-’+rows[i].setting_key); if(el)await dbPatch(‘app_settings’,‘setting_key=eq.’+rows[i].setting_key,{setting_value:el.value});} showToast(‘Configuracio guardada’,‘success’); }catch(e){showToast(‘Error guardant’,‘error’);} }
+async function saveSettings(){
+try{
+var rows=await dbGet(‘app_settings’,‘select=setting_key’);
+for(var i=0;i<rows.length;i++){
+var el=document.getElementById(‘setting-’+rows[i].setting_key);
+if(el) await dbPatch(‘app_settings’,‘setting_key=eq.’+rows[i].setting_key,{setting_value:el.value});
+}
+var dmEl=document.getElementById(‘setting-daily_minutes’);
+var whEl=document.getElementById(‘setting-weekly_hours’);
+var dailyMins=dmEl?parseFloat(dmEl.value):(whEl?Math.round(parseFloat(whEl.value)/5*60):null);
+if(dailyMins){
+var ws=await dbGet(‘workers’,‘is_active=eq.true&select=id,jornada_pct’);
+for(var j=0;j<ws.length;j++){
+await dbPatch(‘workers’,‘id=eq.’+ws[j].id,{daily_theoretical_minutes:Math.round(dailyMins*(ws[j].jornada_pct||100)/100)});
+}
+showToast(‘Configuracio i jornades actualitzades!’,‘success’);
+} else {
+showToast(‘Configuracio guardada’,‘success’);
+}
+}catch(e){showToast(‘Error guardant’,‘error’);}
+}
 
 var qrStream=null;
 async function startQRScan(){ showPage(‘qr-scan’); try{ qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:‘environment’}}); var video=document.getElementById(‘qr-video’); video.srcObject=qrStream; await video.play(); document.getElementById(‘qr-scan-hint’).textContent=’’; if(‘BarcodeDetector’ in window){ var bd=new BarcodeDetector({formats:[‘qr_code’]}); var iv=setInterval(async function(){try{var codes=await bd.detect(video);if(codes.length){clearInterval(iv);stopQR();await loginByQR(codes[0].rawValue);}}catch(e){}},500); }else{document.getElementById(‘qr-scan-hint’).textContent=‘BarcodeDetector no disponible’;} }catch(e){document.getElementById(‘qr-scan-hint’).textContent=‘No accedit a la camera’;} }
@@ -1265,4 +1448,29 @@ setTimeout(doLogout, 2000);
 
 document.addEventListener(‘touchstart’, resetSessionTimer);
 document.addEventListener(‘click’, resetSessionTimer);
-document.addEventListener(‘keypress’, resetSessionTimer);
+document.addEventListener(‘keypress’, resetSessionTimer)
+
+async function loadProfileStats(){
+var el=document.getElementById(‘profile-stats’);
+if(!el||!state.worker) return;
+try{
+var yr=new Date().getFullYear();
+var rows=await dbGet(‘daily_records’,‘worker_id=eq.’+state.worker.id+’&work_date=gte.’+yr+’-01-01&select=worked_minutes,status’);
+var fin=rows.filter(function(r){return r.status===‘FINISHED’;});
+var totalD=fin.length;
+var totalM=fin.reduce(function(a,r){return a+(r.worked_minutes||0);},0);
+var avg=totalD>0?Math.round(totalM/totalD):0;
+var th=state.worker.daily_theoretical_minutes||450;
+el.innerHTML=
+‘<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:16px 0">’+
+‘<div class="stat-box"><div class="stat-val">’+totalD+’</div><div class="stat-lbl">Dies treballats</div></div>’+
+‘<div class="stat-box"><div class="stat-val">’+minsToHM(totalM)+’</div><div class="stat-lbl">Total hores</div></div>’+
+‘<div class="stat-box"><div class="stat-val">’+minsToHM(avg)+’</div><div class="stat-lbl">Mitjana/dia</div></div></div>’+
+‘<div class="card"><div class="section-title" style="margin-top:0">Jornada teorica</div>’+
+‘<div style="font-size:28px;font-weight:800;color:var(--accent);font-family:var(--mono)">’+minsToHM(th)+‘h/dia</div>’+
+‘<div style="font-size:12px;color:var(--text2);margin-top:4px">’+
+Math.round(th*5/60*10)/10+‘h setmanals · ‘+(state.worker.jornada_pct||100)+’% jornada</div></div>’;
+}catch(e){}
+}
+
+;
