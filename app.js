@@ -309,17 +309,17 @@ function getComputeInfo(type){
   return '<span style="color:var(--text2);">No compta per al saldo</span>';
 }
 function getSickDayInfo(){
-  return '<div style="background:var(--accent-lt);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text2);margin-bottom:12px;">&#128203; Màxim <strong>'+maxSickDays+' dies per any</strong> sense justificant mèdic. L\'admin configura aquest límit.</div>';
+  return '<div style="background:var(--accent-lt);border:1px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text2);margin-bottom:12px;">&#128203; M&agrave;xim <strong>'+maxSickDays+' dies per any</strong> sense justificant m&egrave;dic. L\'admin configura aquest l&iacute;mit.</div>';
 }
 
 box.innerHTML=
-  '<div class="modal-title">Nou permís</div>'+
+  '<div class="modal-title">Nou perm&iacute;s</div>'+
   '<div class="input-group">'+
-    '<label class="input-label">Tipus de permís</label>'+
+    '<label class="input-label">Tipus de perm&iacute;s</label>'+
     '<select id="perm-type" class="input" onchange="updatePermComputeInfo()">'+
-      '<option value="SICK_LEAVE">&#127973; Baixa mèdica (amb justificant)</option>'+
-      '<option value="SICK_DAY">&#129298; Malaltia domiciliària (sense justificant)</option>'+
-      '<option value="PAID_LEAVE">&#128203; Permís legal retribuït</option>'+
+      '<option value="SICK_LEAVE">&#127973; Baixa m&egrave;dica (amb justificant)</option>'+
+      '<option value="SICK_DAY">&#129298; Malaltia domicili&agrave;ria (sense justificant)</option>'+
+      '<option value="PAID_LEAVE">&#128203; Perm&iacute;s legal retribu&iuml;t</option>'+
       '<option value="HOLIDAY">&#128197; Festiu</option>'+
     '</select>'+
   '</div>'+
@@ -331,7 +331,7 @@ box.innerHTML=
   '</div>'+
   '<div class="input-group">'+
     '<label class="input-label">Comentari (opcional)</label>'+
-    '<textarea id="perm-comment" class="input" placeholder="Descripció..."></textarea>'+
+    '<textarea id="perm-comment" class="input" placeholder="Descripci&oacute;..."></textarea>'+
   '</div>'+
   '<div class="modal-actions">'+
     '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel.lar</button>'+
@@ -1063,7 +1063,7 @@ var workers = state.allWorkers.length ? state.allWorkers : await dbGet(‘worker
 
 ```
 if(all){
-  // Generar PDF multi-pàgina amb totes les targetes
+  // Generar PDF multi-p&agrave;gina amb totes les targetes
   var firstDoc = null;
   for(var i=0; i<workers.length; i++){
     var doc = await generateWorkerCardPDF(workers[i]);
