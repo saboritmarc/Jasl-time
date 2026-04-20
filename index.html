@@ -677,6 +677,7 @@ textarea.input { resize: vertical; min-height: 80px; }
 <script type="text/plain" id="__ac__">
 
 
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -1366,7 +1367,16 @@ var el=document.getElementById(‘workers-list’); el.innerHTML=’<div class="
 try{
 var rows=state.allWorkers.length?state.allWorkers:await dbGet(‘workers’,‘order=display_name.asc&select=*’);
 if(!rows.length){el.innerHTML=’<div class="empty-state">Cap treballador</div>’;return;}
-el.innerHTML=rows.map(function(w){ var tc=w.is_active?‘tag-green’:‘tag-gray’; var tl=w.is_active?‘Actiu’:‘Inactiu’; return ‘<div class="worker-item"><div class="worker-avatar-sm">’+workerAvatar(w)+’</div><div style="flex:1"><div style="font-weight:700;font-size:14px">’+(w.display_name||w.employee_code)+’</div><div style="color:var(--text2);font-size:12px">’+w.employee_code+’ · ‘+w.role+’</div></div><span class="tag '+tc+'">’+tl+’</span></div>’; }).join(’’);
+el.innerHTML=rows.map(function(w){ var tc=w.is_active?‘tag-green’:‘tag-gray’; var tl=w.is_active?‘Actiu’:‘Inactiu’; var extra=(w.jornada_pct&&w.jornada_pct!==100)?’ · ‘+w.jornada_pct+’%’:’’;
+var carrecTxt=w.carrec?w.carrec+’ · ‘:’’;
+return ‘<div class="worker-item" onclick="openWorkerDetail('+w.id+')" style="cursor:pointer">’+
+‘<div class="worker-avatar-sm">’+workerAvatar(w)+’</div>’+
+‘<div style="flex:1">’+
+‘<div style="font-weight:700;font-size:14px">’+(w.display_name||w.employee_code)+’</div>’+
+‘<div style="color:var(--text2);font-size:12px">’+carrecTxt+w.employee_code+extra+’</div>’+
+‘<div style="font-size:11px;color:var(--text3)">’+Math.round((w.daily_theoretical_minutes||450)/60*10)/10+‘h/dia</div>’+
+‘</div>’+
+‘<span class="tag '+tc+'">’+tl+’</span></div>’; }).join(’’);
 }catch(e){el.innerHTML=’<div class="empty-state">Error carregant treballadors</div>’;}
 }
 
@@ -1943,7 +1953,94 @@ try{rows=await rpc(‘get_app_settings’,{});}catch(e1){rows=await dbGet(‘app
 if(!rows||!rows.length){el.innerHTML=’<div class="empty-state">Cap configuracio disponible</div>’;return;}
 state.settings={};
 rows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});
-el.innerHTML=rows.map(function(r){ return ‘<div class="setting-row"><div><div class="setting-label">’+r.setting_key+’</div></div><input class="input" style="width:160px;padding:8px 12px;font-size:13px" id="setting-'+r.setting_key+'" value="'+(r.setting_value||'')+'"></div>’; }).join(’’);
+var typeLabels={
+company_name:“Nom de l’empresa”, admin_email:‘Correu admin’,
+admin_password:‘Contrasenya admin’, notify_email_on_perm:‘Email en permisos’,
+daily_minutes:‘Minuts/dia jornada completa’, weekly_hours:‘Hores/setmana’,
+daily_hours:‘Hores/dia’, working_days_per_week:‘Dies laborables/setmana’,
+annual_working_days:‘Dies laborables/any’,
+holidays_2025:‘Festius 2025’, holidays_2026:‘Festius 2026’, holidays_2027:‘Festius 2027’,
+default_compute_vacances:‘Vacances - comput’,
+default_compute_baixa_medica:‘Baixa medica - comput’,
+default_compute_permis_retribuit:‘Permis retribuit - comput’,
+default_compute_festiu:‘Festiu - comput’,
+requires_approval_VACATION:‘Vacances requereixen aprovacio’,
+requires_approval_SICK_DAY:‘Malaltia dom. requereix aprovacio’,
+requires_approval_PAID_LEAVE:‘Permis retribuit requereix aprovacio’,
+requires_approval_SICK_LEAVE:‘Baixa medica requereix aprovacio’,
+requires_approval_HOLIDAY:‘Festiu requereix aprovacio’,
+allow_end_while_paused:‘Permetre finalitzar en pausa’,
+allow_worker_edits:‘Permetre edicions de treballador’,
+show_photo_on_card:‘Foto a la targeta’, show_role_on_card:‘Carrec a la targeta’,
+max_sick_days_year:‘Max. dies malaltia dom./any’
+};
+var groups={
+‘Empresa’:[‘company_name’,‘admin_email’,‘admin_password’],
+‘Horari’:[‘weekly_hours’,‘daily_hours’,‘daily_minutes’,‘working_days_per_week’,‘annual_working_days’],
+‘Festius’:[‘holidays_2025’,‘holidays_2026’,‘holidays_2027’],
+‘Comput de permisos’:[‘default_compute_vacances’,‘default_compute_baixa_medica’,‘default_compute_permis_retribuit’,‘default_compute_festiu’],
+‘Aprovacio’:[‘requires_approval_VACATION’,‘requires_approval_SICK_DAY’,‘requires_approval_PAID_LEAVE’,‘requires_approval_SICK_LEAVE’,‘requires_approval_HOLIDAY’],
+‘Opcions’:[‘allow_end_while_paused’,‘allow_worker_edits’,‘show_photo_on_card’,‘show_role_on_card’,‘notify_email_on_perm’]
+};
+var allGrouped=Object.values(groups).reduce(function(a,b){return a.concat(b);},[]);
+var html=’’;
+Object.keys(groups).forEach(function(grp){
+var keys=groups[grp];
+var grpRows=rows.filter(function(r){return keys.indexOf(r.setting_key)>=0;});
+if(!grpRows.length) return;
+html+=’<div class="section-title" style="margin-top:20px">’+grp+’</div>’;
+html+=’<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">’;
+grpRows.forEach(function(r,idx){
+var label=typeLabels[r.setting_key]||r.setting_key;
+var border=idx>0?‘border-top:1px solid var(–border);’:’’;
+var isBool=r.setting_value===‘true’||r.setting_value===‘false’;
+var isCompute=r.setting_key.startsWith(‘default_compute’);
+var isHoliday=r.setting_key.startsWith(‘holidays_’);
+var isNum=r.setting_key===‘max_sick_days_year’||r.setting_key===‘annual_working_days’||r.setting_key===‘working_days_per_week’;
+var isHours=r.setting_key===‘weekly_hours’||r.setting_key===‘daily_hours’;
+var isMins=r.setting_key===‘daily_minutes’;
+var isPwd=r.setting_key===‘admin_password’;
+var ctrl;
+if(isCompute){
+ctrl=’<select class="input" id="setting-'+r.setting_key+'" style="width:180px;padding:7px 10px;font-size:13px">’+
+‘<option value=“THEORETICAL_HOURS”’+(r.setting_value===‘THEORETICAL_HOURS’?’ selected’:’’)+’>Compta al saldo</option>’+
+‘<option value=“ZERO_HOURS”’+(r.setting_value===‘ZERO_HOURS’?’ selected’:’’)+’>No compta (0h)</option></select>’;
+} else if(isBool){
+ctrl=’<select class="input" id="setting-'+r.setting_key+'" style="width:120px;padding:7px 10px;font-size:13px">’+
+‘<option value=“true”’+(r.setting_value===‘true’?’ selected’:’’)+’>Si</option>’+
+‘<option value=“false”’+(r.setting_value===‘false’?’ selected’:’’)+’>No</option></select>’;
+} else if(isHoliday){
+ctrl=’<textarea class="input" id="setting-'+r.setting_key+'" rows="3" style="width:100%;font-size:11px;font-family:monospace;margin-top:4px">’+
+(r.setting_value||’’)+’</textarea>’;
+} else if(isNum||isHours||isMins){
+var unit=isMins?’ min’:isHours?’ h’:’’;
+ctrl=’<div style="display:flex;align-items:center;gap:6px">’+
+‘<input class="input" type="number" step="'+(isHours?'0.5':'1')+'" id="setting-'+r.setting_key+'" value="'+(r.setting_value||0)+'" style="width:90px;text-align:center;padding:7px;font-weight:700">’+
+‘<span style="font-size:12px;color:var(--text2)">’+unit+’</span></div>’;
+} else if(isPwd){
+ctrl=’<input class="input" type="password" id="setting-'+r.setting_key+'" value="'+(r.setting_value||'')+'" style="width:180px;padding:7px 10px">’;
+} else {
+ctrl=’<input class="input" type="text" id="setting-'+r.setting_key+'" value="'+(r.setting_value||'')+'" style="width:180px;padding:7px 10px;font-size:13px">’;
+}
+html+=’<div class="setting-row" style="padding:14px 16px;'+border+'">’+
+‘<div><div class="setting-label">’+label+’</div></div>’+ctrl+’</div>’;
+});
+html+=’</div>’;
+});
+// No categoritzats
+var extra=rows.filter(function(r){return allGrouped.indexOf(r.setting_key)<0;});
+if(extra.length){
+html+=’<div class="section-title" style="margin-top:20px">Altres</div>’;
+html+=’<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">’;
+extra.forEach(function(r,idx){
+html+=’<div class="setting-row" style="padding:14px 16px;'+(idx>0?'border-top:1px solid var(--border);':'')+'">’+
+‘<div><div class="setting-label">’+r.setting_key+’</div></div>’+
+‘<input class="input" type="text" id="setting-'+r.setting_key+'" value="'+(r.setting_value||'')+'" style="width:180px;padding:7px 10px;font-size:13px">’+
+‘</div>’;
+});
+html+=’</div>’;
+}
+el.innerHTML=html;
 }catch(e){el.innerHTML=’<div class="empty-state">Error carregant configuracio</div>’;}
 }
 
