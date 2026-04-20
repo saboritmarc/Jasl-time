@@ -1967,15 +1967,8 @@ async function loadComputeSettings(){
 }
 
 async function loadSettings(){
-  var el=document.getElementById('settings-list'); el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
-  try{
-    var rows;
-    try{rows=await rpc('get_app_settings',{});}catch(e1){rows=await dbGet('app_settings','select=*');}
-    if(!rows||!rows.length){el.innerHTML='<div class="empty-state">Cap configuracio disponible</div>';return;}
-    state.settings={};
-    rows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});
-    el.innerHTML=rows.map(function(r){ return '<div class="setting-row"><div><div class="setting-label">'+r.setting_key+'</div></div><input class="input" style="width:160px;padding:8px 12px;font-size:13px" id="setting-'+r.setting_key+'" value="'+(r.setting_value||'')+'"></div>'; }).join('');
-  }catch(e){el.innerHTML='<div class="empty-state">Error carregant configuracio</div>';}
+  // Delegar al renderer complet amb grups
+  await loadComputeSettings();
 }
 
 async function loadAccessLogs(){
