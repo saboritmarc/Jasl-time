@@ -78,6 +78,19 @@ logAccess(w.id, loginMethod);
 showPage(‘worker-home’); startClock(); await loadTodaySummary();
 }
 
+function generateQRSVG(text, container, size){
+// Usar Google Charts API per generar QR (no usa eval)
+var img = document.createElement(‘img’);
+img.src = ‘https://chart.googleapis.com/chart?cht=qr&chs=’ + size + ‘x’ + size + ‘&chl=’ + encodeURIComponent(text) + ‘&choe=UTF-8’;
+img.style.width = size + ‘px’;
+img.style.height = size + ‘px’;
+img.style.borderRadius = ‘8px’;
+img.onerror = function(){
+container.innerHTML = ‘<div style="width:' + size + 'px;height:' + size + 'px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:12px;text-align:center;padding:16px;font-family:monospace">’ + text + ‘</div>’;
+};
+container.appendChild(img);
+}
+
 function doLogout(){ state.worker=null; state.todaySummary=null; state._loginByQR=false; clearInterval(clockInterval); document.getElementById(‘login-code’).value=’’; showPage(‘splash’);
 
 // – Gestio offline –
@@ -354,12 +367,11 @@ window.updatePermComputeInfo = function(){
 box.innerHTML=’<div class="modal-title" style="text-align:center">El meu QR</div><div class="qr-wrap"><div id="qr-render"></div><div style="text-align:center;color:var(--text2);font-size:13px">’+(state.worker.qr_token||state.worker.employee_code)+’</div></div><button class="btn btn-ghost btn-full" onclick="closeModal()">Tancar</button>’;
 document.getElementById(‘modal-overlay’).classList.add(‘open’);
 setTimeout(function(){
-var token=state.worker.qr_token||state.worker.employee_code||’’;
-var canvas=document.createElement(‘canvas’);
-document.getElementById(‘qr-render’).appendChild(canvas);
-QRCode.toCanvas(canvas,token,{width:200,margin:2},function(err){
-if(err){ document.getElementById(‘qr-render’).textContent=token; }
-});
+var token = state.worker.qr_token||state.worker.employee_code||’’;
+var el = document.getElementById(‘qr-render’);
+el.innerHTML = ‘’;
+// Generar QR SVG manualment sense llibreries externes (compatible Lockdown)
+generateQRSVG(token, el, 200);
 },100);
 return;
 }
@@ -946,14 +958,14 @@ async function loadJsPDF(){
 if(window.jspdf) return;
 await new Promise(function(resolve, reject){
 var s=document.createElement(‘script’);
-s.src=‘https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js’;
+s.src=‘https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js’; // defer-loaded
 s.onload=resolve; s.onerror=reject;
 document.head.appendChild(s);
 });
 if(typeof QRCode === ‘undefined’){
 await new Promise(function(resolve, reject){
 var s=document.createElement(‘script’);
-s.src=‘https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js’;
+s.src=‘https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js’;
 s.onload=resolve; s.onerror=reject;
 document.head.appendChild(s);
 });
@@ -962,18 +974,9 @@ document.head.appendChild(s);
 
 async function generateQRDataURL(text){
 return new Promise(function(resolve){
-var div=document.createElement(‘div’);
-div.style.position=‘fixed’; div.style.left=’-9999px’;
-document.body.appendChild(div);
-new QRCode(div,{text:text,width:120,height:120,colorDark:’#000’,colorLight:’#fff’});
-setTimeout(function(){
-var img=div.querySelector(‘img’)||div.querySelector(‘canvas’);
-var url=’’;
-if(img && img.tagName===‘IMG’) url=img.src;
-else if(img && img.tagName===‘CANVAS’) url=img.toDataURL(‘image/png’);
-document.body.removeChild(div);
+// Usar Google Charts API - compatible amb Lockdown (no eval)
+var url = ‘https://chart.googleapis.com/chart?cht=qr&chs=120x120&chl=’ + encodeURIComponent(text) + ‘&choe=UTF-8’;
 resolve(url);
-},300);
 });
 }
 
