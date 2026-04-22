@@ -568,6 +568,7 @@ textarea.input{resize:vertical;min-height:80px;}
 
 <script type="text/plain" id="__ac__">
 
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -621,7 +622,6 @@ async function afterLogin(){
   document.getElementById('profile-code').textContent='Codi: '+w.employee_code;
   if(w.photo_path){ var url=SUPABASE_URL+'/storage/v1/object/public/worker-photos/'+w.photo_path; document.getElementById('home-avatar').innerHTML='<img src="'+url+'">'; document.getElementById('profile-avatar').innerHTML='<img src="'+url+'">'; }
   if(w.role==='ADMIN'||w.role==='admin'||w.role==='Admin'){
-    // Si login per codi (no QR) -&gt; demanar contrasenya
     if(!state._loginByQR){
       var adminPwd = null;
       try {
@@ -662,13 +662,11 @@ async function afterLogin(){
 }
 
 function generateQRSVG(text, container, size){
-  // Intentar Google Charts primer
   var img = document.createElement('img');
   img.src = 'https://chart.googleapis.com/chart?cht=qr&chs=' + size + 'x' + size + '&chl=' + encodeURIComponent(text) + '&choe=UTF-8&chld=M|2';
   img.style.cssText = 'width:'+size+'px;height:'+size+'px;border-radius:8px;display:block;';
   img.alt = 'QR: '+text;
   img.onerror = function(){
-    // Fallback: mostrar el codi com a text llegible amb styling
     container.innerHTML =
       '<div style="width:'+size+'px;min-height:'+size+'px;background:#fff;border:2px solid #1E90E8;'+
       'border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;'+
@@ -683,7 +681,6 @@ function generateQRSVG(text, container, size){
 }
 
 function doLogout(){ state.worker=null; state.todaySummary=null; state._loginByQR=false; clearInterval(clockInterval); document.getElementById('login-code').value=''; 
-// &#9472;&#9472;&#9472; CONSTANTS VACANCES &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 var WORKER_COLORS = [
   '#1E90E8','#E8541E','#27AE60','#8E44AD','#C0392B','#F39C12','#16A085'
 ];
@@ -695,18 +692,15 @@ function getWorkerColor(workerId){
   return WORKER_COLORS[Math.max(0,idx) % WORKER_COLORS.length];
 }
 
-// &#9472;&#9472;&#9472; CALENDARI VACANCES INDIVIDUAL &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 async function loadVacances(){
   var el=document.getElementById('page-vacances-content');
   if(!el||!state.worker) return;
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
   try{
     var yr=new Date().getFullYear();
-    // Obtenir dies de vacances configurat
     var maxDaysRows=await dbGet('app_settings','setting_key=eq.vacation_days_per_year&select=setting_value').catch(function(){return[];});
     var maxDays=maxDaysRows[0]?parseInt(maxDaysRows[0].setting_value):VACATION_DAYS_DEFAULT;
 
-    // Obtenir permisos de vacances del treballador
     var perms=await dbGet('day_status',
       'worker_id=eq.'+state.worker.id+
       '&day_type=eq.VACATION'+
@@ -714,7 +708,6 @@ async function loadVacances(){
       '&is_active=eq.true'+
       '&select=start_date,end_date,approval_status');
 
-    // Calcular dies usats (dies laborables)
     var usedDays=0;
     var vacDates={};
     perms.forEach(function(p){
@@ -733,14 +726,12 @@ async function loadVacances(){
     var remaining=maxDays-usedDays;
     var color=getWorkerColor(state.worker.id);
 
-    // &#9472;&#9472; Cap&#231;alera comptador &#9472;&#9472;
     var html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
       '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+maxDays+'</div><div class="stat-lbl">Dies totals</div></div>'+
       '<div class="stat-box"><div class="stat-val" style="color:'+color+'">'+usedDays+'</div><div class="stat-lbl">Dies usats</div></div>'+
       '<div class="stat-box"><div class="stat-val" style="color:'+(remaining>0?'var(--success)':'var(--warn)')+'">'+remaining+'</div><div class="stat-lbl">Dies pendents</div></div>'+
     '</div>';
 
-    // Barra de progr&#233;s
     var pct=Math.min(100,Math.round(usedDays/maxDays*100));
     html+='<div class="card" style="margin-bottom:20px">'+
       '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px">'+
@@ -749,7 +740,6 @@ async function loadVacances(){
         '<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:6px;transition:width .5s"></div></div>'+
     '</div>';
 
-    // &#9472;&#9472; Calendari anual &#9472;&#9472;
     html+='<div class="section-title">Calendari '+yr+'</div>';
     html+=renderCalendarYear(yr, vacDates, color, null, true);
 
@@ -760,7 +750,6 @@ async function loadVacances(){
   }
 }
 
-// &#9472;&#9472;&#9472; CALENDARI GLOBAL EMPRESA &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 async function loadVacancesGlobal(){
   var el=document.getElementById('page-vacances-content');
   if(!el) return;
@@ -771,7 +760,6 @@ async function loadVacancesGlobal(){
       state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*');
     }
 
-    // Obtenir tots els permisos de vacances de l'any
     var perms=await dbGet('day_status',
       'day_type=eq.VACATION'+
       '&start_date=gte.'+yr+'-01-01'+
@@ -779,7 +767,6 @@ async function loadVacancesGlobal(){
       '&is_active=eq.true'+
       '&select=worker_id,start_date,end_date,approval_status');
 
-    // Construir mapa de dates -> {workerId, color, name}[]
     var dateMap={};
     perms.forEach(function(p){
       var w=state.allWorkers.find(function(x){return String(x.id)===String(p.worker_id);});
@@ -798,7 +785,6 @@ async function loadVacancesGlobal(){
       }
     });
 
-    // Llegenda
     var html='<div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px">';
     state.allWorkers.forEach(function(w,i){
       var color=WORKER_COLORS[i%WORKER_COLORS.length];
@@ -808,7 +794,6 @@ async function loadVacancesGlobal(){
     });
     html+='</div>';
 
-    // Calendari global
     html+='<div class="section-title">Calendari global '+yr+'</div>';
     html+=renderCalendarYear(yr, dateMap, null, state.allWorkers, false);
 
@@ -819,7 +804,6 @@ async function loadVacancesGlobal(){
   }
 }
 
-// &#9472;&#9472;&#9472; RENDER CALENDARI ANUAL &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
   var mNames=['Gener','Febrer','Mar&#231;','Abril','Maig','Juny',
               'Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
@@ -829,23 +813,19 @@ function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
   for(var m=0;m<12;m++){
     var firstDay=new Date(yr,m,1);
     var daysInMonth=new Date(yr,m+1,0).getDate();
-    // dia de la setmana del primer dia (0=dg, adaptem a dl=0)
     var startDow=(firstDay.getDay()+6)%7; // 0=dl, 6=dg
 
     html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px">';
     html+='<div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:8px;text-align:center">'+mNames[m]+'</div>';
 
-    // Cap&#231;alera dies setmana
     html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:4px">';
     dNames.forEach(function(d){
       html+='<div style="text-align:center;font-size:9px;font-weight:700;color:var(--text3);padding:2px">'+d+'</div>';
     });
     html+='</div>';
 
-    // Graella de dies
     html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
 
-    // Cel&#183;les buides fins al primer dia
     for(var e=0;e<startDow;e++){
       html+='<div></div>';
     }
@@ -865,7 +845,6 @@ function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
 
       if(hasVac){
         if(isIndividual){
-          // Un sol treballador - color s&#242;lid
           var status=entry.status;
           bgColor=status==='APPROVED'?singleColor:(status==='PENDING'?'#FFF8E6':'#FEF0F0');
           textColor='#fff';
@@ -873,7 +852,6 @@ function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
           if(status==='REJECTED') textColor='var(--warn)';
           title=status==='APPROVED'?'Vacances aprovades':status==='PENDING'?'Pendent aprovacio':'Rebutjat';
         } else {
-          // Multi-treballador - punts de colors
           bgColor='var(--accent-lt)';
           dotHtml='<div style="display:flex;flex-wrap:wrap;gap:1px;justify-content:center;margin-top:1px">';
           entry.slice(0,3).forEach(function(e){
@@ -901,7 +879,6 @@ function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
   return html;
 }
 
-// &#9472;&#9472;&#9472; SWITCH VISTA VACANCES &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 function switchVacancesView(view){
   var btnInd=document.getElementById('vac-btn-ind');
   var btnGlo=document.getElementById('vac-btn-glo');
@@ -913,11 +890,9 @@ function switchVacancesView(view){
 
 showPage('splash');
 
-// -- Gestio offline --
 window.addEventListener('online',  function(){ showToast('Connexio restaurada','success'); });
 window.addEventListener('offline', function(){ showToast('Sense connexio a Internet','error'); });
 
-// -- Timeout de sessio (30 min d inactivitat) --
 var _sessionTimer = null;
 var SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minuts
 
@@ -978,7 +953,6 @@ async function doClockAction(action){
   var am={start:'clock_start',pause:'clock_pause',resume:'clock_resume',end:'clock_end'};
   var lm={start:'Jornada iniciada',pause:'Pausa registrada',resume:'Jornada represa',end:'Jornada finalitzada'};
 
-  // Refitxatge: si FINISHED i action=start, convertir END en pausa i continuar
   if(action==='start'){
     var curSt=state.todaySummary&&state.todaySummary.status;
     if(curSt==='FINISHED'||curSt==='COMPLETED'){
@@ -997,10 +971,8 @@ async function doClockAction(action){
         var lastEnd=allEnts.find(function(e){return e.entry_type==='END';});
         if(lastEnd){
           var pN=(allEnts.filter(function(e){return e.entry_type==='PAUSE_START';}).length)+1;
-          // Convertir END -> PAUSE_START
           await dbPatch('time_entries','id=eq.'+lastEnd.id,
             {entry_type:'PAUSE_START',pause_number:pN});
-          // Afegir PAUSE_END ara
           await dbPost('time_entries',{
             worker_id:state.worker.id,
             entry_date:todayDate,
@@ -1010,7 +982,6 @@ async function doClockAction(action){
             source_method:'CODE',
             is_active:true
           });
-          // Recalcular
           try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:todayDate}); }catch(er){}
           showToast('Jornada represa correctament','success');
           await loadTodaySummary();
@@ -1038,7 +1009,6 @@ async function doClockAction(action){
       if(action==='pause'||action==='resume'){ var ents=await dbGet('time_entries','worker_id=eq.'+state.worker.id+'&entry_date=eq.'+today+'&is_active=eq.true&select=pause_number&order=entry_datetime.asc'); var pauses=ents.filter(function(e){return e.pause_number!==null;}); pauseNum=action==='pause'?(pauses.length+1):(pauses.length>0?pauses[pauses.length-1].pause_number:1); }
       await dbPost('time_entries',{worker_id:state.worker.id,entry_date:today,entry_datetime:new Date().toISOString(),entry_type:etm[action],pause_number:pauseNum,source_method:(state._loginByQR?'QR':'CODE'),is_active:true});
       try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:today}); }catch(e2){
-        // Recalcul manual si RPC falla
         try{
           var allEntFb=await dbGet('time_entries','worker_id=eq.'+state.worker.id+'&entry_date=eq.'+today+'&is_active=eq.true&order=entry_datetime.asc&select=*');
           var hasStart=allEntFb.some(function(x){return x.entry_type==='START';});
@@ -1187,12 +1157,10 @@ var note = (document.getElementById(‘edit-note’)||{}).value||’’;
 note = note.trim();
 var newIso = new Date(newDT).toISOString();
 
-// Validar: cal original
 if(!originalDT) originalDT = newIso;
 if(!originalType) originalType = newType;
 
 try{
-// 1. Guardar auditoria completa
 var auditObj = {
 entry_id: parseInt(entryId),
 old_value: originalDT,
@@ -1209,12 +1177,10 @@ edited_at: new Date().toISOString()
 await dbPost(‘time_entry_edits’, auditObj);
 
 ```
-// 2. Actualitzar el registre: hora i tipus si ha canviat
 var patchObj = {entry_datetime: newIso};
 if(newType && newType !== originalType) patchObj.entry_type = newType;
 await dbPatch('time_entries','id=eq.'+entryId, patchObj);
 
-// 3. Recalcular el daily_record
 var date = (newIso||newDT).split('T')[0];
 try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:date}); }catch(er){}
 
@@ -1326,7 +1292,6 @@ adminNote+ch+actions+
 function openModal(type){
 var box=document.getElementById(‘modal-box’);
 if(type===‘new-perm’){
-// Carreguem la config de còmput per cada tipus - async block
 (async function(){
 var computeDefaults = {};
 try {
@@ -1396,7 +1361,6 @@ setTimeout(function(){
 var token = state.worker.qr_token||state.worker.employee_code||’’;
 var el = document.getElementById(‘qr-render’);
 el.innerHTML = ‘’;
-// Generar QR SVG manualment sense llibreries externes (compatible Lockdown)
 generateQRSVG(token, el, 200);
 },100);
 return;
@@ -1412,7 +1376,6 @@ var today=new Date().toISOString().split(‘T’)[0];
 if(start<today&&type!==‘SICK_LEAVE’){showToast(‘No pots registrar permisos en dates passades’,‘error’);return;}
 try{
 var computeMode = (window._computeDefaults&&window.*computeDefaults[type])||‘THEORETICAL_HOURS’;
-// Comprovar si requereix aprovació
 var requiresApproval = false;
 try {
 var reqRow = await dbGet(‘app_settings’,’setting_key=eq.requires_approval*’+type+’&select=setting_value’);
@@ -1423,7 +1386,6 @@ var approvalStatus = requiresApproval ? ‘PENDING’ : ‘APPROVED’;
 ```
 try{
   await rpc('create_day_status',{p_worker_id:parseInt(state.worker.id),p_day_type:type,p_start_date:start,p_end_date:end,p_comment:comment,p_compute_mode:computeMode});
-  // Update approval_status after creation
   var newPerms = await dbGet('day_status','worker_id=eq.'+state.worker.id+'&day_type=eq.'+type+'&start_date=eq.'+start+'&select=id&order=id.desc&limit=1');
   if(newPerms[0]) await dbPatch('day_status','id=eq.'+newPerms[0].id,{approval_status:approvalStatus});
 }
@@ -1433,7 +1395,6 @@ catch(e1){
 closeModal();
 var msg = requiresApproval ? 'Sol.licitud enviada - pendent d\'aprovacio' : 'Permis creat';
 showToast(msg,'success');
-// Notificacio email si cal
 if(requiresApproval){
   try{
     var emailRow=await dbGet('app_settings','setting_key=eq.admin_email&select=setting_value');
@@ -1575,7 +1536,6 @@ var total=rows.reduce(function(a,r){return a+(r.balance_minutes||0);},0);
 var month=rows.filter(function(r){return r.work_date.startsWith(yr+’-’+moS);}).reduce(function(a,r){return a+(r.balance_minutes||0);},0);
 var totalWorked=rows.reduce(function(a,r){return a+(r.worked_minutes||0);},0);
 var totalTheoretical=rows.reduce(function(a,r){return a+(r.theoretical_minutes||0);},0);
-// Agrupar per mes per al grafic
 var byMonth={};
 rows.forEach(function(r){
 var m=r.work_date.substring(0,7);
@@ -1594,7 +1554,6 @@ var byMonth=data.by_month||{};
 var monthNames=[‘Gen’,‘Feb’,‘Mar’,‘Abr’,‘Mai’,‘Jun’,‘Jul’,‘Ago’,‘Set’,‘Oct’,‘Nov’,‘Des’];
 
 ```
-// Calcular grafic de barres
 var yr=new Date().getFullYear();
 var months=[];
 for(var m=1;m<=12;m++){
@@ -1619,7 +1578,6 @@ var chartBars=months.map(function(m){
 }).join('');
 
 el.innerHTML=
-  // Resum anual i mensual
   '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">'+
     '<div class="card" style="text-align:center">'+
       '<div class="stat-lbl">Saldo mensual</div>'+
@@ -1630,7 +1588,6 @@ el.innerHTML=
       '<div style="font-family:var(--mono);font-size:32px;font-weight:800;margin-top:8px;color:'+(ab>=0?'var(--success)':'var(--warn)')+'">'+( ab>=0?'+':'')+minsToHM(ab)+'</div>'+
     '</div>'+
   '</div>'+
-  // Progress treballat vs teorico
   '<div class="card" style="margin-bottom:20px">'+
     '<div class="section-title" style="margin-top:0">Hores treballades vs teoriques</div>'+
     '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px">'+
@@ -1642,7 +1599,6 @@ el.innerHTML=
     '</div>'+
     '<div style="text-align:right;font-size:12px;color:var(--text2);margin-top:4px">'+( tt>0?Math.round(tw/tt*100):0)+'%</div>'+
   '</div>'+
-  // Grafic mensual
   '<div class="card">'+
     '<div class="section-title" style="margin-top:0">Saldo mensual '+yr+'</div>'+
     '<div style="display:flex;gap:4px;align-items:flex-end;padding:8px 0">'+chartBars+'</div>'+
@@ -1679,7 +1635,6 @@ if(badge){
 badge.textContent = count > 0 ? count : ‘’;
 badge.style.display = count > 0 ? ‘flex’ : ‘none’;
 }
-// Mostrar avís al dashboard
 var alertEl = document.getElementById(‘admin-perms-alert’);
 if(alertEl){
 if(count > 0){
@@ -1895,7 +1850,6 @@ el.innerHTML=summaryHtml+rows.map(function(w){ var b=w.annual_balance||0; var bc
 }
 
 async function adminClockAction(action){
-// Seleccionar worker per fitxar
 var workers = state.allWorkers.length ? state.allWorkers : await dbGet(‘workers’,‘is_active=eq.true&order=display_name.asc&select=*’);
 var box = document.getElementById(‘modal-box’);
 var opts = workers.map(function(w){
@@ -1979,7 +1933,6 @@ if(!w) return;
 var wb = XLSX.utils.book_new();
 var monthNames=[‘Gener’,‘Febrer’,‘Marc’,‘Abril’,‘Maig’,‘Juny’,‘Juliol’,‘Agost’,‘Setembre’,‘Octubre’,‘Novembre’,‘Desembre’];
 
-// Un full per mes (fins al mes actual o mes seleccionat)
 for(var m=1; m<=month; m++){
 var moS=String(m).padStart(2,‘0’);
 var records=await dbGet(‘daily_records’,
@@ -2044,7 +1997,6 @@ var moS=String(month).padStart(2,‘0’);
 var monthNames=[‘Gener’,‘Febrer’,‘Marc’,‘Abril’,‘Maig’,‘Juny’,‘Juliol’,‘Agost’,‘Setembre’,‘Octubre’,‘Novembre’,‘Desembre’];
 var wb=XLSX.utils.book_new();
 
-// Full resum de tots els treballadors
 var summaryRows=[[’Resum mensual - ‘+monthNames[month-1]+’ ’+year],[]];
 summaryRows.push([‘Treballador’,‘Codi’,‘H.Treballades’,‘H.Teoriques’,‘Saldo’,‘Dies treballats’,‘Incidencies’]);
 
@@ -2061,7 +2013,6 @@ summaryRows.push([w.display_name||w.employee_code, w.employee_code,
 minsToHM(totW), minsToHM(totT), (totB>=0?’+’:’’)+minsToHM(totB), dies, inc]);
 
 ```
-// Full individual per cada treballador
 var wRows=[['Data','H.Entrada','H.Sortida','Treballades','Teoriques','Saldo','Estat']];
 records.forEach(function(r){
   wRows.push([r.work_date,'','',minsToHM(r.worked_minutes||0),minsToHM(r.theoretical_minutes||0),
@@ -2076,7 +2027,6 @@ XLSX.utils.book_append_sheet(wb,wsW,(w.display_name||w.employee_code).substring(
 
 var wsSum=XLSX.utils.aoa_to_sheet(summaryRows);
 wsSum[’!cols’]=[{wch:22},{wch:8},{wch:13},{wch:13},{wch:10},{wch:14},{wch:12}];
-// Inserir el full resum al principi
 wb.SheetNames.unshift(‘Resum’);
 wb.Sheets[‘Resum’]=wsSum;
 
@@ -2089,7 +2039,6 @@ var workers=state.allWorkers.length?state.allWorkers:await dbGet(‘workers’,�
 var monthNames=[‘Gen’,‘Feb’,‘Mar’,‘Abr’,‘Mai’,‘Jun’,‘Jul’,‘Ago’,‘Set’,‘Oct’,‘Nov’,‘Des’];
 var wb=XLSX.utils.book_new();
 
-// ── Full 1: Resum anual per treballador ──
 var annualRows=[[‘Resum Anual ‘+year],[]];
 annualRows.push([‘Treballador’,‘H.Treballades’,‘H.Teoriques’,‘Saldo anual’,‘Dies treb.’,‘Dies absencia’,‘Vacances’,‘Malaltia dom.’,‘Baixa medica’,‘Permisos’,‘Festius’]);
 for(var i=0;i<workers.length;i++){
@@ -2111,7 +2060,6 @@ var wsAnn=XLSX.utils.aoa_to_sheet(annualRows);
 wsAnn[’!cols’]=[{wch:22},{wch:13},{wch:13},{wch:12},{wch:10},{wch:12},{wch:9},{wch:13},{wch:12},{wch:9},{wch:7}];
 XLSX.utils.book_append_sheet(wb,wsAnn,‘Resum Anual’);
 
-// ── Full 2: Comparativa mensual (matriu treballador x mes) ──
 var compRows=[[‘Comparativa mensual - Hores treballades ‘+year],[]];
 var header=[‘Treballador’].concat(monthNames).concat([‘TOTAL’]);
 compRows.push(header);
@@ -2133,7 +2081,6 @@ var wsComp=XLSX.utils.aoa_to_sheet(compRows);
 wsComp[’!cols’]=[{wch:22}].concat(monthNames.map(function(){return {wch:7};})).concat([{wch:9}]);
 XLSX.utils.book_append_sheet(wb,wsComp,‘Comparativa Mensual’);
 
-// ── Full 3: Hores extres per mes ──
 var extraRows=[[‘Hores extres (saldo positiu) ‘+year],[]];
 extraRows.push([‘Treballador’].concat(monthNames).concat([‘TOTAL EXTRA’]));
 for(var k=0;k<workers.length;k++){
@@ -2154,7 +2101,6 @@ var wsExtra=XLSX.utils.aoa_to_sheet(extraRows);
 wsExtra[’!cols’]=[{wch:22}].concat(monthNames.map(function(){return {wch:8};})).concat([{wch:11}]);
 XLSX.utils.book_append_sheet(wb,wsExtra,‘Hores Extres’);
 
-// ── Full 4: Permisos i absencies detallat ──
 var permRows=[[‘Permisos i absencies ‘+year],[]];
 permRows.push([‘Treballador’,‘Tipus’,‘Data inici’,‘Data fi’,‘Dies’,‘Estat’,‘Observacions’]);
 var permTypeLabels={VACATION:‘Vacances’,SICK_DAY:‘Malaltia dom.’,SICK_LEAVE:‘Baixa medica’,PAID_LEAVE:‘Permis retribuit’,HOLIDAY:‘Festiu’};
@@ -2179,7 +2125,6 @@ showToast(‘Informe analitic descarregat!’,‘success’);
 }
 
 async function generateWorkerExcel(workerId, month, year){
-// Carregar worker info
 var workers = state.allWorkers.length ? state.allWorkers : await dbGet(‘workers’,‘is_active=eq.true&select=*’);
 var worker = workers.find(function(w){ return String(w.id)===String(workerId); });
 if(!worker) throw new Error(‘Treballador no trobat’);
@@ -2188,17 +2133,14 @@ var moS = String(month).padStart(2,‘0’);
 var startDate = year+’-’+moS+’-01’;
 var endDate = year+’-’+moS+’-31’;
 
-// Carregar registres del mes
 var records = await dbGet(‘daily_records’,
 ‘worker_id=eq.’+workerId+’&work_date=gte.’+startDate+’&work_date=lte.’+endDate+
 ‘&order=work_date.asc&select=*’);
 
-// Carregar time_entries del mes per tenir hores exactes
 var entries = await dbGet(‘time_entries’,
 ‘worker_id=eq.’+workerId+’&entry_date=gte.’+startDate+’&entry_date=lte.’+endDate+
 ‘&is_active=eq.true&order=entry_datetime.asc&select=*’);
 
-// Agrupar entries per dia
 var entriesByDay = {};
 entries.forEach(function(e){
 var d = e.entry_date;
@@ -2206,11 +2148,9 @@ if(!entriesByDay[d]) entriesByDay[d] = [];
 entriesByDay[d].push(e);
 });
 
-// Construir dades de la fulla
 var monthNames = [‘Gener’,‘Febrer’,‘Marc’,‘Abril’,‘Maig’,‘Juny’,‘Juliol’,‘Agost’,‘Setembre’,‘Octubre’,‘Novembre’,‘Desembre’];
 var rows = [];
 
-// Capçalera
 rows.push([‘JASL Time - Registre de jornada’]);
 rows.push([‘Treballador:’, worker.display_name||worker.employee_code]);
 rows.push([‘Codi:’, worker.employee_code]);
@@ -2218,7 +2158,6 @@ rows.push([‘Mes:’, monthNames[month-1]+’ ’+year]);
 rows.push([]);
 rows.push([‘Data’,‘Dia’,‘Entrada’,‘Sortida’,‘Pauses’,‘H. Treballades’,‘H. Teoriques’,‘Saldo’,‘Estat’]);
 
-// Dies del mes
 var daysInMonth = new Date(year, month, 0).getDate();
 var dayNames = [‘Dg’,‘Dl’,‘Dt’,‘Dc’,‘Dj’,‘Dv’,‘Ds’];
 var totalWorked = 0, totalTheoretical = 0, totalBalance = 0;
@@ -2261,16 +2200,13 @@ rows.push([
 
 }
 
-// Totals
 rows.push([]);
 rows.push([‘TOTALS’,’’,’’,’’,’’,minsToHM(totalWorked),minsToHM(totalTheoretical),(totalBalance>=0?’+’:’’)+minsToHM(totalBalance),’’]);
 
-// Generar Excel amb SheetJS
 if(typeof XLSX === ‘undefined’){ showToast(‘Carregant SheetJS…’,‘success’); await loadSheetJS(); }
 var wb = XLSX.utils.book_new();
 var ws = XLSX.utils.aoa_to_sheet(rows);
 
-// Amplades de columna
 ws[’!cols’] = [{wch:12},{wch:4},{wch:8},{wch:8},{wch:7},{wch:12},{wch:12},{wch:10},{wch:14}];
 
 XLSX.utils.book_append_sheet(wb, ws, monthNames[month-1]);
@@ -2362,7 +2298,6 @@ document.head.appendChild(s);
 
 async function generateQRDataURL(text){
 return new Promise(function(resolve){
-// Usar Google Charts API - compatible amb Lockdown (no eval)
 var url = ‘https://chart.googleapis.com/chart?cht=qr&chs=120x120&chl=’ + encodeURIComponent(text) + ‘&choe=UTF-8’;
 resolve(url);
 });
@@ -2371,21 +2306,17 @@ resolve(url);
 async function generateWorkerCardPDF(worker){
 var doc = new window.jspdf.jsPDF({unit:‘mm’,format:[85.6,54],orientation:‘landscape’});
 
-// Fons blanc
 doc.setFillColor(255,255,255);
 doc.rect(0,0,85.6,54,‘F’);
 
-// Banda blava lateral esquerra
 doc.setFillColor(30,144,232);
 doc.rect(0,0,8,54,‘F’);
 
-// Text JASL Time vertical a la banda
 doc.setTextColor(255,255,255);
 doc.setFontSize(5);
 doc.setFont(‘helvetica’,‘bold’);
 doc.text(‘JASL TIME’,4,48,{angle:90});
 
-// Foto si n’hi ha
 var photoX = 12;
 if(worker.photo_path){
 try{
@@ -2398,7 +2329,6 @@ photoX = 38;
 }catch(e){ photoX = 12; }
 }
 
-// Nom
 doc.setTextColor(44,62,80);
 doc.setFontSize(9);
 doc.setFont(‘helvetica’,‘bold’);
@@ -2412,11 +2342,9 @@ doc.text(nameParts[nameParts.length-1], photoX, 19);
 doc.text(name, photoX, 15);
 }
 
-// Linia separadora
 doc.setDrawColor(220,220,220);
 doc.line(photoX, 22, 72, 22);
 
-// Codi
 doc.setFontSize(7);
 doc.setFont(‘helvetica’,‘normal’);
 doc.setTextColor(107,122,141);
@@ -2426,20 +2354,17 @@ doc.setFont(‘courier’,‘bold’);
 doc.setTextColor(30,144,232);
 doc.text(worker.employee_code, photoX, 33);
 
-// Empresa
 doc.setFontSize(6);
 doc.setFont(‘helvetica’,‘normal’);
 doc.setTextColor(107,122,141);
 doc.text(‘Jurislab Advocats’, photoX, 40);
 
-// QR
 var qrToken = worker.qr_token||worker.employee_code;
 var qrUrl = await generateQRDataURL(qrToken);
 if(qrUrl){
 doc.addImage(qrUrl,‘PNG’,68,6,14,14);
 }
 
-// Linia inferior decorativa
 doc.setFillColor(30,144,232);
 doc.rect(8,50,77.6,1,‘F’);
 
@@ -2463,7 +2388,6 @@ return ‘https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=’+encodeUR
 }
 
 async function drawCard3B(doc, worker, x, y, w, h){
-// Fons blanc
 doc.setFillColor(255,255,255);
 doc.roundedRect(x, y, w, h, 3, 3, ‘F’);
 
@@ -2471,13 +2395,10 @@ var leftW = w * 0.37; // zona blava esquerra
 var rightX = x + leftW;
 var rightW = w - leftW;
 
-// Zona blava esquerra
 doc.setFillColor(30, 144, 232);
 doc.roundedRect(x, y, leftW, h, 3, 3, ‘F’);
-// Cobrir cantonades dretes de la zona blava
 doc.rect(x + leftW - 3, y, 3, h, ‘F’);
 
-// Marca d’aigua JL
 doc.setTextColor(255,255,255);
 doc.setGlobalAlpha(0.06);
 doc.setFont(‘helvetica’,‘bold’);
@@ -2485,11 +2406,9 @@ doc.setFontSize(52);
 doc.text(‘JL’, x + 2, y + h - 2);
 doc.setGlobalAlpha(1);
 
-// Foto del treballador (cercle)
 var photoX = x + leftW/2;
 var photoY = y + h * 0.30;
 var photoR = 11;
-// Cercle blanc semitransparent
 doc.setFillColor(255,255,255);
 doc.setGlobalAlpha(0.25);
 doc.circle(photoX, photoY, photoR + 1.5, ‘F’);
@@ -2501,10 +2420,8 @@ var photoUrl=‘https://fywkafpfcnqynvjdedfj.supabase.co/storage/v1/object/publi
 var resp=await fetch(photoUrl);
 var blob=await resp.blob();
 var photoData=await new Promise(function(r){var fr=new FileReader();fr.onload=function(){r(fr.result);};fr.readAsDataURL(blob);});
-// Afegir com a imatge circular (aproximat amb quadrat arrodonit)
 doc.addImage(photoData,‘JPEG’,photoX-photoR,photoY-photoR,photoR*2,photoR*2,’’,‘FAST’);
 }catch(e){
-// Fallback: icona persona
 doc.setFillColor(255,255,255);
 doc.setGlobalAlpha(0.4);
 doc.circle(photoX, photoY, photoR, ‘F’);
@@ -2520,16 +2437,13 @@ doc.circle(photoX, photoY, photoR, ‘F’);
 doc.setGlobalAlpha(1);
 }
 
-// QR
 var qrUrl = await getQRDataURL(worker.qr_token||worker.employee_code);
 var qrSize = 19;
 var qrX = x + leftW/2 - qrSize/2;
 var qrY = y + h * 0.62;
-// Fons blanc per al QR
 doc.setFillColor(255,255,255);
 doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 1.5, 1.5, ‘F’);
 try{
-// Carregar QR com a imatge
 var qrResp = await fetch(qrUrl);
 var qrBlob = await qrResp.blob();
 var qrData = await new Promise(function(r){var fr=new FileReader();fr.onload=function(){r(fr.result);};fr.readAsDataURL(qrBlob);});
@@ -2544,16 +2458,13 @@ doc.setFontSize(4.5);
 doc.setFont(‘helvetica’,‘normal’);
 doc.text(‘QR ACCES’, x+leftW/2, qrY+qrSize+3.5, {align:‘center’});
 
-// ZONA DRETA: nom, carrec, logo, codi
 var tx = rightX + 5;
 var maxW = rightW - 8;
 
-// Nom
 doc.setTextColor(26,32,44);
 doc.setFont(‘helvetica’,‘bold’);
 doc.setFontSize(12);
 var nomDisplay = worker.display_name||worker.employee_code;
-// Partir per espai si es llarg
 var parts = nomDisplay.split(’ ‘);
 if(parts.length > 1 && nomDisplay.length > 14){
 doc.text(parts.slice(0,-1).join(’ ’), tx, y+12);
@@ -2564,19 +2475,16 @@ doc.setFontSize(13);
 doc.text(nomDisplay, tx, y+14);
 }
 
-// Carrec
 doc.setFont(‘helvetica’,‘normal’);
 doc.setFontSize(5.5);
 doc.setTextColor(100,116,139);
 var carrec = worker.carrec||’’;
 doc.text(carrec.toUpperCase(), tx, y+24);
 
-// Linia divisoria
 doc.setDrawColor(30,144,232);
 doc.setLineWidth(0.4);
 doc.line(tx, y+28, rightX+rightW-5, y+28);
 
-// Logo Jurislab
 try{
 doc.addImage(LOGO_B64,‘PNG’, tx, y+31, 14, 21, ‘’, ‘FAST’);
 }catch(e){
@@ -2589,7 +2497,6 @@ doc.setTextColor(100,116,139);
 doc.text(‘Advocats’, tx, y+43);
 }
 
-// Codi empleat (baix dreta)
 doc.setFont(‘helvetica’,‘normal’);
 doc.setFontSize(5);
 doc.setTextColor(203,213,225);
@@ -2599,7 +2506,6 @@ doc.setFontSize(8);
 doc.setTextColor(30,144,232);
 doc.text(worker.employee_code, tx, y+h-3);
 
-// Linia blava peu dret
 doc.setFillColor(30,144,232);
 doc.rect(rightX, y+h-1.5, rightW, 1.5, ‘F’);
 }
@@ -2782,7 +2688,6 @@ async function startQRScan(){ showPage(‘qr-scan’); try{ qrStream=await navig
 function stopQR(){ if(qrStream){qrStream.getTracks().forEach(function(t){t.stop();});qrStream=null;} }
 
 async function loginByQR(token){ try{ var worker; try{worker=await rpc(‘login_by_qr’,{p_qr_token:token});}catch(e1){var rows=await dbGet(‘workers’,‘qr_token=eq.’+encodeURIComponent(token)+’&is_active=eq.true&select=*’);worker=rows[0];} if(!worker||!worker.id)throw new Error(‘QR no valid’); state._loginByQR=true; state.worker=worker; afterLogin(); }catch(e){showToast(e.message||‘QR no reconegut’,‘error’);
-// ─── CONSTANTS VACANCES ───────────────────────────────
 var WORKER_COLORS = [
 ‘#1E90E8’,’#E8541E’,’#27AE60’,’#8E44AD’,’#C0392B’,’#F39C12’,’#16A085’
 ];
@@ -2794,19 +2699,16 @@ var idx=state.allWorkers.findIndex(function(w){return String(w.id)===String(work
 return WORKER_COLORS[Math.max(0,idx) % WORKER_COLORS.length];
 }
 
-// ─── CALENDARI VACANCES INDIVIDUAL ───────────────────
 async function loadVacances(){
 var el=document.getElementById(‘page-vacances-content’);
 if(!el||!state.worker) return;
 el.innerHTML=’<div class="empty-state"><span class="loader"></span></div>’;
 try{
 var yr=new Date().getFullYear();
-// Obtenir dies de vacances configurat
 var maxDaysRows=await dbGet(‘app_settings’,‘setting_key=eq.vacation_days_per_year&select=setting_value’).catch(function(){return[];});
 var maxDays=maxDaysRows[0]?parseInt(maxDaysRows[0].setting_value):VACATION_DAYS_DEFAULT;
 
 ```
-// Obtenir permisos de vacances del treballador
 var perms=await dbGet('day_status',
   'worker_id=eq.'+state.worker.id+
   '&day_type=eq.VACATION'+
@@ -2814,7 +2716,6 @@ var perms=await dbGet('day_status',
   '&is_active=eq.true'+
   '&select=start_date,end_date,approval_status');
 
-// Calcular dies usats (dies laborables)
 var usedDays=0;
 var vacDates={};
 perms.forEach(function(p){
@@ -2833,14 +2734,12 @@ perms.forEach(function(p){
 var remaining=maxDays-usedDays;
 var color=getWorkerColor(state.worker.id);
 
-// &#9472;&#9472; Cap&#231;alera comptador &#9472;&#9472;
 var html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
   '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+maxDays+'</div><div class="stat-lbl">Dies totals</div></div>'+
   '<div class="stat-box"><div class="stat-val" style="color:'+color+'">'+usedDays+'</div><div class="stat-lbl">Dies usats</div></div>'+
   '<div class="stat-box"><div class="stat-val" style="color:'+(remaining>0?'var(--success)':'var(--warn)')+'">'+remaining+'</div><div class="stat-lbl">Dies pendents</div></div>'+
 '</div>';
 
-// Barra de progr&#233;s
 var pct=Math.min(100,Math.round(usedDays/maxDays*100));
 html+='<div class="card" style="margin-bottom:20px">'+
   '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px">'+
@@ -2849,7 +2748,6 @@ html+='<div class="card" style="margin-bottom:20px">'+
     '<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:6px;transition:width .5s"></div></div>'+
 '</div>';
 
-// &#9472;&#9472; Calendari anual &#9472;&#9472;
 html+='<div class="section-title">Calendari '+yr+'</div>';
 html+=renderCalendarYear(yr, vacDates, color, null, true);
 
@@ -2862,7 +2760,6 @@ console.error(‘loadVacances:’,e);
 }
 }
 
-// ─── CALENDARI GLOBAL EMPRESA ─────────────────────────
 async function loadVacancesGlobal(){
 var el=document.getElementById(‘page-vacances-content’);
 if(!el) return;
@@ -2874,7 +2771,6 @@ state.allWorkers=await dbGet(‘workers’,‘is_active=eq.true&order=display_na
 }
 
 ```
-// Obtenir tots els permisos de vacances de l'any
 var perms=await dbGet('day_status',
   'day_type=eq.VACATION'+
   '&start_date=gte.'+yr+'-01-01'+
@@ -2882,7 +2778,6 @@ var perms=await dbGet('day_status',
   '&is_active=eq.true'+
   '&select=worker_id,start_date,end_date,approval_status');
 
-// Construir mapa de dates -> {workerId, color, name}[]
 var dateMap={};
 perms.forEach(function(p){
   var w=state.allWorkers.find(function(x){return String(x.id)===String(p.worker_id);});
@@ -2901,7 +2796,6 @@ perms.forEach(function(p){
   }
 });
 
-// Llegenda
 var html='<div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px">';
 state.allWorkers.forEach(function(w,i){
   var color=WORKER_COLORS[i%WORKER_COLORS.length];
@@ -2911,7 +2805,6 @@ state.allWorkers.forEach(function(w,i){
 });
 html+='</div>';
 
-// Calendari global
 html+='<div class="section-title">Calendari global '+yr+'</div>';
 html+=renderCalendarYear(yr, dateMap, null, state.allWorkers, false);
 
@@ -2924,7 +2817,6 @@ console.error(‘loadVacancesGlobal:’,e);
 }
 }
 
-// ─── RENDER CALENDARI ANUAL ───────────────────────────
 function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
 var mNames=[‘Gener’,‘Febrer’,‘Març’,‘Abril’,‘Maig’,‘Juny’,
 ‘Juliol’,‘Agost’,‘Setembre’,‘Octubre’,‘Novembre’,‘Desembre’];
@@ -2934,24 +2826,20 @@ var html=’<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">’
 for(var m=0;m<12;m++){
 var firstDay=new Date(yr,m,1);
 var daysInMonth=new Date(yr,m+1,0).getDate();
-// dia de la setmana del primer dia (0=dg, adaptem a dl=0)
 var startDow=(firstDay.getDay()+6)%7; // 0=dl, 6=dg
 
 ```
 html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px">';
 html+='<div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:8px;text-align:center">'+mNames[m]+'</div>';
 
-// Cap&#231;alera dies setmana
 html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:4px">';
 dNames.forEach(function(d){
   html+='<div style="text-align:center;font-size:9px;font-weight:700;color:var(--text3);padding:2px">'+d+'</div>';
 });
 html+='</div>';
 
-// Graella de dies
 html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
 
-// Cel&#183;les buides fins al primer dia
 for(var e=0;e<startDow;e++){
   html+='<div></div>';
 }
@@ -2971,7 +2859,6 @@ for(var d=1;d<=daysInMonth;d++){
 
   if(hasVac){
     if(isIndividual){
-      // Un sol treballador - color s&#242;lid
       var status=entry.status;
       bgColor=status==='APPROVED'?singleColor:(status==='PENDING'?'#FFF8E6':'#FEF0F0');
       textColor='#fff';
@@ -2979,7 +2866,6 @@ for(var d=1;d<=daysInMonth;d++){
       if(status==='REJECTED') textColor='var(--warn)';
       title=status==='APPROVED'?'Vacances aprovades':status==='PENDING'?'Pendent aprovacio':'Rebutjat';
     } else {
-      // Multi-treballador - punts de colors
       bgColor='var(--accent-lt)';
       dotHtml='<div style="display:flex;flex-wrap:wrap;gap:1px;justify-content:center;margin-top:1px">';
       entry.slice(0,3).forEach(function(e){
@@ -3009,7 +2895,6 @@ html+=’</div>’;
 return html;
 }
 
-// ─── SWITCH VISTA VACANCES ────────────────────────────
 function switchVacancesView(view){
 var btnInd=document.getElementById(‘vac-btn-ind’);
 var btnGlo=document.getElementById(‘vac-btn-glo’);
@@ -3021,11 +2906,9 @@ else loadVacancesGlobal();
 
 showPage(‘splash’);
 
-// – Gestio offline –
 window.addEventListener(‘online’,  function(){ showToast(‘Connexio restaurada’,‘success’); });
 window.addEventListener(‘offline’, function(){ showToast(‘Sense connexio a Internet’,‘error’); });
 
-// – Timeout de sessio (30 min d inactivitat) –
 var _sessionTimer = null;
 var SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minuts
 
@@ -3061,7 +2944,6 @@ return m[t]||t;
 }
 function showToast(msg,type){ type=type||‘success’; var el=document.getElementById(‘toast’); el.textContent=msg; el.className=’show ’+type; clearTimeout(el._t); el._t=setTimeout(function(){el.classList.remove(‘show’);},2800); }
 
-// ─── CONSTANTS VACANCES ───────────────────────────────
 var WORKER_COLORS = [
 ‘#1E90E8’,’#E8541E’,’#27AE60’,’#8E44AD’,’#C0392B’,’#F39C12’,’#16A085’
 ];
@@ -3073,19 +2955,16 @@ var idx=state.allWorkers.findIndex(function(w){return String(w.id)===String(work
 return WORKER_COLORS[Math.max(0,idx) % WORKER_COLORS.length];
 }
 
-// ─── CALENDARI VACANCES INDIVIDUAL ───────────────────
 async function loadVacances(){
 var el=document.getElementById(‘page-vacances-content’);
 if(!el||!state.worker) return;
 el.innerHTML=’<div class="empty-state"><span class="loader"></span></div>’;
 try{
 var yr=new Date().getFullYear();
-// Obtenir dies de vacances configurat
 var maxDaysRows=await dbGet(‘app_settings’,‘setting_key=eq.vacation_days_per_year&select=setting_value’).catch(function(){return[];});
 var maxDays=maxDaysRows[0]?parseInt(maxDaysRows[0].setting_value):VACATION_DAYS_DEFAULT;
 
 ```
-// Obtenir permisos de vacances del treballador
 var perms=await dbGet('day_status',
   'worker_id=eq.'+state.worker.id+
   '&day_type=eq.VACATION'+
@@ -3093,7 +2972,6 @@ var perms=await dbGet('day_status',
   '&is_active=eq.true'+
   '&select=start_date,end_date,approval_status');
 
-// Calcular dies usats (dies laborables)
 var usedDays=0;
 var vacDates={};
 perms.forEach(function(p){
@@ -3112,14 +2990,12 @@ perms.forEach(function(p){
 var remaining=maxDays-usedDays;
 var color=getWorkerColor(state.worker.id);
 
-// &#9472;&#9472; Cap&#231;alera comptador &#9472;&#9472;
 var html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
   '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+maxDays+'</div><div class="stat-lbl">Dies totals</div></div>'+
   '<div class="stat-box"><div class="stat-val" style="color:'+color+'">'+usedDays+'</div><div class="stat-lbl">Dies usats</div></div>'+
   '<div class="stat-box"><div class="stat-val" style="color:'+(remaining>0?'var(--success)':'var(--warn)')+'">'+remaining+'</div><div class="stat-lbl">Dies pendents</div></div>'+
 '</div>';
 
-// Barra de progr&#233;s
 var pct=Math.min(100,Math.round(usedDays/maxDays*100));
 html+='<div class="card" style="margin-bottom:20px">'+
   '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px">'+
@@ -3128,7 +3004,6 @@ html+='<div class="card" style="margin-bottom:20px">'+
     '<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:6px;transition:width .5s"></div></div>'+
 '</div>';
 
-// &#9472;&#9472; Calendari anual &#9472;&#9472;
 html+='<div class="section-title">Calendari '+yr+'</div>';
 html+=renderCalendarYear(yr, vacDates, color, null, true);
 
@@ -3141,7 +3016,6 @@ console.error(‘loadVacances:’,e);
 }
 }
 
-// ─── CALENDARI GLOBAL EMPRESA ─────────────────────────
 async function loadVacancesGlobal(){
 var el=document.getElementById(‘page-vacances-content’);
 if(!el) return;
@@ -3153,7 +3027,6 @@ state.allWorkers=await dbGet(‘workers’,‘is_active=eq.true&order=display_na
 }
 
 ```
-// Obtenir tots els permisos de vacances de l'any
 var perms=await dbGet('day_status',
   'day_type=eq.VACATION'+
   '&start_date=gte.'+yr+'-01-01'+
@@ -3161,7 +3034,6 @@ var perms=await dbGet('day_status',
   '&is_active=eq.true'+
   '&select=worker_id,start_date,end_date,approval_status');
 
-// Construir mapa de dates -> {workerId, color, name}[]
 var dateMap={};
 perms.forEach(function(p){
   var w=state.allWorkers.find(function(x){return String(x.id)===String(p.worker_id);});
@@ -3180,7 +3052,6 @@ perms.forEach(function(p){
   }
 });
 
-// Llegenda
 var html='<div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px">';
 state.allWorkers.forEach(function(w,i){
   var color=WORKER_COLORS[i%WORKER_COLORS.length];
@@ -3190,7 +3061,6 @@ state.allWorkers.forEach(function(w,i){
 });
 html+='</div>';
 
-// Calendari global
 html+='<div class="section-title">Calendari global '+yr+'</div>';
 html+=renderCalendarYear(yr, dateMap, null, state.allWorkers, false);
 
@@ -3203,7 +3073,6 @@ console.error(‘loadVacancesGlobal:’,e);
 }
 }
 
-// ─── RENDER CALENDARI ANUAL ───────────────────────────
 function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
 var mNames=[‘Gener’,‘Febrer’,‘Març’,‘Abril’,‘Maig’,‘Juny’,
 ‘Juliol’,‘Agost’,‘Setembre’,‘Octubre’,‘Novembre’,‘Desembre’];
@@ -3213,24 +3082,20 @@ var html=’<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">’
 for(var m=0;m<12;m++){
 var firstDay=new Date(yr,m,1);
 var daysInMonth=new Date(yr,m+1,0).getDate();
-// dia de la setmana del primer dia (0=dg, adaptem a dl=0)
 var startDow=(firstDay.getDay()+6)%7; // 0=dl, 6=dg
 
 ```
 html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px">';
 html+='<div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:8px;text-align:center">'+mNames[m]+'</div>';
 
-// Cap&#231;alera dies setmana
 html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:4px">';
 dNames.forEach(function(d){
   html+='<div style="text-align:center;font-size:9px;font-weight:700;color:var(--text3);padding:2px">'+d+'</div>';
 });
 html+='</div>';
 
-// Graella de dies
 html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
 
-// Cel&#183;les buides fins al primer dia
 for(var e=0;e<startDow;e++){
   html+='<div></div>';
 }
@@ -3250,7 +3115,6 @@ for(var d=1;d<=daysInMonth;d++){
 
   if(hasVac){
     if(isIndividual){
-      // Un sol treballador - color s&#242;lid
       var status=entry.status;
       bgColor=status==='APPROVED'?singleColor:(status==='PENDING'?'#FFF8E6':'#FEF0F0');
       textColor='#fff';
@@ -3258,7 +3122,6 @@ for(var d=1;d<=daysInMonth;d++){
       if(status==='REJECTED') textColor='var(--warn)';
       title=status==='APPROVED'?'Vacances aprovades':status==='PENDING'?'Pendent aprovacio':'Rebutjat';
     } else {
-      // Multi-treballador - punts de colors
       bgColor='var(--accent-lt)';
       dotHtml='<div style="display:flex;flex-wrap:wrap;gap:1px;justify-content:center;margin-top:1px">';
       entry.slice(0,3).forEach(function(e){
@@ -3288,7 +3151,6 @@ html+=’</div>’;
 return html;
 }
 
-// ─── SWITCH VISTA VACANCES ────────────────────────────
 function switchVacancesView(view){
 var btnInd=document.getElementById(‘vac-btn-ind’);
 var btnGlo=document.getElementById(‘vac-btn-glo’);
@@ -3300,11 +3162,9 @@ else loadVacancesGlobal();
 
 showPage(‘splash’);
 
-// – Gestio offline –
 window.addEventListener(‘online’,  function(){ showToast(‘Connexio restaurada’,‘success’); });
 window.addEventListener(‘offline’, function(){ showToast(‘Sense connexio a Internet’,‘error’); });
 
-// – Timeout de sessio (30 min d inactivitat) –
 var _sessionTimer = null;
 var SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minuts
 
@@ -3361,7 +3221,6 @@ var el=document.getElementById(‘edits-report-list’);
 if(!el) return;
 el.innerHTML=’<div class="empty-state"><span class="loader"></span></div>’;
 try{
-// Carregar totes les edicions amb context
 var edits=await dbGet(‘time_entry_edits’,
 ‘order=edited_at.desc&select=*,time_entries(entry_date,worker_id,workers(display_name,employee_code))&limit=200’);
 if(!edits||!edits.length){
@@ -3413,10 +3272,52 @@ return ‘<div class="card" style="margin-bottom:10px">’+
 
 </script>
 <script>
-(function(){var el=document.getElementById('__ac__');if(!el)return;var b=new Blob([el.textContent],{type:'application/javascript'});var u=URL.createObjectURL(b);var s=document.createElement('script');s.src=u;s.onload=function(){URL.revokeObjectURL(u);};document.head.appendChild(s);})();
+(function(){
+  try{
+    var el=document.getElementById('__ac__');
+    if(!el){ console.error('JASL: blob element not found'); return; }
+    var code=el.textContent||el.innerHTML;
+    var b=new Blob([code],{type:'application/javascript'});
+    var u=URL.createObjectURL(b);
+    var s=document.createElement('script');
+    s.src=u;
+    s.onload=function(){ try{ URL.revokeObjectURL(u); }catch(e){} };
+    s.onerror=function(err){
+      console.error('JASL: blob load failed, trying eval fallback',err);
+      try{
+        URL.revokeObjectURL(u);
+        var sc2=document.createElement('script');
+        sc2.textContent=code;
+        document.head.appendChild(sc2);
+      }catch(e2){ console.error('JASL: fallback also failed',e2); }
+    };
+    document.head.appendChild(s);
+  }catch(e){ console.error('JASL loader error:',e); }
+})();
 </script>
 <script>
-(function(){var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);if(isIOS&&!window.navigator.standalone&&!localStorage.getItem('pwa_ok')){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal.la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d\'inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();localStorage.setItem('pwa_ok','1');};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}})();
+(function(){
+  try{
+    var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    var shown=false;
+    try{ shown=!!localStorage.getItem('pwa_ok'); }catch(e){ shown=true; }
+    if(isIOS&&!window.navigator.standalone&&!shown){
+      setTimeout(function(){
+        var d=document.createElement('div');
+        d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';
+        var msg=document.createElement('div');msg.style.flex='1';
+        msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';
+        var btn=document.createElement('button');btn.textContent='Ara no';
+        btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';
+        btn.onclick=function(){
+          d.remove();
+          try{ localStorage.setItem('pwa_ok','1'); }catch(e){}
+        };
+        d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);
+      },3000);
+    }
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
