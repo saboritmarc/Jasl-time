@@ -667,6 +667,49 @@ function renderTodaySummary(s){
 async function doClockAction(action){
   var am={start:'clock_start',pause:'clock_pause',resume:'clock_resume',end:'clock_end'};
   var lm={start:'Jornada iniciada',pause:'Pausa registrada',resume:'Jornada represa',end:'Jornada finalitzada'};
+
+  // Refitxatge: si FINISHED i action=start, convertir END en pausa i continuar
+  if(action==='start'){
+    var curSt=state.todaySummary&&state.todaySummary.status;
+    if(curSt==='FINISHED'||curSt==='COMPLETED'){
+      var ok=window.confirm(
+        'La jornada ja esta finalitzada.\n\n'+
+        'Si continues, la sortida anterior es convertira en una pausa\n'+
+        'i seguiras acumulant hores fins a finalitzar de nou.\n\n'+
+        'Vols continuar la jornada?'
+      );
+      if(!ok) return;
+      try{
+        var todayDate=new Date().toISOString().split('T')[0];
+        var allEnts=await dbGet('time_entries',
+          'worker_id=eq.'+state.worker.id+'&entry_date=eq.'+todayDate+
+          '&is_active=eq.true&order=entry_datetime.desc&select=*');
+        var lastEnd=allEnts.find(function(e){return e.entry_type==='END';});
+        if(lastEnd){
+          var pN=(allEnts.filter(function(e){return e.entry_type==='PAUSE_START';}).length)+1;
+          // Convertir END -> PAUSE_START
+          await dbPatch('time_entries','id=eq.'+lastEnd.id,
+            {entry_type:'PAUSE_START',pause_number:pN});
+          // Afegir PAUSE_END ara
+          await dbPost('time_entries',{
+            worker_id:state.worker.id,
+            entry_date:todayDate,
+            entry_datetime:new Date().toISOString(),
+            entry_type:'PAUSE_END',
+            pause_number:pN,
+            source_method:'CODE',
+            is_active:true
+          });
+          // Recalcular
+          try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:todayDate}); }catch(er){}
+          showToast('Jornada represa correctament','success');
+          await loadTodaySummary();
+        }
+      }catch(err){ showToast('Error en el refitxatge: '+(err.message||''),'error'); }
+      return;
+    }
+  }
+
   try{
     try{
       var rpcRes=await rpc(am[action],{p_worker_id:parseInt(state.worker.id)});
@@ -684,7 +727,23 @@ async function doClockAction(action){
       var pauseNum=null;
       if(action==='pause'||action==='resume'){ var ents=await dbGet('time_entries','worker_id=eq.'+state.worker.id+'&entry_date=eq.'+today+'&is_active=eq.true&select=pause_number&order=entry_datetime.asc'); var pauses=ents.filter(function(e){return e.pause_number!==null;}); pauseNum=action==='pause'?(pauses.length+1):(pauses.length>0?pauses[pauses.length-1].pause_number:1); }
       await dbPost('time_entries',{worker_id:state.worker.id,entry_date:today,entry_datetime:new Date().toISOString(),entry_type:etm[action],pause_number:pauseNum,source_method:(state._loginByQR?'QR':'CODE'),is_active:true});
-      try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:today}); }catch(e2){}
+      try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:today}); }catch(e2){
+        // Recalcul manual si RPC falla
+        try{
+          var allEntFb=await dbGet('time_entries','worker_id=eq.'+state.worker.id+'&entry_date=eq.'+today+'&is_active=eq.true&order=entry_datetime.asc&select=*');
+          var hasStart=allEntFb.some(function(x){return x.entry_type==='START';});
+          var hasEnd=allEntFb.some(function(x){return x.entry_type==='END';});
+          var newSt=!hasStart?'NOT_STARTED':hasEnd?'FINISHED':'IN_PROGRESS';
+          var wMin=0; var ls=null;
+          allEntFb.forEach(function(e){
+            if(e.entry_type==='START'||e.entry_type==='PAUSE_END') ls=new Date(e.entry_datetime);
+            if((e.entry_type==='END'||e.entry_type==='PAUSE_START')&&ls){ wMin+=Math.round((new Date(e.entry_datetime)-ls)/60000); ls=null; }
+          });
+          var th=state.worker.daily_theoretical_minutes||450;
+          await dbPatch('daily_records','worker_id=eq.'+state.worker.id+'&work_date=eq.'+today,
+            {status:newSt,worked_minutes:wMin,theoretical_minutes:th,balance_minutes:wMin-th});
+        }catch(e3){}
+      }
     }
     showToast(lm[action],'success'); await loadTodaySummary();
   }catch(e){ showToast((e&&e.message)?e.message:'Error en el fitxatge','error'); }
@@ -866,7 +925,9 @@ async function loadDayDetail(date){
       }
       var canEdit=state.worker&&(state.worker.role==='ADMIN'||(state.settings&&state.settings.allow_worker_edits!=='false'));
       var editBtn=canEdit?'<button onclick="editTimeEntry('+e.id+','+e.worker_id+')" style="margin-left:auto;background:none;border:1px solid var(--accent);color:var(--accent);font-size:11px;cursor:pointer;padding:2px 8px;border-radius:4px">Editar</button>':'';
-      return '<div class="timeline-item" style="display:flex;align-items:center;gap:6px"><div class="timeline-dot '+dc+'"</div><div class="timeline-time">'+t+durHtml+'</div><div class="timeline-type">'+lbl+'</div></div>';
+      var canEdit=state.worker&&(state.worker.role==='ADMIN'||(state.settings&&state.settings.allow_worker_edits!=='false'));
+      var editBtn=canEdit?'<button onclick="editTimeEntry('+e.id+','+e.worker_id+')" style="margin-left:auto;flex-shrink:0;background:none;border:1px solid var(--accent);color:var(--accent);font-size:11px;cursor:pointer;padding:2px 8px;border-radius:4px">Editar</button>':'';
+      return '<div class="timeline-item" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div class="timeline-dot '+dc+'" style="flex-shrink:0"></div><div style="flex:1"><div class="timeline-time">'+t+durHtml+'</div><div class="timeline-type">'+lbl+'</div></div>'+editBtn+'</div>'
     }).join('');
   }catch(e){document.getElementById('day-summary-cards').innerHTML='<div class="empty-state">Error carregant detall</div>';}
 }
