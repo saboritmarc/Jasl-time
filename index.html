@@ -470,6 +470,7 @@
   <!-- ═══════════════════════════════ ADMIN HOME ═══════════════════════════ -->
   <div id="page-admin-home" class="page" style="display:none;flex-direction:column">
     <div class="topbar">
+      <button class="back-btn" onclick="showPage('worker-home')" title="Inici">&#8592;</button>
       <div class="topbar-title">⚙ Admin &middot; JASL Time</div>
       <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="doLogout()">Sortir</button>
     </div>
@@ -679,6 +680,8 @@
 
 
 
+
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -757,6 +760,17 @@ async function afterLogin(){
   var loginMethod = state._loginByQR ? 'QR' : 'CODE';
   logAccess(w.id, loginMethod);
   showPage('worker-home'); startClock(); await loadTodaySummary();
+    // Afegir boto Admin al nav si es administrador
+    if(!document.getElementById('nav-admin-btn')){
+      var adminNavBtn=document.createElement('button');
+      adminNavBtn.id='nav-admin-btn';
+      adminNavBtn.className='nav-item';
+      adminNavBtn.style.cssText='color:var(--accent)';
+      adminNavBtn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg><span class="nav-label">Admin</span>';
+      adminNavBtn.onclick=function(){ showPage('admin-home'); };
+      var workerNav=document.getElementById('worker-nav');
+      if(workerNav) workerNav.appendChild(adminNavBtn);
+    }
 }
 
 function generateQRSVG(text, container, size){
@@ -2618,6 +2632,8 @@ window.saveNewWorker=saveNewWorker;
 window.saveWorkerDetail=saveWorkerDetail;
 window.saveTimeEdit=saveTimeEdit;
 window.editTimeEntry=editTimeEntry;
+
+
 
 
 </script>
