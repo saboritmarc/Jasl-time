@@ -1,4 +1,8 @@
-<!DOCTYPE html>
+<!DOCTYP
+      <div class="sep" style="margin:16px 0"></div>
+      <div class="section-title">Informe anal&#237;tic anual</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Resum anual, comparativa mensual, hores extres, permisos i absencies.</p>
+      <button class="btn btn-ghost btn-full" onclick="callExport(&#39;analytics&#39;)">&#128200; Informe anal&#237;tic</button>E html>
 <html lang="ca">
 <head>
 <meta charset="UTF-8">
@@ -586,7 +590,11 @@
       <button class="btn btn-primary btn-full" style="margin-bottom:12px" onclick="callExport('individual')">📊 Excel individual</button>
       <div class="sep" style="margin:20px 0"></div>
       <div class="section-title">Exportaci&oacute; massiva</div>
-      <button class="btn btn-secondary btn-full" onclick="callExport('all')">📦 ZIP tots els treballadors</button>
+      <b btn-secondary btn-full" onclick="callExport('all-month')">&#128101; Excel global del mes</button>
+      <div class="sep" style="margin:16px 0"></div>
+      <div class="section-title">Informe anal&#237;tic anual</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Resum anual, comparativa, hores extres, permisos.</p>
+      <button class="btn btn-ghost btn-full" onclick="callExport('analytics')">&#128200; Informe anal&#237;tic</button>
     </div>
   </div>
 
@@ -661,6 +669,12 @@
 
 </div>
 <script type="text/plain" id="__ac__">
+
+
+
+
+
+
 
 
 
@@ -1021,7 +1035,9 @@ async function loadDayDetail(date){
         var diffMin=Math.round((curr-prev)/60000);
         if(diffMin>0) durHtml='<div style="font-size:11px;color:var(--text3);margin-left:2px;">+'+diffMin+'min</div>';
       }
-      return '<div class="timeline-item"><div class="timeline-dot '+dc+'"></div><div class="timeline-time">'+t+durHtml+'</div><div class="timeline-type">'+lbl+'</div></div>';
+      var canEdit=state.settings&&state.settings.allow_worker_edits!=='false';
+      var editBtn=canEdit?'<button onclick="editTimeEntry('+e.id+','+e.worker_id+')" style="margin-left:auto;background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid var(--accent)">Editar</button>':'';
+      return '<div class="timeline-item" style="display:flex;align-items:center;gap:8px"><div class="timeline-dot '+dc+'"></div><div class="timeline-time">'+t+durHtml+'</div><div class="timeline-type" style="flex:1">'+lbl+'</div>'+editBtn+'</div>';
     }).join('');
   }catch(e){document.getElementById('day-summary-cards').innerHTML='<div class="empty-state">Error carregant detall</div>';}
 }
@@ -2380,6 +2396,8 @@ async function loadComputeSettings(){
       max_sick_days_year:'M&agrave;x. dies malaltia/any'
     };
     state.settings={};
+  // Carregar settings per controlar edicions
+  try{ var srows=await dbGet('app_settings','select=setting_key,setting_value'); srows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;}); }catch(e){}
     rows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});
     el.innerHTML=rows.map(function(r){
       var label=typeLabels[r.setting_key]||r.setting_key;
@@ -2588,36 +2606,26 @@ async function loadProfileStats(){
 
 
 
+
+
+
+
+window.loadProfile=loadProfile;
+window.loadProfileStats=loadProfileStats;
+window.openAddWorker=openAddWorker;
+window.openWorkerDetail=openWorkerDetail;
+window.saveNewWorker=saveNewWorker;
+window.saveWorkerDetail=saveWorkerDetail;
+window.saveTimeEdit=saveTimeEdit;
+window.editTimeEntry=editTimeEntry;
+
+
 </script>
 <script>
-(function(){
-  var el=document.getElementById('__ac__');
-  if(!el) return;
-  var b=new Blob([el.textContent],{type:'application/javascript'});
-  var u=URL.createObjectURL(b);
-  var s=document.createElement('script');
-  s.src=u;
-  s.onload=function(){ URL.revokeObjectURL(u); };
-  document.head.appendChild(s);
-})();
+(function(){var el=document.getElementById('__ac__');if(!el)return;var b=new Blob([el.textContent],{type:'application/javascript'});var u=URL.createObjectURL(b);var s=document.createElement('script');s.src=u;s.onload=function(){URL.revokeObjectURL(u);};document.head.appendChild(s);})();
 </script>
 <script>
-(function(){
-  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  if(isIOS&&!window.navigator.standalone&&!localStorage.getItem('pwa_ok')){
-    setTimeout(function(){
-      var d=document.createElement('div');
-      d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';
-      var msg=document.createElement('div');msg.style.flex='1';
-      msg.innerHTML='<strong>Instal.la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';
-      var btn=document.createElement('button');btn.textContent='Ara no';
-      btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';
-      btn.onclick=function(){ d.remove(); localStorage.setItem('pwa_ok','1'); };
-      d.appendChild(msg); d.appendChild(btn);
-      document.body.appendChild(d);
-    },3000);
-  }
-})();
+(function(){var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);if(isIOS&&!window.navigator.standalone&&!localStorage.getItem('pwa_ok')){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal.la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();localStorage.setItem('pwa_ok','1');};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}})();
 </script>
 </body>
 </html>
