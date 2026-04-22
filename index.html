@@ -332,6 +332,7 @@ textarea.input{resize:vertical;min-height:80px;}
       <button class="btn btn-secondary btn-full" onclick="showAdminPage('cards')">&#129371; Targetes</button>
       <button class="btn btn-secondary btn-full" onclick="showAdminPage('access-logs')">&#128203; Registre d'accessos</button>
       <button class="btn btn-secondary btn-full" onclick="showAdminPage('settings')">&#9881; Configuraci&oacute;</button>
+      <button class="btn btn-secondary btn-full" onclick="showAdminPage('edits-report')">&#9998; Registre d'edicions</button>
     </div>
   </div>
 </div>
@@ -480,6 +481,18 @@ textarea.input{resize:vertical;min-height:80px;}
   </div>
 </div>
 
+<!-- EDITS REPORT -->
+<div id="page-edits-report" class="page" style="display:none;flex-direction:column">
+  <div class="topbar">
+    <button class="back-btn" onclick="showPage('admin-home')">&#8592;</button>
+    <div class="topbar-title">Registre d'edicions</div>
+    <div style="width:28px"></div>
+  </div>
+  <div class="content" style="flex:1;overflow-y:auto">
+    <div id="edits-report-list"></div>
+  </div>
+</div>
+
 <!-- QR SCAN -->
 <div id="page-qr-scan" class="page" style="align-items:center;justify-content:center;flex-direction:column;gap:20px">
   <div style="text-align:center">
@@ -524,7 +537,8 @@ async function rpc(fn,body){ body=body||{}; var r=await fetch(SUPABASE_URL+'/res
 function showPage(pageId){ document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');p.style.display='none';}); var page=document.getElementById('page-'+pageId); if(page){page.style.display='flex';page.classList.add('active');} }
 
 function showAdminPage(name){ var pm={workers:'workers','all-records':'all-records','all-perms':'all-perms','all-balances':'all-balances',exports:'exports',cards:'cards',settings:'settings'}; showPage(pm[name]||name); if(name==='workers')loadWorkers(); if(name==='all-records')loadAllRecords(); if(name==='all-perms'){loadAllPerms();loadPendingPermsCount();} if(name==='all-balances')loadAllBalances(); if(name==='exports')loadExportWorkers(); if(name==='cards')loadCardsWorkers(); if(name==='settings'){ loadSettings(); loadComputeSettings(); }
-  if(name==='access-logs'){ loadAccessLogs(); } }
+  if(name==='access-logs'){ loadAccessLogs(); }
+  if(name==='edits-report'){ loadEditsReport(); } }
 
 function switchTab(tab){ var tabs=['home','history','perms','balance','profile']; document.querySelectorAll('#worker-nav .nav-item').forEach(function(el,i){el.classList.toggle('active',tabs[i]===tab);}); var sp={home:'worker-home',history:'history',perms:'perms',balance:'balance',profile:'profile'}; showPage(sp[tab]||'worker-home'); var nav=document.getElementById('worker-nav'); var page=document.getElementById('page-'+(sp[tab]||'worker-home')); if(page)page.appendChild(nav); if(tab==='history')loadMonthHistory(); if(tab==='perms')loadMyPerms(); if(tab==='balance')loadMyBalance(); if(tab==='profile')loadProfile(); }
 
@@ -798,7 +812,6 @@ async function loadMonthHistory(){
 function changeMonth(dir){ var m=state.historyMonth; state.historyMonth=new Date(m.getFullYear(),m.getMonth()+dir,1); loadMonthHistory(); }
 
 async function editTimeEntry(entryId, workerId){
-  // Comprovar si el treballador pot editar
   var canEdit = true;
   if(state.worker.role !== 'ADMIN'){
     try{
@@ -809,14 +822,20 @@ async function editTimeEntry(entryId, workerId){
   if(!canEdit){ showToast('Les edicions estan desactivades per l\'administrador','error'); return; }
 
   var entry = null;
-  try{ var entries=await dbGet('time_entries','id=eq.'+entryId+'&select=*'); entry=entries[0]; }catch(e){ return; }
+  try{ var res=await dbGet('time_entries','id=eq.'+entryId+'&select=*'); entry=res[0]; }catch(e){ return; }
   if(!entry) return;
 
   var oldDT = new Date(entry.entry_datetime);
   var oldDate = oldDT.toISOString().split('T')[0];
   var oldTime = oldDT.toTimeString().substring(0,5);
 
-  var typeLabels={START:'Inici',PAUSE_START:'Inici pausa',PAUSE_END:'Fi pausa',END:'Fi jornada'};
+  var typeLabels={START:'Inici de jornada',PAUSE_START:'Inici pausa',PAUSE_END:'Fi pausa',END:'Fi jornada'};
+  var typeOptions=[
+    {v:'START',l:'Inici de jornada'},
+    {v:'PAUSE_START',l:'Inici pausa'},
+    {v:'PAUSE_END',l:'Fi pausa'},
+    {v:'END',l:'Fi jornada'}
+  ];
   var reasons=[
     'Error en el fitxatge','Oblit de fitxar','Problema tecnic',
     'Ajust per absencia justificada','Correccio administrativa','Altre motiu'
@@ -825,10 +844,16 @@ async function editTimeEntry(entryId, workerId){
   var box = document.getElementById('modal-box');
   box.innerHTML =
     '<div class="modal-title">Editar fitxada</div>'+
-    '<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px">'+
-      '<span style="color:var(--text3)">Tipus: </span><strong>'+(typeLabels[entry.entry_type]||entry.entry_type)+'</strong>'+
-      '<span style="color:var(--text3);margin-left:16px">Original: </span><strong>'+oldDate+' '+oldTime+'</strong>'+
+    '<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--text2)">'+
+      '<span style="font-weight:700;color:var(--text)">Registre original: </span>'+
+      '<span>'+(typeLabels[entry.entry_type]||entry.entry_type)+'</span>'+
+      '<span style="margin:0 8px">&#8212;</span>'+
+      '<span style="font-family:var(--mono);font-weight:700;color:var(--text)">'+oldDate+' '+oldTime+'</span>'+
     '</div>'+
+    '<div class="input-group"><label class="input-label">Tipus de moviment</label>'+
+      '<select class="input" id="edit-type">'+
+        typeOptions.map(function(t){return '<option value="'+t.v+'"'+(t.v===entry.entry_type?' selected':'')+'>'+t.l+'</option>';}).join('')+
+      '</select></div>'+
     '<div class="input-group"><label class="input-label">Nova data i hora</label>'+
       '<input class="input" type="datetime-local" id="edit-datetime" value="'+oldDate+'T'+oldTime+'"></div>'+
     '<div class="input-group"><label class="input-label">Motiu de la modificacio *</label>'+
@@ -839,15 +864,18 @@ async function editTimeEntry(entryId, workerId){
       '<input class="input" id="edit-other" placeholder="Descriu el motiu..."></div>'+
     '<div class="input-group"><label class="input-label">Explicacio addicional</label>'+
       '<textarea class="input" id="edit-note" rows="2" placeholder="Detalls opcionals..." style="resize:none"></textarea></div>'+
-    '<div style="font-size:11px;color:var(--text3);margin-bottom:16px">&#9432; Quedara registrat: usuari, data, hora, valor original i nou valor.</div>'+
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:16px">'+
+      '&#9432; Es guardara: valor original, nou valor, tipus, motiu, usuari editor i data.'+
+    '</div>'+
     '<div class="modal-actions">'+
       '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel.lar</button>'+
       '<button class="btn btn-primary" style="flex:1" id="btn-save-edit">Guardar</button>'+
     '</div>';
-  // Listener per al boto de guardar
   setTimeout(function(){
     var btnSave = document.getElementById('btn-save-edit');
-    if(btnSave) btnSave.addEventListener('click', function(){ saveTimeEdit(entryId, workerId); });
+    if(btnSave) btnSave.addEventListener('click', function(){
+      saveTimeEdit(entryId, workerId, entry.entry_datetime, entry.entry_type);
+    });
   }, 50);
   document.getElementById('modal-overlay').classList.add('open');
 }
@@ -858,36 +886,57 @@ window.toggleEditOther = function(){
   if(wrap) wrap.style.display = sel.value === 'Altre motiu' ? 'block' : 'none';
 };
 
-async function saveTimeEdit(entryId, workerId, originalDT, entryType){
+async function saveTimeEdit(entryId, workerId, originalDT, originalType){
   var newDT = document.getElementById('edit-datetime').value;
   if(!newDT){ showToast('Cal indicar la nova data i hora','error'); return; }
+  var newType = document.getElementById('edit-type') ? document.getElementById('edit-type').value : originalType;
   var reason = document.getElementById('edit-reason').value;
   if(reason === 'Altre motiu'){
-    reason = document.getElementById('edit-other').value.trim();
+    reason = (document.getElementById('edit-other')||{}).value||'';
+    reason = reason.trim();
     if(!reason){ showToast('Cal especificar el motiu','error'); return; }
   }
-  var note = document.getElementById('edit-note').value.trim();
+  var note = (document.getElementById('edit-note')||{}).value||'';
+  note = note.trim();
   var newIso = new Date(newDT).toISOString();
 
+  // Validar: cal original
+  if(!originalDT) originalDT = newIso;
+  if(!originalType) originalType = newType;
+
   try{
-    // 1. Guardar auditoria
-    await dbPost('time_entry_edits',{
-      entry_id: entryId,
+    // 1. Guardar auditoria completa
+    var auditObj = {
+      entry_id: parseInt(entryId),
       old_value: originalDT,
       new_value: newIso,
+      old_entry_type: originalType,
+      new_entry_type: newType,
+      old_datetime: originalDT,
+      new_datetime: newIso,
       reason_code: reason,
-      reason_text: note,
-      edited_by_worker_id: state.worker.id,
+      reason_text: note || null,
+      edited_by_worker_id: parseInt(state.worker.id),
       edited_at: new Date().toISOString()
-    });
-    // 2. Actualitzar el registre original
-    await dbPatch('time_entries','id=eq.'+entryId,{entry_datetime: newIso});
+    };
+    await dbPost('time_entry_edits', auditObj);
+
+    // 2. Actualitzar el registre: hora i tipus si ha canviat
+    var patchObj = {entry_datetime: newIso};
+    if(newType && newType !== originalType) patchObj.entry_type = newType;
+    await dbPatch('time_entries','id=eq.'+entryId, patchObj);
+
+    // 3. Recalcular el daily_record
+    var date = (newIso||newDT).split('T')[0];
+    try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:date}); }catch(er){}
+
     closeModal();
     showToast('Fitxada actualitzada i auditoria guardada','success');
-    // 3. Recarregar el detall del dia
-    var date = newDT.split('T')[0];
     await loadDayDetail(date);
-  }catch(e){ showToast('Error guardant: '+(e.message||''),'error'); }
+  }catch(e){
+    console.error('saveTimeEdit error:', e);
+    showToast('Error guardant: '+(e.message||JSON.stringify(e).substring(0,60)),'error');
+  }
 }
 
 async function getEntryEdits(entryId){
@@ -2512,6 +2561,62 @@ window.openAddWorker=openAddWorker;
 window.openWorkerDetail=openWorkerDetail;
 window.saveNewWorker=saveNewWorker;
 window.saveWorkerDetail=saveWorkerDetail;
+
+async function loadEditsReport(){
+  var el=document.getElementById('edits-report-list');
+  if(!el) return;
+  el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  try{
+    // Carregar totes les edicions amb context
+    var edits=await dbGet('time_entry_edits',
+      'order=edited_at.desc&select=*,time_entries(entry_date,worker_id,workers(display_name,employee_code))&limit=200');
+    if(!edits||!edits.length){
+      el.innerHTML='<div class="empty-state">Cap edicio registrada</div>'; return;
+    }
+    var typeLabels={START:'Inici jornada',PAUSE_START:'Inici pausa',PAUSE_END:'Fi pausa',END:'Fi jornada'};
+    el.innerHTML=edits.map(function(e){
+      var te=e.time_entries||{};
+      var w=(te.workers)||{};
+      var workerName=w.display_name||w.employee_code||('Worker #'+(te.worker_id||'?'));
+      var date=te.entry_date||'?';
+      var editedAt=new Date(e.edited_at).toLocaleString('ca',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      var origDT=e.old_datetime||e.old_value;
+      var newDT=e.new_datetime||e.new_value;
+      var origTime=origDT?new Date(origDT).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'}):'?';
+      var newTime=newDT?new Date(newDT).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'}):'?';
+      var origType=typeLabels[e.old_entry_type]||e.old_entry_type||'';
+      var newType=typeLabels[e.new_entry_type]||e.new_entry_type||'';
+      var typeChanged=e.old_entry_type&&e.new_entry_type&&e.old_entry_type!==e.new_entry_type;
+      var timeChanged=origTime!==newTime;
+      return '<div class="card" style="margin-bottom:10px">'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:8px">'+
+          '<div><span style="font-weight:700">'+workerName+'</span>'+
+          '<span style="color:var(--text2);font-size:12px;margin-left:8px">'+date+'</span></div>'+
+          '<span style="font-size:11px;color:var(--text3)">'+editedAt+'</span>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:8px">'+
+          '<div style="background:var(--surface2);border-radius:8px;padding:8px 10px">'+
+            '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Original</div>'+
+            '<div style="font-family:var(--mono);font-weight:700;color:var(--text)">'+origTime+'</div>'+
+            (origType?'<div style="font-size:11px;color:var(--text2)">'+origType+'</div>':'')+
+          '</div>'+
+          '<div style="font-size:18px;color:var(--accent)">&#8594;</div>'+
+          '<div style="background:var(--accent-lt);border:1px solid var(--accent);border-radius:8px;padding:8px 10px">'+
+            '<div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Editat</div>'+
+            '<div style="font-family:var(--mono);font-weight:700;color:var(--accent)">'+newTime+'</div>'+
+            (newType?'<div style="font-size:11px;color:var(--accent)">'+newType+'</div>':'')+
+          '</div>'+
+        '</div>'+
+        '<div style="font-size:12px;color:var(--text2)">'+
+          '<span style="font-weight:700">Motiu: </span>'+e.reason_code+
+          (e.reason_text?'<span style="margin-left:8px;color:var(--text3)">'+e.reason_text+'</span>':'')+
+        '</div>'+
+        (typeChanged?'<div style="margin-top:4px;font-size:11px;background:#FFF8E6;border-radius:6px;padding:4px 8px;color:#C07800">&#9888; Tipus canviat</div>':'')+
+      '</div>';
+    }).join('');
+  }catch(e){ el.innerHTML='<div class="empty-state">Error carregant informe</div>'; }
+}
+
 </script>
 <script>
 (function(){var el=document.getElementById('__ac__');if(!el)return;var b=new Blob([el.textContent],{type:'application/javascript'});var u=URL.createObjectURL(b);var s=document.createElement('script');s.src=u;s.onload=function(){URL.revokeObjectURL(u);};document.head.appendChild(s);})();
