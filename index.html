@@ -93,7 +93,7 @@ html,body{height:100%;background:#F4F6F9;color:#2C3E50;font-family:'Nunito',syst
 .action-btn-big:disabled{opacity:.3;cursor:not-allowed;background:var(--surface2);border-color:var(--border);color:var(--text3);}
 .action-icon{font-size:26px;}
 .bottom-nav{display:flex;flex-wrap:nowrap;overflow-x:auto;border-top:1px solid var(--border);background:var(--surface);padding-bottom:env(safe-area-inset-bottom,0px);flex-shrink:0;box-shadow:0 -2px 10px rgba(0,0,0,.06);}
-.nav-item{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;gap:4px;cursor:pointer;transition:all .15s;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border:none;background:none;font-family:var(--sans);position:relative;}
+.nav-item{display:flex;flex:0 0 auto;min-width:56px;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;gap:4px;cursor:pointer;transition:all .15s;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);border:none;background:none;font-family:var(--sans);position:relative;}
 .nav-item.active{color:var(--accent);}
 .nav-item.active::after{content:'';position:absolute;bottom:0;left:25%;right:25%;height:2px;background:var(--accent);border-radius:2px 2px 0 0;}
 .nav-item svg{width:20px;height:20px;}
@@ -219,8 +219,9 @@ textarea.input{resize:vertical;min-height:80px;}
     <button class="nav-item" onclick="switchTab('history')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Historial
     </button>
-    <button class="nav-item" onclick="switchTab('perms')">
+    <button class="nav-item" onclick="switchTab('perms')" id="nav-perms-btn" style="position:relative">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Permisos
+      <span id="perms-pending-badge" style="display:none;position:absolute;top:6px;right:8px;background:var(--warn);color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:800;align-items:center;justify-content:center;line-height:14px;text-align:center"></span>
     </button>
     <button class="nav-item" onclick="switchTab('vacances')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><circle cx="12" cy="14" r="3"/></svg>Vacances
@@ -256,7 +257,7 @@ textarea.input{resize:vertical;min-height:80px;}
 
 <div id="page-day-detail" class="page" style="display:none;flex-direction:column">
   <div class="topbar">
-    <button class="back-btn" onclick="switchTab('history')">&#8592;</button>
+    <button class="back-btn" onclick="(function(){showPage('history');var nav=document.getElementById('worker-nav');var hp=document.getElementById('page-history');if(nav&&hp)hp.appendChild(nav);})()">&#8592;</button>
     <div class="topbar-title" id="day-detail-title">Detall del dia</div>
     <div style="width:28px"></div>
   </div>
@@ -569,6 +570,13 @@ textarea.input{resize:vertical;min-height:80px;}
 <script type="text/plain" id="__ac__">
 
 
+
+
+
+
+
+
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -582,12 +590,23 @@ async function dbPost(table,body){ var r=await fetch(SUPABASE_URL+'/rest/v1/'+ta
 async function dbPatch(table,params,body){ var r=await fetch(SUPABASE_URL+'/rest/v1/'+table+'?'+params,{method:'PATCH',headers:hdrs(),body:JSON.stringify(body)}); if(!r.ok)throw await r.json(); return r.json(); }
 async function rpc(fn,body){ body=body||{}; var r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:hdrs(),body:JSON.stringify(body)}); if(!r.ok)throw await r.json(); return r.json(); }
 
-function showPage(pageId){ document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');p.style.display='none';}); var page=document.getElementById('page-'+pageId); if(page){page.style.display='flex';page.classList.add('active');} }
+function showPage(pageId){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');p.style.display='none';});
+  var page=document.getElementById('page-'+pageId);
+  if(page){page.style.display='flex';page.classList.add('active');}
+  var t={splash:'JASL Time',login:'Identifica-t','worker-home':'Inici',
+    history:'Historial',balance:'Saldo',perms:'Permisos',vacances:'Vacances',
+    profile:'Perfil','admin-home':'Admin','day-detail':'Detall',
+    workers:'Treballadors','all-records':'Registres','all-perms':'Permisos globals',
+    'all-balances':'Saldos',exports:'Exportacions',cards:'Targetes',
+    settings:'Configuraci&#243;','access-logs':'Accessos','edits-report':'Edicions'};
+  document.title=(t[pageId]||'JASL Time')+' &#183; JASL Time';
+}
 
 function showAdminPage(name){ var pm={workers:'workers','all-records':'all-records','all-perms':'all-perms','all-balances':'all-balances',exports:'exports',cards:'cards',settings:'settings'}; showPage(pm[name]||name); if(name==='workers')loadWorkers(); if(name==='all-records')loadAllRecords(); if(name==='all-perms'){loadAllPerms();loadPendingPermsCount();} if(name==='all-balances')loadAllBalances(); if(name==='exports')loadExportWorkers(); if(name==='cards')loadCardsWorkers(); if(name==='settings'){ loadSettings(); loadComputeSettings(); }
   if(name==='access-logs'){ loadAccessLogs(); } }
 
-function switchTab(tab){ var tabs=['home','history','perms','vacances','balance','profile']; document.querySelectorAll('#worker-nav .nav-item').forEach(function(el,i){el.classList.toggle('active',tabs[i]===tab);}); var sp={home:'worker-home',history:'history',perms:'perms',vacances:'vacances',balance:'balance',profile:'profile'}; showPage(sp[tab]||'worker-home'); var nav=document.getElementById('worker-nav'); var page=document.getElementById('page-'+(sp[tab]||'worker-home')); if(page)page.appendChild(nav); if(tab==='history')loadMonthHistory(); if(tab==='perms')loadMyPerms(); if(tab==='vacances'){switchVacancesView('individual');} if(tab==='balance')loadMyBalance(); if(tab==='profile')loadProfile(); }
+function switchTab(tab){ var tabs=['home','history','perms','vacances','balance','profile']; document.querySelectorAll('#worker-nav .nav-item').forEach(function(el,i){el.classList.toggle('active',tabs[i]===tab);}); var sp={home:'worker-home',history:'history',perms:'perms',vacances:'vacances',balance:'balance',profile:'profile'}; showPage(sp[tab]||'worker-home'); var nav=document.getElementById('worker-nav'); var page=document.getElementById('page-'+(sp[tab]||'worker-home')); if(page)page.appendChild(nav); if(tab==='history')loadMonthHistory(); if(tab==='perms'){loadMyPerms();checkPendingPerms();} if(tab==='vacances'){switchVacancesView('individual');} if(tab==='balance')loadMyBalance(); if(tab==='profile')loadProfile(); }
 
 var clockInterval;
 function startClock(){ clearInterval(clockInterval); function tick(){ var now=new Date(); document.getElementById('clock-time').textContent=now.toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); document.getElementById('clock-date').textContent=now.toLocaleDateString('ca',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); } tick(); clockInterval=setInterval(tick,1000); }
@@ -616,7 +635,10 @@ async function doLogin(){
 
 async function afterLogin(){
   var w=state.worker;
-  document.getElementById('home-name').textContent=w.display_name||w.employee_code;
+  var hour=new Date().getHours();
+  var greeting=hour<12?'Bon dia':(hour<18?'Bona tarda':'Bona nit');
+  var firstName=(w.display_name||w.employee_code||'').split(' ')[0];
+  document.getElementById('home-name').textContent=greeting+', '+firstName+'!';
   document.getElementById('home-code').textContent='Codi: '+w.employee_code;
   document.getElementById('profile-name').textContent=w.display_name||w.employee_code;
   document.getElementById('profile-code').textContent='Codi: '+w.employee_code;
@@ -641,7 +663,7 @@ async function afterLogin(){
     var adminLoginMethod = state._loginByQR ? 'QR' : 'CODE';
     state._loginByQR = false;
     logAccess(w.id, adminLoginMethod);
-    showPage('worker-home'); startClock(); await loadTodaySummary();
+    showPage('worker-home'); startClock(); await loadTodaySummary(); checkPendingPerms();
     setTimeout(function(){
       if(!document.getElementById('nav-admin-btn')){
         var btn=document.createElement('button');
@@ -692,6 +714,20 @@ function getWorkerColor(workerId){
   return WORKER_COLORS[Math.max(0,idx) % WORKER_COLORS.length];
 }
 
+async function checkPendingPerms(){
+  try{
+    if(!state.worker) return;
+    var rows=await dbGet('day_status',
+      'worker_id=eq.'+state.worker.id+
+      '&approval_status=eq.PENDING&is_active=eq.true&select=id');
+    var badge=document.getElementById('perms-pending-badge');
+    if(badge){
+      badge.textContent=rows.length>0?rows.length:'';
+      badge.style.display=rows.length>0?'flex':'none';
+    }
+  }catch(e){}
+}
+
 async function loadVacances(){
   var el=document.getElementById('page-vacances-content');
   if(!el||!state.worker) return;
@@ -726,7 +762,8 @@ async function loadVacances(){
     var remaining=maxDays-usedDays;
     var color=getWorkerColor(state.worker.id);
 
-    var html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
+    var html='<button class="btn btn-primary btn-full" style="margin-bottom:16px" onclick="openModal(\'new-perm\')">'+'&#43; Sol&middot;licitar vacances</button>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
       '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+maxDays+'</div><div class="stat-lbl">Dies totals</div></div>'+
       '<div class="stat-box"><div class="stat-val" style="color:'+color+'">'+usedDays+'</div><div class="stat-lbl">Dies usats</div></div>'+
       '<div class="stat-box"><div class="stat-val" style="color:'+(remaining>0?'var(--success)':'var(--warn)')+'">'+remaining+'</div><div class="stat-lbl">Dies pendents</div></div>'+
@@ -888,7 +925,12 @@ function switchVacancesView(view){
   else loadVacancesGlobal();
 }
 
-showPage('splash');
+(function(){
+  var sp=document.getElementById('page-splash');
+  if(sp){sp.style.opacity='0';sp.style.transition='opacity .5s';}
+  showPage('splash');
+  if(sp){setTimeout(function(){sp.style.opacity='1';},30);}
+})();
 
 window.addEventListener('online',  function(){ showToast('Connexio restaurada','success'); });
 window.addEventListener('offline', function(){ showToast('Sense connexio a Internet','error'); });
@@ -934,7 +976,7 @@ async function loadTodaySummary(){
 
 function renderTodaySummary(s){
   var status=(s&&s.status)?s.status:'NOT_STARTED';
-  var sm={NOT_STARTED:{label:'No iniciat',cls:'tag-gray'},IN_PROGRESS:{label:'En curs',cls:'tag-green'},PAUSED:{label:'En pausa',cls:'tag-yellow'},ON_PAUSE:{label:'En pausa',cls:'tag-yellow'},FINISHED:{label:'Finalitzat',cls:'tag-purple'},COMPLETED:{label:'Finalitzat',cls:'tag-purple'},INCIDENCE:{label:'Incidencia',cls:'tag-red'},INCIDENT:{label:'Incidencia',cls:'tag-red'}};
+  var sm={NOT_STARTED:{label:'No iniciat',cls:'tag-gray'},IN_PROGRESS:{label:'&#9654; En curs',cls:'tag-green'},PAUSED:{label:'&#9208; En pausa',cls:'tag-yellow'},ON_PAUSE:{label:'&#9208; En pausa',cls:'tag-yellow'},FINISHED:{label:'&#10003; Finalitzat',cls:'tag-purple'},COMPLETED:{label:'&#10003; Finalitzat',cls:'tag-purple'},INCIDENCE:{label:'&#9888; Incidencia',cls:'tag-red'},INCIDENT:{label:'&#9888; Incidencia',cls:'tag-red'}};
   var st=sm[status]||sm['NOT_STARTED'];
   document.getElementById('clock-status-tag').innerHTML='<span class="tag '+st.cls+'">'+st.label+'</span>';
   document.getElementById('stat-worked').textContent=minsToHM(s&&s.worked_minutes?s.worked_minutes:0);
@@ -1614,16 +1656,36 @@ el.innerHTML=
 
 async function uploadPhoto(event){
 var file=event.target.files[0]; if(!file||!state.worker)return;
-var ext=file.name.split(’.’).pop(); var path=state.worker.id+’.’+ext;
+if(file.size>5*1024*1024){ showToast(‘La foto no pot superar 5MB’,‘error’); return; }
+if(!file.type.startsWith(‘image/’)){ showToast(‘Selecciona una imatge’,‘error’); return; }
+showToast(‘Pujant foto…’,‘success’);
+var img2=new Image();
+img2.onload=async function(){
+var maxSize=400;
+var w=img2.width,h=img2.height;
+if(w>maxSize||h>maxSize){ if(w>h){h=Math.round(h*maxSize/w);w=maxSize;}else{w=Math.round(w*maxSize/h);h=maxSize;} }
+var canvas=document.createElement(‘canvas’);
+canvas.width=w; canvas.height=h;
+canvas.getContext(‘2d’).drawImage(img2,0,0,w,h);
+canvas.toBlob(async function(blob){
+var path=state.worker.id+’.jpg’;
 try{
-var r=await fetch(SUPABASE_URL+’/storage/v1/object/worker-photos/’+path,{method:‘POST’,headers:{‘apikey’:SUPABASE_KEY,‘Authorization’:‘Bearer ‘+SUPABASE_KEY,‘Content-Type’:file.type,‘x-upsert’:‘true’},body:file});
+var r=await fetch(SUPABASE_URL+’/storage/v1/object/worker-photos/’+path,
+{method:‘POST’,headers:{‘apikey’:SUPABASE_KEY,‘Authorization’:‘Bearer ‘+SUPABASE_KEY,
+‘Content-Type’:‘image/jpeg’,‘x-upsert’:‘true’},body:blob});
 if(!r.ok)throw new Error(‘Error pujant foto’);
-await dbPatch(‘workers’,‘id=eq.’+state.worker.id,{photo_path:path}); state.worker.photo_path=path;
-var url=SUPABASE_URL+’/storage/v1/object/public/worker-photos/’+path;
-document.getElementById(‘profile-avatar’).innerHTML=’<img src="'+url+'">’;
-document.getElementById(‘home-avatar’).innerHTML=’<img src="'+url+'">’;
-showToast(‘Foto actualitzada’,‘success’);
-}catch(e){showToast(e.message||‘Error’,‘error’);}
+await dbPatch(‘workers’,‘id=eq.’+state.worker.id,{photo_path:path});
+state.worker.photo_path=path;
+var url=SUPABASE_URL+’/storage/v1/object/public/worker-photos/’+path+’?t=’+Date.now();
+var av=’<img src="'+url+'" style="width:100%;height:100%;object-fit:cover">’;
+var pa=document.getElementById(‘profile-avatar’);
+var ha=document.getElementById(‘home-avatar’);
+if(pa)pa.innerHTML=av; if(ha)ha.innerHTML=av;
+showToast(‘Foto actualitzada!’,‘success’);
+}catch(e){ showToast(e.message||‘Error’,‘error’); }
+},‘image/jpeg’,0.85);
+};
+img2.src=URL.createObjectURL(file);
 }
 
 async function loadPendingPermsCount(){
@@ -2699,6 +2761,20 @@ var idx=state.allWorkers.findIndex(function(w){return String(w.id)===String(work
 return WORKER_COLORS[Math.max(0,idx) % WORKER_COLORS.length];
 }
 
+async function checkPendingPerms(){
+try{
+if(!state.worker) return;
+var rows=await dbGet(‘day_status’,
+‘worker_id=eq.’+state.worker.id+
+‘&approval_status=eq.PENDING&is_active=eq.true&select=id’);
+var badge=document.getElementById(‘perms-pending-badge’);
+if(badge){
+badge.textContent=rows.length>0?rows.length:’’;
+badge.style.display=rows.length>0?‘flex’:‘none’;
+}
+}catch(e){}
+}
+
 async function loadVacances(){
 var el=document.getElementById(‘page-vacances-content’);
 if(!el||!state.worker) return;
@@ -2734,7 +2810,8 @@ perms.forEach(function(p){
 var remaining=maxDays-usedDays;
 var color=getWorkerColor(state.worker.id);
 
-var html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
+var html='<button class="btn btn-primary btn-full" style="margin-bottom:16px" onclick="openModal(\'new-perm\')">'+'&#43; Sol&middot;licitar vacances</button>'+
+'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
   '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+maxDays+'</div><div class="stat-lbl">Dies totals</div></div>'+
   '<div class="stat-box"><div class="stat-val" style="color:'+color+'">'+usedDays+'</div><div class="stat-lbl">Dies usats</div></div>'+
   '<div class="stat-box"><div class="stat-val" style="color:'+(remaining>0?'var(--success)':'var(--warn)')+'">'+remaining+'</div><div class="stat-lbl">Dies pendents</div></div>'+
@@ -2904,7 +2981,12 @@ if(view===‘individual’) loadVacances();
 else loadVacancesGlobal();
 }
 
+(function(){
+var sp=document.getElementById(‘page-splash’);
+if(sp){sp.style.opacity=‘0’;sp.style.transition=‘opacity .5s’;}
 showPage(‘splash’);
+if(sp){setTimeout(function(){sp.style.opacity=‘1’;},30);}
+})();
 
 window.addEventListener(‘online’,  function(){ showToast(‘Connexio restaurada’,‘success’); });
 window.addEventListener(‘offline’, function(){ showToast(‘Sense connexio a Internet’,‘error’); });
@@ -2955,6 +3037,20 @@ var idx=state.allWorkers.findIndex(function(w){return String(w.id)===String(work
 return WORKER_COLORS[Math.max(0,idx) % WORKER_COLORS.length];
 }
 
+async function checkPendingPerms(){
+try{
+if(!state.worker) return;
+var rows=await dbGet(‘day_status’,
+‘worker_id=eq.’+state.worker.id+
+‘&approval_status=eq.PENDING&is_active=eq.true&select=id’);
+var badge=document.getElementById(‘perms-pending-badge’);
+if(badge){
+badge.textContent=rows.length>0?rows.length:’’;
+badge.style.display=rows.length>0?‘flex’:‘none’;
+}
+}catch(e){}
+}
+
 async function loadVacances(){
 var el=document.getElementById(‘page-vacances-content’);
 if(!el||!state.worker) return;
@@ -2990,7 +3086,8 @@ perms.forEach(function(p){
 var remaining=maxDays-usedDays;
 var color=getWorkerColor(state.worker.id);
 
-var html='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
+var html='<button class="btn btn-primary btn-full" style="margin-bottom:16px" onclick="openModal(\'new-perm\')">'+'&#43; Sol&middot;licitar vacances</button>'+
+'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
   '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+maxDays+'</div><div class="stat-lbl">Dies totals</div></div>'+
   '<div class="stat-box"><div class="stat-val" style="color:'+color+'">'+usedDays+'</div><div class="stat-lbl">Dies usats</div></div>'+
   '<div class="stat-box"><div class="stat-val" style="color:'+(remaining>0?'var(--success)':'var(--warn)')+'">'+remaining+'</div><div class="stat-lbl">Dies pendents</div></div>'+
@@ -3160,7 +3257,12 @@ if(view===‘individual’) loadVacances();
 else loadVacancesGlobal();
 }
 
+(function(){
+var sp=document.getElementById(‘page-splash’);
+if(sp){sp.style.opacity=‘0’;sp.style.transition=‘opacity .5s’;}
 showPage(‘splash’);
+if(sp){setTimeout(function(){sp.style.opacity=‘1’;},30);}
+})();
 
 window.addEventListener(‘online’,  function(){ showToast(‘Connexio restaurada’,‘success’); });
 window.addEventListener(‘offline’, function(){ showToast(‘Sense connexio a Internet’,‘error’); });
@@ -3272,52 +3374,56 @@ return ‘<div class="card" style="margin-bottom:10px">’+
 
 </script>
 <script>
+
 (function(){
-  try{
-    var el=document.getElementById('__ac__');
-    if(!el){ console.error('JASL: blob element not found'); return; }
-    var code=el.textContent||el.innerHTML;
-    var b=new Blob([code],{type:'application/javascript'});
-    var u=URL.createObjectURL(b);
-    var s=document.createElement('script');
-    s.src=u;
-    s.onload=function(){ try{ URL.revokeObjectURL(u); }catch(e){} };
-    s.onerror=function(err){
-      console.error('JASL: blob load failed, trying eval fallback',err);
-      try{
-        URL.revokeObjectURL(u);
-        var sc2=document.createElement('script');
-        sc2.textContent=code;
-        document.head.appendChild(sc2);
-      }catch(e2){ console.error('JASL: fallback also failed',e2); }
-    };
-    document.head.appendChild(s);
-  }catch(e){ console.error('JASL loader error:',e); }
+try{
+var el=document.getElementById(’**ac**’);
+if(!el){ console.error(‘JASL: blob element not found’); return; }
+var code=el.textContent||el.innerHTML;
+var b=new Blob([code],{type:‘application/javascript’});
+var u=URL.createObjectURL(b);
+var s=document.createElement(‘script’);
+s.src=u;
+s.onload=function(){ try{ URL.revokeObjectURL(u); }catch(e){} };
+s.onerror=function(err){
+console.error(‘JASL: blob load failed, trying eval fallback’,err);
+try{
+URL.revokeObjectURL(u);
+var sc2=document.createElement(‘script’);
+sc2.textContent=code;
+document.head.appendChild(sc2);
+}catch(e2){ console.error(‘JASL: fallback also failed’,e2); }
+};
+document.head.appendChild(s);
+}catch(e){ console.error(‘JASL loader error:’,e); }
 })();
+
 </script>
 <script>
+
 (function(){
-  try{
-    var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-    var shown=false;
-    try{ shown=!!localStorage.getItem('pwa_ok'); }catch(e){ shown=true; }
-    if(isIOS&&!window.navigator.standalone&&!shown){
-      setTimeout(function(){
-        var d=document.createElement('div');
-        d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';
-        var msg=document.createElement('div');msg.style.flex='1';
-        msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';
-        var btn=document.createElement('button');btn.textContent='Ara no';
-        btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';
-        btn.onclick=function(){
-          d.remove();
-          try{ localStorage.setItem('pwa_ok','1'); }catch(e){}
-        };
-        d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);
-      },3000);
-    }
-  }catch(e){}
+try{
+var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+var shown=false;
+try{ shown=!!localStorage.getItem(‘pwa_ok’); }catch(e){ shown=true; }
+if(isIOS&&!window.navigator.standalone&&!shown){
+setTimeout(function(){
+var d=document.createElement(‘div’);
+d.style.cssText=‘position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px’;
+var msg=document.createElement(‘div’);msg.style.flex=‘1’;
+msg.innerHTML=’<strong>Instal·la JASL Time</strong><br>Compartir › Afegir a pantalla d'inici’;
+var btn=document.createElement(‘button’);btn.textContent=‘Ara no’;
+btn.style.cssText=‘background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer’;
+btn.onclick=function(){
+d.remove();
+try{ localStorage.setItem(‘pwa_ok’,‘1’); }catch(e){}
+};
+d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);
+},3000);
+}
+}catch(e){}
 })();
+
 </script>
 </body>
 </html>
