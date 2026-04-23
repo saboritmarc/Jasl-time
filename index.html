@@ -743,7 +743,7 @@ textarea.input{resize:vertical;min-height:80px;}
 </div>
 
 <!-- NAV GLOBAL - fora de les pagines, sempre visible quan cal -->
-<nav class="bottom-nav" id="worker-nav" style="display:none;flex-shrink:0">
+<nav class="bottom-nav" id="worker-nav" style="display:none" style="display:none;flex-shrink:0">
     <button class="nav-item active" onclick="switchTab('home')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>Inici
     </button>
@@ -1081,7 +1081,6 @@ textarea.input{resize:vertical;min-height:80px;}
 
 <script type="text/plain" id="__ac__">
 
-
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -1281,7 +1280,7 @@ async function loadVacances(){
     var color=getWorkerColor(state.worker.id);
 
     // &#9472;&#9472; Cap&#231;alera comptador &#9472;&#9472;
-    var html='<button class="btn btn-primary btn-full" style="margin-bottom:16px" onclick="openModal(\'new-perm\')">&#43; Sol&middot;licitar vacances</button>'+'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
+    var html='<button class="btn btn-primary btn-full" style="margin-bottom:16px" onclick="openVacancesModal()">&#43; Sol&middot;licitar vacances</button>'+'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">'+
       '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+maxDays+'</div><div class="stat-lbl">Dies totals</div></div>'+
       '<div class="stat-box"><div class="stat-val" style="color:'+color+'">'+usedDays+'</div><div class="stat-lbl">Dies usats</div></div>'+
       '<div class="stat-box"><div class="stat-val" style="color:'+(remaining>0?'var(--success)':'var(--warn)')+'">'+remaining+'</div><div class="stat-lbl">Dies pendents</div></div>'+
@@ -1452,6 +1451,53 @@ function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
 }
 
 // &#9472;&#9472;&#9472; SWITCH VISTA VACANCES &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+
+function openVacancesModal(){
+  var box=document.getElementById('modal-box');
+  box.innerHTML=
+    '<div class="modal-title">Sol&middot;licitar vacances</div>'+
+    '<div class="flex-gap">'+
+      '<div class="input-group" style="flex:1"><label class="input-label">Inici</label>'+
+        '<input type="date" id="perm-start" class="input"></div>'+
+      '<div class="input-group" style="flex:1"><label class="input-label">Fi</label>'+
+        '<input type="date" id="perm-end" class="input"></div>'+
+    '</div>'+
+    '<div class="input-group"><label class="input-label">Comentari (opcional)</label>'+
+      '<textarea id="perm-comment" class="input" placeholder="Dies que vols agafar..."></textarea></div>'+
+    '<div style="font-size:13px;color:var(--success);font-weight:700;margin-bottom:16px">'+
+      '&#10003; Compta com a jornada treballada</div>'+
+    '<div class="modal-actions">'+
+      '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel&middot;lar</button>'+
+      '<button class="btn btn-primary" style="flex:1" onclick="saveVacances()">Sol&middot;licitar</button>'+
+    '</div>';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+async function saveVacances(){
+  var start=document.getElementById('perm-start').value;
+  var end=document.getElementById('perm-end').value;
+  var comment=(document.getElementById('perm-comment')||{}).value||'';
+  if(!start||!end){showToast('Dates obligatories','error');return;}
+  if(end<start){showToast('La data de fi no pot ser anterior a l\'inici','error');return;}
+  try{
+    var requiresApproval=false;
+    try{var rr=await dbGet('app_settings','setting_key=eq.requires_approval_VACATION&select=setting_value');requiresApproval=rr[0]&&rr[0].setting_value==='true';}catch(e){}
+    var approvalStatus=requiresApproval?'PENDING':'APPROVED';
+    try{
+      await rpc('create_day_status',{p_worker_id:parseInt(state.worker.id),p_day_type:'VACATION',
+        p_start_date:start,p_end_date:end,p_comment:comment,p_compute_mode:'THEORETICAL_HOURS'});
+      var np=await dbGet('day_status','worker_id=eq.'+state.worker.id+'&day_type=eq.VACATION&start_date=eq.'+start+'&select=id&order=id.desc&limit=1');
+      if(np[0]) await dbPatch('day_status','id=eq.'+np[0].id,{approval_status:approvalStatus});
+    }catch(e1){
+      await dbPost('day_status',{worker_id:state.worker.id,day_type:'VACATION',start_date:start,
+        end_date:end,compute_mode:'THEORETICAL_HOURS',comment:comment,is_active:true,approval_status:approvalStatus});
+    }
+    closeModal();
+    showToast(requiresApproval?'Sol&middot;licitud enviada':'Vacances registrades','success');
+    switchVacancesView('individual');
+  }catch(e){showToast((e&&e.message)||'Error','error');}
+}
+
 function switchVacancesView(view){
   var btnInd=document.getElementById('vac-btn-ind');
   var btnGlo=document.getElementById('vac-btn-glo');
@@ -1485,6 +1531,43 @@ function resetSessionTimer(){
 document.addEventListener('touchstart', resetSessionTimer);
 document.addEventListener('click', resetSessionTimer);
 document.addEventListener('keypress', resetSessionTimer);
+
+
+async function doLogin(){
+  var code=document.getElementById('login-code').value.trim();
+  if(!code) return;
+  var btn=document.getElementById('login-btn');
+  btn.innerHTML='<span class="loader"></span>'; btn.disabled=true;
+  document.getElementById('login-error').classList.remove('show');
+  try{
+    var worker;
+    try{
+      var res=await rpc('login_by_code',{p_employee_code:code});
+      var raw=Array.isArray(res)?res[0]:res;
+      if(raw&&raw.worker_id){
+        worker={id:raw.worker_id,display_name:raw.display_name,role:raw.role,
+          photo_path:raw.photo_path,employee_code:code,daily_theoretical_minutes:480};
+      } else { worker=raw; }
+    }catch(e1){
+      var rows=await dbGet('workers','employee_code=eq.'+encodeURIComponent(code)+'&is_active=eq.true&select=*');
+      worker=rows[0]||null;
+    }
+    if(!worker||!worker.id){
+      throw new Error('Codi no trobat. Comprova que el codi sigui correcte.');
+    }
+    state.worker=worker; afterLogin();
+  }catch(e){
+    var err=document.getElementById('login-error');
+    err.textContent=e.message||'Error autenticacio';
+    err.classList.add('show');
+  }finally{
+    btn.innerHTML='Entrar'; btn.disabled=false;
+  }
+}
+
+function openPhotoUpload(){
+  document.getElementById('photo-input').click();
+}
 
 
 async function logAccess(workerId, method){
@@ -1899,6 +1982,7 @@ function openModal(type){
       '<div class="input-group">'+
         '<label class="input-label">Tipus de perm&iacute;s</label>'+
         '<select id="perm-type" class="input" onchange="updatePermComputeInfo()">'+
+          '<option value="VACATION">&#127958; Vacances</option>'+
           '<option value="SICK_LEAVE">&#127973; Baixa m&egrave;dica (amb justificant)</option>'+
           '<option value="SICK_DAY">&#129298; Malaltia domicili&agrave;ria (sense justificant)</option>'+
           '<option value="PAID_LEAVE">&#128203; Perm&iacute;s legal retribu&iuml;t</option>'+
@@ -2995,22 +3079,16 @@ async function drawCard3B(doc, worker, x, y, w, h){
 
   // Marca d'aigua JL
   doc.setTextColor(255,255,255);
-  doc.setGlobalAlpha(0.06);
   doc.setFont('helvetica','bold');
   doc.setFontSize(52);
   doc.text('JL', x + 2, y + h - 2);
-  doc.setGlobalAlpha(1);
-
   // Foto del treballador (cercle)
   var photoX = x + leftW/2;
   var photoY = y + h * 0.30;
   var photoR = 11;
   // Cercle blanc semitransparent
   doc.setFillColor(255,255,255);
-  doc.setGlobalAlpha(0.25);
   doc.circle(photoX, photoY, photoR + 1.5, 'F');
-  doc.setGlobalAlpha(1);
-
   if(worker.photo_path){
     try{
       var photoUrl='https://fywkafpfcnqynvjdedfj.supabase.co/storage/v1/object/public/worker-photos/'+worker.photo_path;
@@ -3022,18 +3100,14 @@ async function drawCard3B(doc, worker, x, y, w, h){
     }catch(e){
       // Fallback: icona persona
       doc.setFillColor(255,255,255);
-      doc.setGlobalAlpha(0.4);
-      doc.circle(photoX, photoY, photoR, 'F');
-      doc.setGlobalAlpha(1);
-      doc.setTextColor(30,144,232);
+  doc.circle(photoX, photoY, photoR, 'F');
+  doc.setTextColor(30,144,232);
       doc.setFontSize(14);
       doc.text('?', photoX, photoY+2, {align:'center'});
     }
   } else {
     doc.setFillColor(255,255,255);
-    doc.setGlobalAlpha(0.3);
-    doc.circle(photoX, photoY, photoR, 'F');
-    doc.setGlobalAlpha(1);
+  doc.circle(photoX, photoY, photoR, 'F');
   }
 
   // QR
@@ -3927,13 +4001,24 @@ async function loadEditsReport(){
   }catch(e){ el.innerHTML='<div class="empty-state">Error carregant informe</div>'; }
 }
 
+</script>
+<script>
+
+
+
+(function(){try{var el=document.getElementById('__ac__');if(!el)return;var code=el.textContent||el.innerHTML;var b=new Blob([code],{type:'application/javascript'});var u=URL.createObjectURL(b);var s=document.createElement('script');s.src=u;s.onload=function(){try{URL.revokeObjectURL(u);}catch(e){}};s.onerror=function(){try{URL.revokeObjectURL(u);var sc=document.createElement('script');sc.textContent=code;document.head.appendChild(sc);}catch(e){}};document.head.appendChild(s);}catch(e){}})();
+
+
 
 </script>
 <script>
-(function(){try{var el=document.getElementById('__ac__');if(!el)return;var code=el.textContent||el.innerHTML;var b=new Blob([code],{type:'application/javascript'});var u=URL.createObjectURL(b);var s=document.createElement('script');s.src=u;s.onload=function(){try{URL.revokeObjectURL(u);}catch(e){}};s.onerror=function(){try{URL.revokeObjectURL(u);var sc=document.createElement('script');sc.textContent=code;document.head.appendChild(sc);}catch(e){}};document.head.appendChild(s);}catch(e){}})();
-</script>
-<script>
+
+
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
+
+
 </script>
 </body>
 </html>
