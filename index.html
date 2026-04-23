@@ -556,6 +556,12 @@ textarea.input{resize:vertical;min-height:80px;}
 
 
 
+
+
+
+
+
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -663,22 +669,27 @@ async function afterLogin(){
 }
 
 function generateQRSVG(text, container, size){
-  var img = document.createElement('img');
-  img.src = 'https://chart.googleapis.com/chart?cht=qr&chs=' + size + 'x' + size + '&chl=' + encodeURIComponent(text) + '&choe=UTF-8&chld=M|2';
-  img.style.cssText = 'width:'+size+'px;height:'+size+'px;border-radius:8px;display:block;';
-  img.alt = 'QR: '+text;
-  img.onerror = function(){
-    container.innerHTML =
-      '<div style="width:'+size+'px;min-height:'+size+'px;background:#fff;border:2px solid #1E90E8;'+
-      'border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;'+
-      'padding:12px;text-align:center;">'+
-        '<div style="font-size:32px;margin-bottom:8px">&#9645;</div>'+
-        '<div style="font-family:monospace;font-size:12px;font-weight:700;color:#1E90E8;word-break:break-all">'+text+'</div>'+
-        '<div style="font-size:10px;color:#aaa;margin-top:6px">Codi d&#39;acc&eacute;s</div>'+
-      '</div>';
+  container.innerHTML='<div style="width:'+size+'px;height:'+size+'px;background:var(--surface2);border-radius:6px;display:flex;align-items:center;justify-content:center"><span class=\"loader\"></span></div>';
+  function render(){
+    try{
+      container.innerHTML='';
+      new QRCode(container,{text:text,width:size,height:size,colorDark:'#1E90E8',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+      var c=container.querySelector('canvas');
+      if(c) c.style.cssText='border-radius:6px;display:block;max-width:'+size+'px;max-height:'+size+'px;';
+      var i=container.querySelector('img');
+      if(i) i.style.cssText='border-radius:6px;display:block;width:'+size+'px;height:'+size+'px;';
+    }catch(e){
+      container.innerHTML='<div style="width:'+size+'px;min-height:'+size+'px;background:#fff;border:2px solid var(--accent);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;text-align:center"><div style="font-size:20px">&#9645;</div><div style="font-family:monospace;font-size:9px;color:var(--accent);word-break:break-all;margin-top:4px">'+text+'</div></div>';
+    }
+  }
+  if(typeof QRCode!=='undefined'){ render(); return; }
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.onload=render;
+  s.onerror=function(){
+    container.innerHTML='<div style="width:'+size+'px;min-height:'+size+'px;background:#fff;border:2px solid var(--accent);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px;text-align:center"><div style="font-size:20px">&#9645;</div><div style="font-family:monospace;font-size:9px;color:var(--accent);word-break:break-all;margin-top:4px">'+text+'</div></div>';
   };
-  container.innerHTML = '';
-  container.appendChild(img);
+  document.head.appendChild(s);
 }
 
 function doLogout(){ state.worker=null; state.todaySummary=null; state._loginByQR=false; clearInterval(clockInterval); document.getElementById('login-code').value=''; 
@@ -1378,13 +1389,7 @@ function openModal(type){
       var token = state.worker.qr_token||state.worker.employee_code||'';
       var el = document.getElementById('qr-render');
       el.innerHTML = '';
-      // Generar QR directament sense funcio auxiliar
-      var qrImg=document.createElement('img');
-      qrImg.src='https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl='+encodeURIComponent(token)+'&choe=UTF-8&chld=M|2';
-      qrImg.style.cssText='width:200px;height:200px;border-radius:8px;display:block;';
-      qrImg.onerror=function(){el.innerHTML='<div style="font-family:monospace;font-size:14px;padding:20px;background:#f0f0f0;border-radius:8px;text-align:center">'+token+'</div>';};
-      el.innerHTML='';
-      el.appendChild(qrImg);
+      generateQRSVG(token, el, 200);
     },100);
     return;
   }
@@ -2289,19 +2294,23 @@ async function loadCardsWorkers(){
   var ws=state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*').catch(function(){return[];});
   var html='';
   ws.forEach(function(w){
-    var qrToken=w.qr_token||w.employee_code||'';
-    var qrUrl='https://chart.googleapis.com/chart?cht=qr&chs=60x60&chl='+encodeURIComponent(qrToken)+'&choe=UTF-8&chld=M|1';
     html+='<div class="worker-item" style="user-select:none;cursor:pointer;align-items:center" id="cw-'+w.id+'" '+
       'onclick="state.selectedCardWorker='+w.id+';document.querySelectorAll(\"#cards-workers-list .worker-item\").forEach(function(x){x.style.background=\"\";});this.style.background=\"var(--accent-lt)\";">'+
       '<div class="worker-avatar-sm">'+workerAvatar(w)+'</div>'+
       '<div style="flex:1"><div style="font-weight:700;font-size:14px">'+(w.display_name||w.employee_code)+'</div>'+
       '<div style="font-size:11px;color:var(--text2)">'+(w.employee_code||'')+'</div></div>'+
-      '<img src="'+qrUrl+'" style="width:52px;height:52px;border-radius:6px;border:1px solid var(--border)" '+
-        'onerror="this.parentNode.querySelector(\'.qr-fallback\').style.display=\"flex\";this.style.display=\"none\";" title="QR '+qrToken+'">'+
-      '<div class="qr-fallback" style="display:none;width:52px;height:52px;background:var(--accent-lt);border-radius:6px;align-items:center;justify-content:center;font-size:9px;font-family:monospace;color:var(--accent);text-align:center;padding:4px">'+qrToken+'</div>'+
+      '<div id="qr-card-'+w.id+'" style="width:52px;height:52px;flex-shrink:0;border-radius:6px;overflow:hidden;border:1px solid var(--border)"></div>'+
     '</div>';
   });
   el.innerHTML=html||'<div class="empty-state">Cap treballador</div>';
+  // Generar QR per cada treballador
+  ws.forEach(function(w){
+    var qrEl=document.getElementById('qr-card-'+w.id);
+    if(qrEl){
+      var token=w.qr_token||w.employee_code||'';
+      generateQRSVG(token,qrEl,52);
+    }
+  });
 }
 
 async function loadJsPDF(){
@@ -2322,12 +2331,7 @@ async function loadJsPDF(){
   }
 }
 
-async function generateQRDataURL(text){
-  return new Promise(function(resolve){
-    var url = 'https://chart.googleapis.com/chart?cht=qr&chs=120x120&chl=' + encodeURIComponent(text) + '&choe=UTF-8';
-    resolve(url);
-  });
-}
+
 
 async function generateWorkerCardPDF(worker){
   var doc = new window.jspdf.jsPDF({unit:'mm',format:[85.6,54],orientation:'landscape'});
@@ -2410,7 +2414,7 @@ async function loadJsPDF(){
 }
 
 async function getQRDataURL(text){
-  return 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl='+encodeURIComponent(text)+'&choe=UTF-8&chld=H|1';
+  return generateQRDataURL(text);
 }
 
 async function drawCard3B(doc, worker, x, y, w, h){
@@ -2534,6 +2538,28 @@ async function drawCard3B(doc, worker, x, y, w, h){
 
   doc.setFillColor(30,144,232);
   doc.rect(rightX, y+h-1.5, rightW, 1.5, 'F');
+}
+
+async function generateQRDataURL(text){
+  return new Promise(function(resolve){
+    function doGen(){
+      try{
+        var div=document.createElement('div');
+        div.style.cssText='position:absolute;left:-9999px;';
+        document.body.appendChild(div);
+        new QRCode(div,{text:text,width:120,height:120,correctLevel:QRCode.CorrectLevel.M});
+        var canvas=div.querySelector('canvas');
+        var data=canvas?canvas.toDataURL('image/png'):null;
+        document.body.removeChild(div);
+        resolve(data);
+      }catch(e){ resolve(null); }
+    }
+    if(typeof QRCode!=='undefined'){ doGen(); return; }
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload=doGen; s.onerror=function(){resolve(null);};
+    document.head.appendChild(s);
+  });
 }
 
 async function generateCards(all){
@@ -3322,8 +3348,20 @@ async function loadEditsReport(){
 
 
 
+
+
+
+
+
+
 </script>
 <script>
+
+
+
+
+
+
 
 
 
@@ -3362,8 +3400,20 @@ async function loadEditsReport(){
 
 
 
+
+
+
+
+
+
 </script>
 <script>
+
+
+
+
+
+
 
 
 
@@ -3394,6 +3444,12 @@ async function loadEditsReport(){
     }
   }catch(e){}
 })();
+
+
+
+
+
+
 
 
 
