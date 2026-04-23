@@ -555,6 +555,7 @@ textarea.input{resize:vertical;min-height:80px;}
 
 
 
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -717,13 +718,16 @@ async function loadVacances(){
 
     var perms=await dbGet('day_status',
       'worker_id=eq.'+state.worker.id+
-      '&day_type=eq.VACATION'+
       '&start_date=gte.'+yr+'-01-01'+
       '&is_active=eq.true'+
-      '&select=start_date,end_date,approval_status');
+      '&select=day_type,start_date,end_date,approval_status');
 
     var usedDays=0;
     var vacDates={};
+    perms=perms.filter(function(p){
+      var dt=(p.day_type||'').toUpperCase();
+      return dt==='VACATION'||dt==='VACANCES';
+    });
     perms.forEach(function(p){
       var d=new Date(p.start_date+'T12:00:00');
       var end=new Date(p.end_date+'T12:00:00');
@@ -776,13 +780,16 @@ async function loadVacancesGlobal(){
     }
 
     var perms=await dbGet('day_status',
-      'day_type=eq.VACATION'+
       '&start_date=gte.'+yr+'-01-01'+
       '&end_date=lte.'+yr+'-12-31'+
       '&is_active=eq.true'+
-      '&select=worker_id,start_date,end_date,approval_status');
+      '&select=day_type,worker_id,start_date,end_date,approval_status');
 
     var dateMap={};
+    perms=perms.filter(function(p){
+      var dt=(p.day_type||'').toUpperCase();
+      return dt==='VACATION'||dt==='VACANCES';
+    });
     perms.forEach(function(p){
       var w=state.allWorkers.find(function(x){return String(x.id)===String(p.worker_id);});
       if(!w) return;
@@ -1371,7 +1378,13 @@ function openModal(type){
       var token = state.worker.qr_token||state.worker.employee_code||'';
       var el = document.getElementById('qr-render');
       el.innerHTML = '';
-      generateQRSVG(token, el, 200);
+      // Generar QR directament sense funcio auxiliar
+      var qrImg=document.createElement('img');
+      qrImg.src='https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl='+encodeURIComponent(token)+'&choe=UTF-8&chld=M|2';
+      qrImg.style.cssText='width:200px;height:200px;border-radius:8px;display:block;';
+      qrImg.onerror=function(){el.innerHTML='<div style="font-family:monospace;font-size:14px;padding:20px;background:#f0f0f0;border-radius:8px;text-align:center">'+token+'</div>';};
+      el.innerHTML='';
+      el.appendChild(qrImg);
     },100);
     return;
   }
@@ -2735,10 +2748,9 @@ async function loadVacances(){
 
     var perms=await dbGet('day_status',
       'worker_id=eq.'+state.worker.id+
-      '&day_type=eq.VACATION'+
       '&start_date=gte.'+yr+'-01-01'+
       '&is_active=eq.true'+
-      '&select=start_date,end_date,approval_status');
+      '&select=day_type,start_date,end_date,approval_status');
 
     var usedDays=0;
     var vacDates={};
@@ -2794,11 +2806,10 @@ async function loadVacancesGlobal(){
     }
 
     var perms=await dbGet('day_status',
-      'day_type=eq.VACATION'+
       '&start_date=gte.'+yr+'-01-01'+
       '&end_date=lte.'+yr+'-12-31'+
       '&is_active=eq.true'+
-      '&select=worker_id,start_date,end_date,approval_status');
+      '&select=day_type,worker_id,start_date,end_date,approval_status');
 
     var dateMap={};
     perms.forEach(function(p){
@@ -3003,10 +3014,9 @@ async function loadVacances(){
 
     var perms=await dbGet('day_status',
       'worker_id=eq.'+state.worker.id+
-      '&day_type=eq.VACATION'+
       '&start_date=gte.'+yr+'-01-01'+
       '&is_active=eq.true'+
-      '&select=start_date,end_date,approval_status');
+      '&select=day_type,start_date,end_date,approval_status');
 
     var usedDays=0;
     var vacDates={};
@@ -3062,11 +3072,10 @@ async function loadVacancesGlobal(){
     }
 
     var perms=await dbGet('day_status',
-      'day_type=eq.VACATION'+
       '&start_date=gte.'+yr+'-01-01'+
       '&end_date=lte.'+yr+'-12-31'+
       '&is_active=eq.true'+
-      '&select=worker_id,start_date,end_date,approval_status');
+      '&select=day_type,worker_id,start_date,end_date,approval_status');
 
     var dateMap={};
     perms.forEach(function(p){
@@ -3312,8 +3321,10 @@ async function loadEditsReport(){
 
 
 
+
 </script>
 <script>
+
 
 
 
@@ -3350,8 +3361,10 @@ async function loadEditsReport(){
 
 
 
+
 </script>
 <script>
+
 
 
 
@@ -3381,6 +3394,7 @@ async function loadEditsReport(){
     }
   }catch(e){}
 })();
+
 
 
 
