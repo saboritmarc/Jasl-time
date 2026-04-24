@@ -1081,6 +1081,7 @@ textarea.input{resize:vertical;min-height:80px;}
 
 <script type="text/plain" id="__ac__">
 
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -1112,7 +1113,7 @@ function showPage(pageId){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');p.style.display='none';});
   var page=document.getElementById('page-'+pageId);
   if(page){page.style.display='flex';page.classList.add('active');}
-  var workerPages=['worker-home','history','perms','vacances','balance','profile','day-detail'];
+  var workerPages=['worker-home','history','perms','vacances','balance','profile','day-detail','qr-scan'];
   var nav=document.getElementById('worker-nav');
   if(nav) nav.style.display=workerPages.indexOf(pageId)>=0?'flex':'none';
   var t={splash:'JASL Time',login:'Identifica-t','worker-home':'Inici',history:'Historial',
@@ -1332,6 +1333,14 @@ async function loadVacances(){
 
 // &#9472;&#9472;&#9472; CALENDARI GLOBAL EMPRESA &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 async function loadVacancesGlobal(){
+  // Assegurar que els settings (colors) estan carregats
+  if(!state.settings||!state.settings['worker_color_'+((state.allWorkers[0]||{}).id||0)]){
+    try{
+      var sRows=await dbGet('app_settings','select=setting_key,setting_value');
+      state.settings=state.settings||{};
+      sRows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});
+    }catch(e){}
+  }
   var el=document.getElementById('page-vacances-content');
   if(!el) return;
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
@@ -1504,12 +1513,9 @@ async function saveVacances(){
   if(!start||!end){showToast('Dates obligatories','error');return;}
   if(end<start){showToast('La data de fi no pot ser anterior a l\'inici','error');return;}
   try{
-    var requiresApproval=false;
-    try{
-      var rr=await dbGet('app_settings','setting_key=eq.requires_approval_VACANCES&select=setting_value');
-      requiresApproval=rr[0]&&rr[0].setting_value==='true';
-    }catch(e){}
-    var approvalStatus=requiresApproval?'PENDING':'APPROVED';
+    // Vacances sol&#183;licitades per treballador &#8594; sempre PENDING (admin aprova)
+    // Excepci&#243;: si l'admin les crea directament &#8594; APPROVED
+    var approvalStatus = (state.worker&&state.worker.role==='ADMIN') ? 'APPROVED' : 'PENDING';
     await dbPost('day_status',{
       worker_id: state.worker.id,
       day_type: 'VACANCES',
@@ -2122,7 +2128,7 @@ function openModal(type){
       var cfgRows = await dbGet('app_settings', 'setting_key=like.compute_mode_*&select=setting_key,setting_value');
       cfgRows.forEach(function(r){ computeDefaults[r.setting_key.replace('compute_mode_','')] = r.setting_value; });
     } catch(e) {
-      computeDefaults = { VACANCES:'THEORETICAL_HOURS', BAIXA_MEDICA:'THEORETICAL_HOURS', PERMIS_RETRIBUIT:'THEORETICAL_HOURS', FESTIU:'ZERO_HOURS', NORMAL:'THEORETICAL_HOURS' };
+      computeDefaults = { VACANCES:'THEORETICAL_HOURS', BAIXA_MEDICA:'THEORETICAL_HOURS', PERMIS_RETRIBUIT:'THEORETICAL_HOURS', SICK_DAY:'THEORETICAL_HOURS', FESTIU:'ZERO_HOURS', NORMAL:'THEORETICAL_HOURS' };
     }
     var maxSickDays = 3;
     try {
@@ -2145,7 +2151,8 @@ function openModal(type){
         '<label class="input-label">Tipus de perm&iacute;s</label>'+
         '<select id="perm-type" class="input" onchange="updatePermComputeInfo()">'+
           '<option value="VACANCES">&#127958; Vacances</option>'+
-          '<option value="BAIXA_MEDICA">&#127973; Baixa m&egrave;dica</option>'+
+          '<option value="BAIXA_MEDICA">&#127973; Baixa m&egrave;dica (amb justificant)</option>'+
+          '<option value="SICK_DAY">&#129298; Malaltia sense justificant</option>'+
           '<option value="PERMIS_RETRIBUIT">&#128203; Perm&iacute;s retribu&iuml;t</option>'+
           '<option value="FESTIU">&#128197; Festiu</option>'+
         '</select>'+
@@ -3620,7 +3627,33 @@ async function saveSettings(){
 }
 
 var qrStream=null;
-async function startQRScan(){ showPage('qr-scan'); try{ qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); var video=document.getElementById('qr-video'); video.srcObject=qrStream; await video.play(); document.getElementById('qr-scan-hint').textContent=''; if('BarcodeDetector' in window){ var bd=new BarcodeDetector({formats:['qr_code']}); var iv=setInterval(async function(){try{var codes=await bd.detect(video);if(codes.length){clearInterval(iv);stopQR();await loginByQR(codes[0].rawValue);}}catch(e){}},500); }else{document.getElementById('qr-scan-hint').textContent='BarcodeDetector no disponible';} }catch(e){document.getElementById('qr-scan-hint').textContent='No accedit a la camera';} }
+async function startQRScan(){ showPage('qr-scan'); try{ qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); var video=document.getElementById('qr-video'); video.srcObject=qrStream; await video.play(); document.getElementById('qr-scan-hint').textContent=''; // Carregar jsQR com a fallback si BarcodeDetector no disponible
+    var useNative='BarcodeDetector' in window;
+    if(!useNative&&!window.jsQR){
+      await new Promise(function(res){
+        var s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+        s.onload=res; s.onerror=res;
+        document.head.appendChild(s);
+      });
+    }
+    var bd=useNative?new BarcodeDetector({formats:['qr_code']}):null;
+    var canvas3=document.createElement('canvas');
+    var iv=setInterval(async function(){
+      try{
+        var codes=[];
+        if(bd){
+          codes=await bd.detect(video);
+        } else if(window.jsQR&&video.videoWidth>0){
+          canvas3.width=video.videoWidth; canvas3.height=video.videoHeight;
+          canvas3.getContext('2d').drawImage(video,0,0);
+          var id=canvas3.getContext('2d').getImageData(0,0,canvas3.width,canvas3.height);
+          var qr=jsQR(id.data,id.width,id.height);
+          if(qr) codes=[{rawValue:qr.data}];
+        }
+        if(codes.length){clearInterval(iv);stopQR();await loginByQR(codes[0].rawValue);}
+      }catch(e){}
+    },300); }catch(e){document.getElementById('qr-scan-hint').textContent='No accedit a la camera';} }
 
 function stopQR(){ if(qrStream){qrStream.getTracks().forEach(function(t){t.stop();});qrStream=null;} }
 
@@ -3705,6 +3738,14 @@ async function loadVacances(){
 
 // &#9472;&#9472;&#9472; CALENDARI GLOBAL EMPRESA &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 async function loadVacancesGlobal(){
+  // Assegurar que els settings (colors) estan carregats
+  if(!state.settings||!state.settings['worker_color_'+((state.allWorkers[0]||{}).id||0)]){
+    try{
+      var sRows=await dbGet('app_settings','select=setting_key,setting_value');
+      state.settings=state.settings||{};
+      sRows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});
+    }catch(e){}
+  }
   var el=document.getElementById('page-vacances-content');
   if(!el) return;
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
@@ -3976,6 +4017,14 @@ async function loadVacances(){
 
 // &#9472;&#9472;&#9472; CALENDARI GLOBAL EMPRESA &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 async function loadVacancesGlobal(){
+  // Assegurar que els settings (colors) estan carregats
+  if(!state.settings||!state.settings['worker_color_'+((state.allWorkers[0]||{}).id||0)]){
+    try{
+      var sRows=await dbGet('app_settings','select=setting_key,setting_value');
+      state.settings=state.settings||{};
+      sRows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});
+    }catch(e){}
+  }
   var el=document.getElementById('page-vacances-content');
   if(!el) return;
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
@@ -4216,17 +4265,17 @@ async function loadEditsReport(){
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
   try{
     // Carregar totes les edicions amb context
-    var edits=await dbGet('time_entry_edits',
-      'order=edited_at.desc&select=*,time_entries(entry_date,worker_id,workers(display_name,employee_code))&limit=200');
+    var edits=await dbGet('time_entry_edits','order=edited_at.desc&select=*&limit=200');
+    var workers=state.allWorkers.length?state.allWorkers:
+      await dbGet('workers','is_active=eq.true&select=id,display_name,employee_code').catch(function(){return[];});
     if(!edits||!edits.length){
       el.innerHTML='<div class="empty-state">Cap edicio registrada</div>'; return;
     }
     var typeLabels={START:'Inici jornada',PAUSE_START:'Inici pausa',PAUSE_END:'Fi pausa',END:'Fi jornada'};
     el.innerHTML=edits.map(function(e){
-      var te=e.time_entries||{};
-      var w=(te.workers)||{};
-      var workerName=w.display_name||w.employee_code||('Worker #'+(te.worker_id||'?'));
-      var date=te.entry_date||'?';
+      var wData=workers.find(function(w){return String(w.id)===String(e.worker_id);});
+      var workerName=wData?(wData.display_name||wData.employee_code):('Worker #'+e.worker_id);
+      var date=e.work_date||'?';
       var editedAt=new Date(e.edited_at).toLocaleString('ca',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
       var origDT=e.old_datetime||e.old_value;
       var newDT=e.new_datetime||e.new_value;
@@ -4265,8 +4314,10 @@ async function loadEditsReport(){
   }catch(e){ el.innerHTML='<div class="empty-state">Error carregant informe</div>'; }
 }
 
+
 </script>
 <script>
+
 
 
 
@@ -4316,6 +4367,7 @@ async function loadEditsReport(){
 
 
 
+
 </script>
 <script>
 
@@ -4342,7 +4394,9 @@ async function loadEditsReport(){
 
 
 
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
 
 
 
