@@ -1174,6 +1174,14 @@ async function afterLogin(){
     state._loginByQR = false;
     logAccess(w.id, adminLoginMethod);
     showPage('worker-home'); startClock(); await loadTodaySummary(); checkPendingPerms();
+    // Carregar settings per tenir colors de vacances disponibles
+    try{
+      if(!state.settings||!Object.keys(state.settings).length){
+        var sRows=await dbGet('app_settings','select=setting_key,setting_value');
+        state.settings={};
+        sRows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});
+      }
+    }catch(e){}
     setTimeout(function(){
       var nav=document.getElementById('worker-nav');
     if(nav) nav.style.display='flex';
@@ -2044,7 +2052,8 @@ async function loadDayDetail(date){
         if(diffMin>0) durHtml='<div style="font-size:11px;color:var(--text3);margin-left:2px;">+'+diffMin+'min</div>';
       }
       var canEdit=state.worker&&(state.worker.role==='ADMIN'||(state.settings&&state.settings.allow_worker_edits!=='false'));
-      var editBtn=canEdit?'<button onclick="editTimeEntry('+e.id+','+e.worker_id+')" style="margin-left:auto;flex-shrink:0;background:none;border:1px solid var(--accent);color:var(--accent);font-size:11px;cursor:pointer;padding:2px 8px;border-radius:4px">Editar</button>':'';
+      var wId=e.worker_id||state.worker.id;
+      var editBtn=canEdit?'<button onclick="editTimeEntry('+e.id+','+wId+')" style="margin-left:auto;flex-shrink:0;background:none;border:1px solid var(--accent);color:var(--accent);font-size:11px;cursor:pointer;padding:2px 8px;border-radius:4px">Editar</button>':'';
       var editBadge=editedIds[e.id]?'<span style="font-size:9px;background:#FFF3CD;color:#856404;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700">EDITAT</span>':'';
       return '<div class="timeline-item" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div class="timeline-dot '+dc+'" style="flex-shrink:0"></div><div style="flex:1"><div class="timeline-time">'+t+durHtml+'</div><div class="timeline-type">'+lbl+editBadge+'</div></div>'+editBtn+'</div>'
     }).join('');
@@ -4125,6 +4134,34 @@ document.addEventListener('touchstart', resetSessionTimer);
 document.addEventListener('click', resetSessionTimer);
 document.addEventListener('keypress', resetSessionTimer)
 
+
+async function loadProfile(){
+  if(!state.worker) return;
+  var nameEl=document.getElementById('profile-name');
+  var codeEl=document.getElementById('profile-code');
+  var avatarEl=document.getElementById('profile-avatar');
+  if(nameEl) nameEl.textContent=state.worker.display_name||state.worker.employee_code;
+  if(codeEl) codeEl.textContent='Codi: '+state.worker.employee_code;
+  if(avatarEl&&state.worker.photo_path){
+    avatarEl.innerHTML='<img src="'+SUPABASE_URL+'/storage/v1/object/public/worker-photos/'+state.worker.photo_path+
+      '?t='+Date.now()+'" style="width:100%;height:100%;object-fit:cover">';
+  }
+  // Stats
+  try{
+    var year=new Date().getFullYear();
+    var records=await dbGet('daily_records',
+      'worker_id=eq.'+state.worker.id+'&work_date=gte.'+year+'-01-01&select=worked_minutes,balance_minutes');
+    var totalMins=records.reduce(function(a,r){return a+(r.worked_minutes||0);},0);
+    var totalBal=records.reduce(function(a,r){return a+(r.balance_minutes||0);},0);
+    var statsEl=document.getElementById('profile-stats');
+    if(statsEl) statsEl.innerHTML=
+      '<div class="card"><div class="card-row">'+
+      '<div><div class="stat-lbl">Dies treballats '+year+'</div><div class="stat-val">'+records.length+'</div></div>'+
+      '<div><div class="stat-lbl">Hores '+year+'</div><div class="stat-val">'+minsToHM(totalMins)+'</div></div>'+
+      '<div><div class="stat-lbl">Saldo '+year+'</div><div class="stat-val" style="color:'+(totalBal>=0?'var(--success)':'var(--warn)')+'">'+(totalBal>=0?'+':'')+minsToHM(totalBal)+'</div></div>'+
+      '</div></div>';
+  }catch(e){}
+}
 async function loadProfileStats(){
   var el=document.getElementById('profile-stats');
   if(!el||!state.worker) return;
@@ -4234,7 +4271,9 @@ async function loadEditsReport(){
 
 
 
+
 (function(){try{var el=document.getElementById('__ac__');if(!el)return;var code=el.textContent||el.innerHTML;var b=new Blob([code],{type:'application/javascript'});var u=URL.createObjectURL(b);var s=document.createElement('script');s.src=u;s.onload=function(){try{URL.revokeObjectURL(u);}catch(e){}};s.onerror=function(){try{URL.revokeObjectURL(u);var sc=document.createElement('script');sc.textContent=code;document.head.appendChild(sc);}catch(e){}};document.head.appendChild(s);}catch(e){}})();
+
 
 
 
@@ -4275,7 +4314,9 @@ async function loadEditsReport(){
 
 
 
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
 
 
 
