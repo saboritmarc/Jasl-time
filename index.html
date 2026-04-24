@@ -392,6 +392,7 @@ textarea.input{resize:vertical;min-height:80px;}
     <div class="topbar-title">Exportacions</div>
     <div style="width:28px"></div>
   </div>
+  <div id="exports-content" class="page-content"></div>
   <div class="content" style="flex:1;overflow-y:auto">
     <div class="flex-gap" style="margin-bottom:20px">
       <div class="input-group" style="flex:1;margin-bottom:0">
@@ -940,6 +941,7 @@ textarea.input{resize:vertical;min-height:80px;}
     <div class="topbar-title">Exportacions</div>
     <div style="width:28px"></div>
   </div>
+  <div id="exports-content" class="page-content"></div>
   <div class="content" style="flex:1;overflow-y:auto">
     <div class="flex-gap" style="margin-bottom:20px">
       <div class="input-group" style="flex:1;margin-bottom:0">
@@ -1086,6 +1088,9 @@ textarea.input{resize:vertical;min-height:80px;}
 
 
 
+
+
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -1131,7 +1136,17 @@ function showPage(pageId){
 
 function showAdminPage(name){ var pm={workers:'workers','all-records':'all-records','all-perms':'all-perms','all-balances':'all-balances',exports:'exports',cards:'cards',settings:'settings'}; showPage(pm[name]||name); if(name==='workers')loadWorkers(); if(name==='all-records')loadAllRecords(); if(name==='all-perms'){loadAllPerms();loadPendingPermsCount();} if(name==='all-balances')loadAllBalances(); if(name==='exports')loadExportWorkers(); if(name==='cards')loadCardsWorkers(); if(name==='settings'){ loadSettings(); loadComputeSettings(); }
   if(name==='access-logs'){ loadAccessLogs(); }
-  if(name==='edits-report'){ setTimeout(function(){loadEditsReport();},50); } }
+  if(name==='edits-report'){
+    setTimeout(async function(){
+      // Omplir selector treballadors
+      var sel=document.getElementById('er-filter-worker');
+      if(sel&&sel.options.length<=1){
+        var ws=state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=id,display_name,employee_code');
+        ws.forEach(function(w){ var o=document.createElement('option'); o.value=w.id; o.textContent=w.display_name||w.employee_code; sel.appendChild(o); });
+      }
+      loadEditsReport();
+    },50);
+  } }
 
 function switchTab(tab){
   var tabs=['home','history','perms','vacances','balance','profile'];
@@ -1273,6 +1288,10 @@ async function loadVacances(){
   var el=document.getElementById('page-vacances-content');
   if(!el||!state.worker) return;
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  // Assegurar settings carregats (colors)
+  if(!state.settings||!Object.keys(state.settings).some(function(k){return k.startsWith('worker_color_');})){
+    try{var sr=await dbGet('app_settings','select=setting_key,setting_value');state.settings=state.settings||{};sr.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});}catch(e){}
+  }
   try{
     var yr=new Date().getFullYear();
     // Obtenir dies de vacances configurat
@@ -1291,7 +1310,7 @@ async function loadVacances(){
     var vacDates={};
     perms=perms.filter(function(p){
       var dt=(p.day_type||'').toUpperCase();
-      return dt==='VACANCES'||dt==='VACATION';
+      return dt==='VACANCES';
     });
     perms.forEach(function(p){
       var d=new Date(p.start_date+'T12:00:00');
@@ -1366,7 +1385,7 @@ async function loadVacancesGlobal(){
     var dateMap={};
     perms=perms.filter(function(p){
       var dt=(p.day_type||'').toUpperCase();
-      return dt==='VACANCES'||dt==='VACATION';
+      return dt==='VACANCES';
     });
     perms.forEach(function(p){
       var w=state.allWorkers.find(function(x){return String(x.id)===String(p.worker_id);});
@@ -2736,22 +2755,213 @@ async function doAdminClockAction(action){
 }
 
 async function loadExportWorkers(){
-  var sel=document.getElementById('export-worker-select');
-  var ws=state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*').catch(function(){return[];});
-  var opts='<option value="">Selecciona treballador</option>';
-  ws.forEach(function(w){ opts+='<option value="'+w.id+'">'+(w.display_name||w.employee_code)+'</option>'; });
-  sel.innerHTML=opts;
-}
-
-function loadSheetJS(){
-  if(window.XLSX) return Promise.resolve();
-  return new Promise(function(res,rej){
-    var s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    s.onload=res; s.onerror=rej;
-    document.head.appendChild(s);
+  var el=document.getElementById('exports-content');
+  if(!el) return;
+  var ws=state.allWorkers.length?state.allWorkers:
+    await dbGet('workers','is_active=eq.true&select=*').catch(function(){return[];});
+  var year=new Date().getFullYear();
+  var workerOpts='<option value="">Tots els treballadors</option>'+
+    ws.map(function(w){return '<option value="'+w.id+'">'+(w.display_name||w.employee_code)+'</option>';}).join('');
+  
+  el.innerHTML=
+    '<div class="section-title">Exportar registres</div>'+
+    '<div class="card" style="margin-bottom:16px">'+
+      '<div class="input-group"><label class="input-label">Format d\'exportaci&#243;</label>'+
+        '<select id="exp-format" class="input">'+
+          '<option value="monthly_detail">Detall mensual (amb pauses)</option>'+
+          '<option value="monthly_summary">Resum mensual</option>'+
+          '<option value="annual_summary">Resum anual</option>'+
+          '<option value="annual_by_month">Resum anual per mesos</option>'+
+        '</select>'+
+      '</div>'+
+      '<div class="flex-gap">'+
+        '<div class="input-group" style="flex:1"><label class="input-label">Treballador</label>'+
+          '<select id="exp-worker" class="input">'+workerOpts+'</select>'+
+        '</div>'+
+        '<div class="input-group" style="flex:1"><label class="input-label">Any</label>'+
+          '<input type="number" id="exp-year" class="input" value="'+year+'" min="2020" max="2030">'+
+        '</div>'+
+      '</div>'+
+      '<div id="exp-month-row" class="input-group"><label class="input-label">Mes (per al detall mensual)</label>'+
+        '<select id="exp-month" class="input">'+
+          ['Gener','Febrer','Marc','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre']
+          .map(function(n,i){return '<option value="'+(i+1)+'"'+(i+1===new Date().getMonth()+1?' selected':'')+'>'+n+'</option>';}).join('')+
+        '</select>'+
+      '</div>'+
+      '<button class="btn btn-primary btn-full" onclick="runExport()">&#128190; Generar Excel</button>'+
+    '</div>';
+  
+  // Mostrar/amagar selector de mes
+  document.getElementById('exp-format').addEventListener('change',function(){
+    var row=document.getElementById('exp-month-row');
+    if(row) row.style.display=this.value==='monthly_detail'||this.value==='monthly_summary'?'block':'none';
   });
 }
+
+async function runExport(){
+  var format=document.getElementById('exp-format').value;
+  var wId=document.getElementById('exp-worker').value;
+  var year=parseInt(document.getElementById('exp-year').value)||new Date().getFullYear();
+  var month=parseInt((document.getElementById('exp-month')||{}).value)||new Date().getMonth()+1;
+  var workers=state.allWorkers.length?state.allWorkers:
+    await dbGet('workers','is_active=eq.true&select=*');
+  var targetWorkers=wId?workers.filter(function(w){return String(w.id)===String(wId);}):workers;
+  if(!targetWorkers.length){showToast('Cap treballador seleccionat','error');return;}
+  
+  showToast('Generant Excel...','success');
+  await loadSheetJS();
+  var wb=XLSX.utils.book_new();
+  var addedSheets=[];
+  
+  // Fulla de resum si son tots els treballadors
+  if(!wId&&targetWorkers.length>1){
+    var sumRows=[['Treballador','H.Treballades','H.Teoriques','Saldo','Dies treballats']];
+    for(var wi=0;wi<targetWorkers.length;wi++){
+      var ww=targetWorkers[wi];
+      var recs=await dbGet('daily_records',
+        'worker_id=eq.'+ww.id+'&work_date=gte.'+year+'-01-01&work_date=lte.'+year+'-12-31&select=worked_minutes,theoretical_minutes,balance_minutes,status');
+      var tw=recs.reduce(function(a,r){return a+(r.worked_minutes||0);},0);
+      var tt=recs.reduce(function(a,r){return a+(r.theoretical_minutes||0);},0);
+      var tb=recs.reduce(function(a,r){return a+(r.balance_minutes||0);},0);
+      var wd=recs.filter(function(r){return r.status==='FINISHED';}).length;
+      sumRows.push([ww.display_name||ww.employee_code,minsToHM(tw),minsToHM(tt),(tb>=0?'+':'')+minsToHM(tb),wd]);
+    }
+    var wsSummary=XLSX.utils.aoa_to_sheet(sumRows);
+    wsSummary['!cols']=[{wch:22},{wch:12},{wch:12},{wch:10},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,'Resum general',wsSummary);
+    addedSheets.push('Resum general');
+  }
+  
+  for(var i=0;i<targetWorkers.length;i++){
+    var w=targetWorkers[i];
+    var prefix=targetWorkers.length>1?(w.employee_code||('W'+w.id))+' ':' ';
+    
+    if(format==='monthly_detail'||format==='monthly_summary'){
+      await addMonthSheet(wb, w, month, year, prefix.trim(), format==='monthly_detail');
+      addedSheets.push(prefix.trim()+' '+month+'/'+year);
+    } else if(format==='annual_summary'){
+      await addAnnualSummarySheet(wb, w, year, prefix.trim());
+      addedSheets.push(prefix.trim());
+    } else if(format==='annual_by_month'){
+      await addAnnualByMonthSheet(wb, w, year, prefix.trim());
+      addedSheets.push(prefix.trim());
+    }
+  }
+  
+  var fname=(wId?(targetWorkers[0].employee_code||'worker'):('tots'))+'_'+format+'_'+year+'.xlsx';
+  XLSX.writeFile(wb,fname);
+  showToast('Excel generat: '+fname,'success');
+}
+
+async function addMonthSheet(wb, w, month, year, prefix, withDetail){
+  var monthNames=['Gener','Febrer','Marc','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var moS=String(month).padStart(2,'0');
+  var records=await dbGet('daily_records',
+    'worker_id=eq.'+w.id+'&work_date=gte.'+year+'-'+moS+'-01&work_date=lte.'+year+'-'+moS+'-31&order=work_date.asc&select=*');
+  var entries=withDetail?await dbGet('time_entries',
+    'worker_id=eq.'+w.id+'&entry_date=gte.'+year+'-'+moS+'-01&entry_date=lte.'+year+'-'+moS+'-31&is_active=eq.true&order=entry_datetime.asc&select=*'):[];
+  var byDay={};
+  entries.forEach(function(e){var d=e.entry_date;if(!byDay[d])byDay[d]=[];byDay[d].push(e);});
+  var daysInMonth=new Date(year,month,0).getDate();
+  var dayNames=['Dg','Dl','Dt','Dc','Dj','Dv','Ds'];
+  
+  var headers=withDetail?
+    ['Data','Dia','Entrada','Sortida','Inici P1','Fi P1','Inici P2','Fi P2','Durada Pauses','H.Treballades','H.Teoriques','Saldo','Estat']:
+    ['Data','Dia','H.Treballades','H.Teoriques','Saldo','Estat'];
+  
+  var rows=[
+    ['JASL Time - Registre de jornada'],
+    ['Treballador:',w.display_name||w.employee_code,'','Codi:',w.employee_code],
+    ['Mes:',monthNames[month-1]+' '+year],[],headers
+  ];
+  var totW=0,totT=0,totB=0;
+  
+  for(var d=1;d<=daysInMonth;d++){
+    var ds=year+'-'+moS+'-'+String(d).padStart(2,'0');
+    var dow=new Date(ds+'T12:00:00').getDay();
+    var rec=records.find(function(r){return r.work_date===ds;});
+    var dayE=byDay[ds]||[];
+    var wm=rec?rec.worked_minutes:0;
+    var tm=rec?rec.theoretical_minutes:0;
+    var bm=rec?rec.balance_minutes:0;
+    totW+=wm||0; totT+=tm||0; totB+=bm||0;
+    var estat=rec?({FINISHED:'Finalitzat',IN_PROGRESS:'En curs',NOT_STARTED:'No iniciat',INCIDENCE:'Incidencia'}[rec.status]||rec.status):'';
+    
+    if(withDetail){
+      var startE=dayE.find(function(e){return e.entry_type==='START';});
+      var endE=dayE.find(function(e){return e.entry_type==='END';});
+      var ps=dayE.filter(function(e){return e.entry_type==='PAUSE_START';}).sort(function(a,b){return (a.pause_number||0)-(b.pause_number||0);});
+      var pe=dayE.filter(function(e){return e.entry_type==='PAUSE_END';}).sort(function(a,b){return (a.pause_number||0)-(b.pause_number||0);});
+      var fmt=function(e){return e?new Date(e.entry_datetime).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'}):''};
+      rows.push([ds,dayNames[dow],fmt(startE),fmt(endE),fmt(ps[0]),fmt(pe[0]),fmt(ps[1]),fmt(pe[1]),
+        rec&&rec.pause_minutes?minsToHM(rec.pause_minutes):'',
+        wm?minsToHM(wm):'',tm?minsToHM(tm):'',bm?(bm>=0?'+':'')+minsToHM(bm):'',estat]);
+    } else {
+      rows.push([ds,dayNames[dow],wm?minsToHM(wm):'',tm?minsToHM(tm):'',
+        bm?(bm>=0?'+':'')+minsToHM(bm):'',estat]);
+    }
+  }
+  rows.push([]);
+  rows.push(['TOTAL','',minsToHM(totW),minsToHM(totT),(totB>=0?'+':'')+minsToHM(totB)]);
+  
+  var sheetName=(prefix+monthNames[month-1]).substring(0,31);
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=withDetail?
+    [{wch:12},{wch:4},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:8},{wch:10},{wch:10},{wch:10},{wch:8},{wch:10}]:
+    [{wch:12},{wch:4},{wch:10},{wch:10},{wch:8},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,sheetName,ws);
+}
+
+async function addAnnualSummarySheet(wb, w, year, prefix){
+  var monthNames=['Gener','Febrer','Marc','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var records=await dbGet('daily_records',
+    'worker_id=eq.'+w.id+'&work_date=gte.'+year+'-01-01&work_date=lte.'+year+'-12-31&order=work_date.asc&select=*');
+  var rows=[
+    ['JASL Time - Resum anual '+year],
+    ['Treballador:',w.display_name||w.employee_code],
+    [],['Data','H.Treballades','H.Teoriques','Saldo','Estat']
+  ];
+  var totW=0,totT=0,totB=0;
+  records.forEach(function(r){
+    totW+=r.worked_minutes||0; totT+=r.theoretical_minutes||0; totB+=r.balance_minutes||0;
+    var estat={FINISHED:'Finalitzat',IN_PROGRESS:'En curs',NOT_STARTED:'No iniciat',INCIDENCE:'Incidencia'}[r.status]||r.status;
+    var b=r.balance_minutes||0;
+    rows.push([r.work_date,minsToHM(r.worked_minutes||0),minsToHM(r.theoretical_minutes||0),(b>=0?'+':'')+minsToHM(b),estat]);
+  });
+  rows.push([]);
+  rows.push(['TOTAL',minsToHM(totW),minsToHM(totT),(totB>=0?'+':'')+minsToHM(totB)]);
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:12},{wch:10},{wch:10},{wch:8},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,prefix.substring(0,31),ws);
+}
+
+async function addAnnualByMonthSheet(wb, w, year, prefix){
+  var monthNames=['Gener','Febrer','Marc','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  for(var m=1;m<=12;m++){
+    var moS=String(m).padStart(2,'0');
+    var records=await dbGet('daily_records',
+      'worker_id=eq.'+w.id+'&work_date=gte.'+year+'-'+moS+'-01&work_date=lte.'+year+'-'+moS+'-31&order=work_date.asc&select=*');
+    if(!records.length) continue;
+    var rows=[
+      ['JASL Time - '+monthNames[m-1]+' '+year],
+      ['Treballador:',w.display_name||w.employee_code],
+      [],['Data','H.Treballades','H.Teoriques','Saldo','Estat']
+    ];
+    var totW=0,totT=0,totB=0;
+    records.forEach(function(r){
+      totW+=r.worked_minutes||0; totT+=r.theoretical_minutes||0; totB+=r.balance_minutes||0;
+      var estat={FINISHED:'Finalitzat',IN_PROGRESS:'En curs',NOT_STARTED:'No iniciat',INCIDENCE:'Incidencia'}[r.status]||r.status;
+      var b=r.balance_minutes||0;
+      rows.push([r.work_date,minsToHM(r.worked_minutes||0),minsToHM(r.theoretical_minutes||0),(b>=0?'+':'')+minsToHM(b),estat]);
+    });
+    rows.push([]); rows.push(['TOTAL',minsToHM(totW),minsToHM(totT),(totB>=0?'+':'')+minsToHM(totB)]);
+    var sheetName=(prefix+monthNames[m-1]).substring(0,31);
+    var ws=XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols']=[{wch:12},{wch:10},{wch:10},{wch:8},{wch:10}];
+    XLSX.utils.book_append_sheet(wb,sheetName,ws);
+  }
+}
+
 
 async function callExport(type){
   var month=parseInt(document.getElementById('export-month').value)||new Date().getMonth()+1;
@@ -2802,7 +3012,7 @@ async function generateWorkerExcel(wId, month, year){
       ['Treballador:', w.display_name||w.employee_code, '', 'Codi:', w.employee_code],
       ['Mes:', monthNames[m-1]+' '+year],
       [],
-      ['Data','Dia','Entrada','Sortida','Pauses','H.Treballades','H.Teoriques','Saldo','Estat','Editat']
+      ['Data','Dia','Entrada','Sortida','Inici Pausa 1','Fi Pausa 1','Inici Pausa 2','Fi Pausa 2','Durada Pauses','H.Treballades','H.Teoriques','Saldo','Estat']
     ];
 
     var totW=0, totT=0, totB=0;
@@ -3680,6 +3890,10 @@ async function loadVacances(){
   var el=document.getElementById('page-vacances-content');
   if(!el||!state.worker) return;
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  // Assegurar settings carregats (colors)
+  if(!state.settings||!Object.keys(state.settings).some(function(k){return k.startsWith('worker_color_');})){
+    try{var sr=await dbGet('app_settings','select=setting_key,setting_value');state.settings=state.settings||{};sr.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});}catch(e){}
+  }
   try{
     var yr=new Date().getFullYear();
     // Obtenir dies de vacances configurat
@@ -3959,6 +4173,10 @@ async function loadVacances(){
   var el=document.getElementById('page-vacances-content');
   if(!el||!state.worker) return;
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  // Assegurar settings carregats (colors)
+  if(!state.settings||!Object.keys(state.settings).some(function(k){return k.startsWith('worker_color_');})){
+    try{var sr=await dbGet('app_settings','select=setting_key,setting_value');state.settings=state.settings||{};sr.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});}catch(e){}
+  }
   try{
     var yr=new Date().getFullYear();
     // Obtenir dies de vacances configurat
@@ -4266,8 +4484,21 @@ async function loadEditsReport(){
   var el=document.getElementById('edits-report-list');
   if(!el) return;
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  
+  // Filtres (de la UI)
+  var filterWorker=document.getElementById('er-filter-worker');
+  var filterFrom=document.getElementById('er-filter-from');
+  var filterTo=document.getElementById('er-filter-to');
+  var wFilter=filterWorker?filterWorker.value:'';
+  var fromFilter=filterFrom?filterFrom.value:'';
+  var toFilter=filterTo?filterTo.value:'';
+  
   try{
-    var edits=await dbGet('time_entry_edits','order=edited_at.desc&select=*&limit=200');
+    var q='order=edited_at.asc&select=*&limit=500';
+    if(wFilter) q+='&worker_id=eq.'+wFilter;
+    if(fromFilter) q+='&work_date=gte.'+fromFilter;
+    if(toFilter) q+='&work_date=lte.'+toFilter;
+    var edits=await dbGet('time_entry_edits',q);
     var workers=state.allWorkers.length?state.allWorkers:
       await dbGet('workers','is_active=eq.true&select=id,display_name,employee_code').catch(function(){return[];});
     if(!edits||!edits.length){
@@ -4313,6 +4544,37 @@ async function loadEditsReport(){
   }catch(ex){ el.innerHTML='<div class="empty-state">Error: '+ex.message+'</div>'; }
 }
 
+async function exportEditsReport(){
+  await loadSheetJS();
+  var edits=await dbGet('time_entry_edits','order=edited_at.asc&select=*&limit=1000');
+  var workers=state.allWorkers.length?state.allWorkers:
+    await dbGet('workers','is_active=eq.true&select=id,display_name,employee_code');
+  var typeL={START:'Inici jornada',PAUSE_START:'Inici pausa',PAUSE_END:'Fi pausa',END:'Fi jornada'};
+  var rows=[['Treballador','Data','Hora original','Hora nova','Tipus original','Tipus nou','Motiu','Explicacio','Editor','Data edicio']];
+  edits.forEach(function(e){
+    var wData=workers.find(function(w){return String(w.id)===String(e.worker_id);});
+    var wName=wData?(wData.display_name||wData.employee_code):('Worker #'+e.worker_id);
+    var editor=workers.find(function(w){return String(w.id)===String(e.edited_by_worker_id);});
+    var editorName=editor?(editor.display_name||editor.employee_code):('Worker #'+e.edited_by_worker_id);
+    var origDT=e.old_datetime||e.old_value;
+    var newDT=e.new_datetime||e.new_value;
+    rows.push([
+      wName, e.work_date||'',
+      origDT?new Date(origDT).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'}):'',
+      newDT?new Date(newDT).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'}):'',
+      typeL[e.old_entry_type]||e.old_entry_type||'',
+      typeL[e.new_entry_type]||e.new_entry_type||'',
+      e.reason_code||'', e.reason_text||'', editorName,
+      new Date(e.edited_at).toLocaleString('ca')
+    ]);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:20},{wch:12},{wch:10},{wch:10},{wch:15},{wch:15},{wch:25},{wch:25},{wch:20},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,'Edicions',ws);
+  XLSX.writeFile(wb,'registre_edicions_'+new Date().getFullYear()+'.xlsx');
+  showToast('Excel exportat!','success');
+}
 
 
 
@@ -4320,6 +4582,9 @@ async function loadEditsReport(){
 
 </script>
 <script>
+
+
+
 
 
 
@@ -4379,6 +4644,9 @@ async function loadEditsReport(){
 
 
 
+
+
+
 </script>
 <script>
 
@@ -4410,7 +4678,13 @@ async function loadEditsReport(){
 
 
 
+
+
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
+
+
 
 
 
