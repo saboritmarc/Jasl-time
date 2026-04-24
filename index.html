@@ -1967,7 +1967,20 @@ async function saveTimeEdit(entryId, workerId, originalDT, originalType){
 
     // 2. Actualitzar el registre
     var patchObj = {entry_datetime: newIso};
-    if(newType && newType !== originalType) patchObj.entry_type = newType;
+    if(newType && newType !== originalType){
+      patchObj.entry_type = newType;
+      // Si el nou tipus es PAUSE, necessitem pause_number (constraint chk_pause_number)
+      if(newType==='PAUSE_START'||newType==='PAUSE_END'){
+        var existPauses=await dbGet('time_entries',
+          'worker_id=eq.'+workerId+'&entry_date=eq.'+workDate+
+          '&entry_type=eq.PAUSE_START&is_active=eq.true&id=neq.'+entryId+'&select=pause_number');
+        var maxP=existPauses.reduce(function(m,e){return Math.max(m,e.pause_number||0);},0);
+        patchObj.pause_number=maxP+1;
+      } else {
+        // Si canvia de PAUSE a altre tipus, treure pause_number
+        patchObj.pause_number=null;
+      }
+    }
     await dbPatch('time_entries','id=eq.'+entryId, patchObj);
 
     // 3. Recalcular
@@ -3483,7 +3496,7 @@ async function loadSettings(){
     state.settings={};
     rows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});
     var lbl={'company_name':"Nom de l'empresa",'admin_email':'Correu admin','admin_password':'Contrasenya admin','notify_email_on_perm':'Email en permisos','vacation_days_per_year':'Dies vacances/any','daily_minutes':'Minuts/dia','weekly_hours':'Hores/setmana','daily_hours':'Hores/dia','working_days_per_week':'Dies laborables/setm.','annual_working_days':'Dies laborables/any','holidays_2025':'Festius 2025','holidays_2026':'Festius 2026','holidays_2027':'Festius 2027','default_compute_vacances':'Vacances - comput','default_compute_baixa_medica':'Baixa medica - comput','default_compute_permis_retribuit':'Permis retribuit - comput','default_compute_festiu':'Festiu - comput','requires_approval_VACATION':'Vacances - aprovacio','requires_approval_SICK_DAY':'Malaltia dom. - aprovacio','requires_approval_PAID_LEAVE':'Permis retribuit - aprovacio','requires_approval_SICK_LEAVE':'Baixa medica - aprovacio','requires_approval_HOLIDAY':'Festiu - aprovacio','allow_end_while_paused':'Finalitzar en pausa','allow_worker_edits':'Edicions de treballador','show_photo_on_card':'Foto a la targeta','show_role_on_card':'Carrec a la targeta'};
-    var grps={'Empresa':['company_name','admin_email','admin_password','vacation_days_per_year'],'Colors vacances':[],'Horari':['weekly_hours','daily_hours','daily_minutes','working_days_per_week','annual_working_days'],'Festius':['holidays_2025','holidays_2026','holidays_2027'],'Comput':['default_compute_vacances','default_compute_baixa_medica','default_compute_permis_retribuit','default_compute_festiu'],'Aprovacio':['requires_approval_VACATION','requires_approval_SICK_DAY','requires_approval_PAID_LEAVE','requires_approval_SICK_LEAVE','requires_approval_HOLIDAY'],'Opcions':['allow_end_while_paused','allow_worker_edits','show_photo_on_card','show_role_on_card','notify_email_on_perm']};
+    var grps={'Empresa':['company_name','admin_email','admin_password','vacation_days_per_year'],'Horari':['weekly_hours','daily_hours','daily_minutes','working_days_per_week','annual_working_days'],'Festius':['holidays_2025','holidays_2026','holidays_2027'],'Comput':['default_compute_vacances','default_compute_baixa_medica','default_compute_permis_retribuit','default_compute_festiu'],'Aprovacio':['requires_approval_VACATION','requires_approval_SICK_DAY','requires_approval_PAID_LEAVE','requires_approval_SICK_LEAVE','requires_approval_HOLIDAY'],'Opcions':['allow_end_while_paused','allow_worker_edits','show_photo_on_card','show_role_on_card','notify_email_on_perm']};
     var allK=Object.values(grps).reduce(function(a,b){return a.concat(b);},[]);
     var html='';
     Object.keys(grps).forEach(function(g){
@@ -3510,7 +3523,9 @@ async function loadSettings(){
       });
       html+='</div>';
     });
-    var extra=rows.filter(function(r){return allK.indexOf(r.setting_key)<0;});
+    var extra=rows.filter(function(r){
+      return allK.indexOf(r.setting_key)<0 && !r.setting_key.startsWith('worker_color_');
+    });
     if(extra.length){html+='<div class="section-title" style="margin-top:20px">Altres</div><div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">';extra.forEach(function(r,i){html+='<div class="setting-row" style="padding:14px 16px;'+(i>0?'border-top:1px solid var(--border);':'')+'"><div><div class="setting-label">'+r.setting_key+'</div></div><input class="input" type="text" id="setting-'+r.setting_key+'" value="'+(r.setting_value||'')+'" style="width:180px;padding:7px 10px;font-size:13px"></div>';});html+='</div>';}
     el.innerHTML=html;
     
@@ -3521,7 +3536,7 @@ async function loadSettings(){
           await dbGet('workers','is_active=eq.true&order=display_name.asc&select=id,display_name,employee_code');
         if(!workers.length) return;
         var section=document.createElement('div');
-        section.innerHTML='<div class="section-title" style="margin-top:24px">Colors de vacances per treballador</div>';
+        section.innerHTML='<div class="section-title" style="margin-top:24px">Color al calendari de vacances (per treballador)</div>';
         var card=document.createElement('div');
         card.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden';
         workers.forEach(function(w,i){
@@ -4272,7 +4287,13 @@ async function loadEditsReport(){
 
 
 
+
+
+
 (function(){try{var el=document.getElementById('__ac__');if(!el)return;var code=el.textContent||el.innerHTML;var b=new Blob([code],{type:'application/javascript'});var u=URL.createObjectURL(b);var s=document.createElement('script');s.src=u;s.onload=function(){try{URL.revokeObjectURL(u);}catch(e){}};s.onerror=function(){try{URL.revokeObjectURL(u);var sc=document.createElement('script');sc.textContent=code;document.head.appendChild(sc);}catch(e){}};document.head.appendChild(s);}catch(e){}})();
+
+
+
 
 
 
@@ -4315,7 +4336,13 @@ async function loadEditsReport(){
 
 
 
+
+
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
+
+
 
 
 
