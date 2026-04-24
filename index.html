@@ -126,9 +126,9 @@ html,body{height:100%;background:#F4F6F9;color:#2C3E50;font-family:'Nunito',syst
 .setting-label{font-size:14px;font-weight:700;color:var(--text);}
 .profile-avatar{width:80px;height:80px;border-radius:50%;background:var(--accent-lt);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;flex-shrink:0;box-shadow:0 4px 12px rgba(30,144,232,.2);}
 .profile-avatar img{width:100%;height:100%;object-fit:cover;}
-.modal-overlay{position:fixed;inset:0;background:rgba(44,62,80,.5);z-index:100;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px);}
+.modal-overlay{position:fixed;inset:0;background:rgba(44,62,80,.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);padding:16px;}
 .modal-overlay.open{display:flex;}
-.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:540px;padding:24px;max-height:85vh;overflow-y:auto;box-shadow:0 -8px 32px rgba(0,0,0,.12);}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:540px;padding:24px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18);}
 .modal-title{font-size:18px;font-weight:800;margin-bottom:20px;color:var(--text);}
 .modal-actions{display:flex;gap:10px;margin-top:20px;}
 .loader{display:inline-block;width:18px;height:18px;border:2px solid rgba(30,144,232,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;}
@@ -658,9 +658,9 @@ html,body{height:100%;background:#F4F6F9;color:#2C3E50;font-family:'Nunito',syst
 .setting-label{font-size:14px;font-weight:700;color:var(--text);}
 .profile-avatar{width:80px;height:80px;border-radius:50%;background:var(--accent-lt);border:3px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:32px;overflow:hidden;flex-shrink:0;box-shadow:0 4px 12px rgba(30,144,232,.2);}
 .profile-avatar img{width:100%;height:100%;object-fit:cover;}
-.modal-overlay{position:fixed;inset:0;background:rgba(44,62,80,.5);z-index:100;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px);}
+.modal-overlay{position:fixed;inset:0;background:rgba(44,62,80,.5);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);padding:16px;}
 .modal-overlay.open{display:flex;}
-.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:540px;padding:24px;max-height:85vh;overflow-y:auto;box-shadow:0 -8px 32px rgba(0,0,0,.12);}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:540px;padding:24px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18);}
 .modal-title{font-size:18px;font-weight:800;margin-bottom:20px;color:var(--text);}
 .modal-actions{display:flex;gap:10px;margin-top:20px;}
 .loader{display:inline-block;width:18px;height:18px;border:2px solid rgba(30,144,232,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;}
@@ -1862,6 +1862,7 @@ async function saveTimeEdit(entryId, workerId, originalDT, originalType){
   try{
     // 1. Guardar auditoria completa
     await dbPost('time_entry_edits', {
+      worker_id: parseInt(workerId),
       entry_id: parseInt(entryId),
       old_value: originalDT,
       new_value: newIso,
@@ -2967,17 +2968,16 @@ function loadSheetJS(){
 
 async function loadCardsWorkers(){
   var el=document.getElementById('cards-workers-list');
-  var ws=state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*').catch(function(){return[];});
+  // Sempre carregar workers frescos per assegurar dades actuals
+  var ws=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*').catch(function(){return[];});
+  if(ws.length) state.allWorkers=ws;
   var html='';
   ws.forEach(function(w,i){
     html+='<div class="worker-item" style="align-items:center;cursor:pointer" id="cw-'+w.id+'" '+
-      'onclick="(function(){'+ 
-        'document.querySelectorAll(\"#cards-workers-list .worker-item\").forEach(function(x){x.style.background=\"\";x.querySelector(\"input\").checked=false;});'+
-        'var el=document.getElementById(\"cw-'+w.id+'\");'+
-        'el.style.background=\"var(--accent-lt)\";'+
-        'el.querySelector(\"input\").checked=true;'+
-        'state.selectedCardWorker='+w.id+';'+
-      '})()">'+
+      'onclick="state.selectedCardWorker='+w.id+';'+
+        'document.querySelectorAll(\"#cards-workers-list .worker-item\").forEach(function(x){x.style.background=\"\";var cb=x.querySelector(\"input\");if(cb)cb.checked=false;});'+
+        'this.style.background=\"var(--accent-lt)\";'+
+        'var cb=this.querySelector(\"input\");if(cb)cb.checked=true;" >'+
       '<input type="checkbox" class="cw-check" style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;margin-right:4px" onclick="event.stopPropagation()">'+
       '<div class="worker-avatar-sm">'+workerAvatar(w)+'</div>'+
       '<div style="flex:1;margin-left:10px"><div style="font-weight:700;font-size:14px">'+(w.display_name||w.employee_code)+'</div>'+
@@ -3128,6 +3128,7 @@ async function drawCard3B(doc, worker, x, y, w, h){
   var photoX = x + leftW/2;
   var photoY = y + h * 0.30;
   var photoR = 11;
+  var noPhoto = false;
   // Cercle blanc semitransparent
   doc.setFillColor(255,255,255);
   doc.circle(photoX, photoY, photoR + 1.5, 'F');
@@ -3148,15 +3149,15 @@ async function drawCard3B(doc, worker, x, y, w, h){
       doc.text('?', photoX, photoY+2, {align:'center'});
     }
   } else {
-    doc.setFillColor(255,255,255);
-  doc.circle(photoX, photoY, photoR, 'F');
+    // Sense foto: no mostrar cercle, QR pujat
+    noPhoto = true;
   }
 
   // QR
   var qrUrl = await getQRDataURL(worker.qr_token||worker.employee_code);
   var qrSize = 19;
   var qrX = x + leftW/2 - qrSize/2;
-  var qrY = y + h * 0.62;
+  var qrY = noPhoto ? y + h * 0.25 : y + h * 0.62;
   // Fons blanc per al QR
   doc.setFillColor(255,255,255);
   doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 1.5, 1.5, 'F');
@@ -3229,7 +3230,7 @@ async function drawCard3B(doc, worker, x, y, w, h){
   var logoX=rightEdge-logoW;
   var logoY=y+h-logoH-2;
   try{
-    doc.addImage(LOGO_B64,'PNG', logoX, logoY, logoW, logoH, '', 'FAST');
+    doc.addImage(LOGO_B64,'PNG', logoX, logoY, logoW, logoH, '', 'NONE');
   }catch(e){
     doc.setTextColor(30,144,232);
     doc.setFontSize(5);
@@ -4060,7 +4061,9 @@ async function loadEditsReport(){
 
 
 
+
 (function(){try{var el=document.getElementById('__ac__');if(!el)return;var code=el.textContent||el.innerHTML;var b=new Blob([code],{type:'application/javascript'});var u=URL.createObjectURL(b);var s=document.createElement('script');s.src=u;s.onload=function(){try{URL.revokeObjectURL(u);}catch(e){}};s.onerror=function(){try{URL.revokeObjectURL(u);var sc=document.createElement('script');sc.textContent=code;document.head.appendChild(sc);}catch(e){}};document.head.appendChild(s);}catch(e){}})();
+
 
 
 
@@ -4081,7 +4084,9 @@ async function loadEditsReport(){
 
 
 
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
 
 
 
