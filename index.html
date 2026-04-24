@@ -1081,8 +1081,6 @@ textarea.input{resize:vertical;min-height:80px;}
 
 <script type="text/plain" id="__ac__">
 
-
-
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -1116,12 +1114,7 @@ function showPage(pageId){
   if(page){page.style.display='flex';page.classList.add('active');}
   var workerPages=['worker-home','history','perms','vacances','balance','profile','day-detail'];
   var nav=document.getElementById('worker-nav');
-  var isWorker=workerPages.indexOf(pageId)>=0;
-  if(nav) nav.style.display=isWorker?'flex':'none';
-  // Afegir padding-bottom a la pagina perque el nav fix no la tapi
-  document.querySelectorAll('.page').forEach(function(p){
-    p.style.paddingBottom=isWorker?'56px':'0';
-  });
+  if(nav) nav.style.display=workerPages.indexOf(pageId)>=0?'flex':'none';
   var t={splash:'JASL Time',login:'Identifica-t','worker-home':'Inici',history:'Historial',
     balance:'Saldo',perms:'Permisos',vacances:'Vacances',profile:'Perfil',
     'admin-home':'Admin','day-detail':'Detall',workers:'Treballadors',
@@ -1282,7 +1275,7 @@ async function loadVacances(){
     var vacDates={};
     perms=perms.filter(function(p){
       var dt=(p.day_type||'').toUpperCase();
-      return dt==='VACATION'||dt==='VACANCES';
+      return dt==='VACANCES'||dt==='VACATION';
     });
     perms.forEach(function(p){
       var d=new Date(p.start_date+'T12:00:00');
@@ -1349,7 +1342,7 @@ async function loadVacancesGlobal(){
     var dateMap={};
     perms=perms.filter(function(p){
       var dt=(p.day_type||'').toUpperCase();
-      return dt==='VACATION'||dt==='VACANCES';
+      return dt==='VACANCES'||dt==='VACATION';
     });
     perms.forEach(function(p){
       var w=state.allWorkers.find(function(x){return String(x.id)===String(p.worker_id);});
@@ -1502,22 +1495,27 @@ async function saveVacances(){
   if(end<start){showToast('La data de fi no pot ser anterior a l\'inici','error');return;}
   try{
     var requiresApproval=false;
-    try{var rr=await dbGet('app_settings','setting_key=eq.requires_approval_VACATION&select=setting_value');requiresApproval=rr[0]&&rr[0].setting_value==='true';}catch(e){}
-    var approvalStatus=requiresApproval?'PENDING':'APPROVED';
     try{
-      await rpc('create_day_status',{p_worker_id:parseInt(state.worker.id),p_day_type:'VACATION',
-        p_start_date:start,p_end_date:end,p_comment:comment,p_compute_mode:'THEORETICAL_HOURS'});
-      var np=await dbGet('day_status','worker_id=eq.'+state.worker.id+'&day_type=eq.VACATION&start_date=eq.'+start+'&select=id&order=id.desc&limit=1');
-      if(np[0]) await dbPatch('day_status','id=eq.'+np[0].id,{approval_status:approvalStatus});
-    }catch(e1){
-      await dbPost('day_status',{worker_id:state.worker.id,day_type:'VACATION',start_date:start,
-        end_date:end,compute_mode:'THEORETICAL_HOURS',comment:comment,is_active:true,approval_status:approvalStatus});
-    }
+      var rr=await dbGet('app_settings','setting_key=eq.requires_approval_VACANCES&select=setting_value');
+      requiresApproval=rr[0]&&rr[0].setting_value==='true';
+    }catch(e){}
+    var approvalStatus=requiresApproval?'PENDING':'APPROVED';
+    await dbPost('day_status',{
+      worker_id: state.worker.id,
+      day_type: 'VACANCES',
+      start_date: start,
+      end_date: end,
+      compute_mode: 'THEORETICAL_HOURS',
+      comment: comment,
+      is_active: true,
+      approval_status: approvalStatus
+    });
     closeModal();
-    showToast(requiresApproval?'Sol&middot;licitud enviada':'Vacances registrades','success');
+    showToast(requiresApproval?'Sol\u00b7licitud enviada - pendent d\'aprovaci\u00f3':'Vacances registrades','success');
     switchVacancesView('individual');
-  }catch(e){showToast((e&&e.message)||'Error','error');}
+  }catch(e){ showToast((e&&e.message)||'Error guardant vacances','error'); }
 }
+
 
 function switchVacancesView(view){
   var btnInd=document.getElementById('vac-btn-ind');
@@ -1805,14 +1803,19 @@ async function editTimeEntry(entryId, workerId){
     '<div style="font-size:11px;color:var(--text3);margin-bottom:16px">'+
       '&#9432; Es guardara: valor original, nou valor, tipus, motiu, usuari editor i data.'+
     '</div>'+
-    '<div class="modal-actions">'+
-      '<button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancel.lar</button>'+
-      '<button class="btn btn-primary" style="flex:1" id="btn-save-edit">Guardar</button>'+
+    '<div class="modal-actions" style="flex-wrap:wrap;gap:8px">'+
+      '<button class="btn btn-ghost" style="flex:1;min-width:100px" onclick="closeModal()">Cancel&#183;lar</button>'+
+      '<button class="btn btn-danger" style="flex:0 0 auto;padding:12px 16px" id="btn-delete-edit" title="Eliminar aquest registre">&#128465; Eliminar</button>'+
+      '<button class="btn btn-primary" style="flex:1;min-width:100px" id="btn-save-edit">Guardar</button>'+
     '</div>';
   setTimeout(function(){
     var btnSave = document.getElementById('btn-save-edit');
     if(btnSave) btnSave.addEventListener('click', function(){
       saveTimeEdit(entryId, workerId, entry.entry_datetime, entry.entry_type);
+    });
+    var btnDel = document.getElementById('btn-delete-edit');
+    if(btnDel) btnDel.addEventListener('click', function(){
+      deleteTimeEntry(entryId, entry.entry_date);
     });
   }, 50);
   document.getElementById('modal-overlay').classList.add('open');
@@ -1824,6 +1827,20 @@ window.toggleEditOther = function(){
   if(wrap) wrap.style.display = sel.value === 'Altre motiu' ? 'block' : 'none';
 };
 
+
+async function deleteTimeEntry(entryId, entryDate){
+  if(!confirm('Segur que vols eliminar aquest registre de fitxada?')) return;
+  try{
+    // Marcar com a inactiu (soft delete)
+    await dbPatch('time_entries','id=eq.'+entryId,{is_active:false});
+    // Recalcular
+    var date=entryDate||(new Date().toISOString().split('T')[0]);
+    try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:date}); }catch(er){}
+    closeModal();
+    showToast('Registre eliminat','success');
+    await loadDayDetail(date);
+  }catch(e){ showToast('Error eliminant: '+(e.message||''),'error'); }
+}
 async function saveTimeEdit(entryId, workerId, originalDT, originalType){
   var newDT = document.getElementById('edit-datetime').value;
   if(!newDT){ showToast('Cal indicar la nova data i hora','error'); return; }
@@ -1844,7 +1861,7 @@ async function saveTimeEdit(entryId, workerId, originalDT, originalType){
 
   try{
     // 1. Guardar auditoria completa
-    var auditObj = {
+    await dbPost('time_entry_edits', {
       entry_id: parseInt(entryId),
       old_value: originalDT,
       new_value: newIso,
@@ -1856,23 +1873,21 @@ async function saveTimeEdit(entryId, workerId, originalDT, originalType){
       reason_text: note || null,
       edited_by_worker_id: parseInt(state.worker.id),
       edited_at: new Date().toISOString()
-    };
-    await dbPost('time_entry_edits', auditObj);
+    });
 
-    // 2. Actualitzar el registre: hora i tipus si ha canviat
+    // 2. Actualitzar el registre
     var patchObj = {entry_datetime: newIso};
     if(newType && newType !== originalType) patchObj.entry_type = newType;
     await dbPatch('time_entries','id=eq.'+entryId, patchObj);
 
-    // 3. Recalcular el daily_record
-    var date = (newIso||newDT).split('T')[0];
+    // 3. Recalcular
+    var date = newIso.split('T')[0];
     try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:date}); }catch(er){}
 
     closeModal();
-    showToast('Fitxada actualitzada i auditoria guardada','success');
+    showToast('Fitxada actualitzada','success');
     await loadDayDetail(date);
   }catch(e){
-    console.error('saveTimeEdit error:', e);
     showToast('Error guardant: '+(e.message||JSON.stringify(e).substring(0,60)),'error');
   }
 }
@@ -1981,7 +1996,7 @@ function openModal(type){
       var cfgRows = await dbGet('app_settings', 'setting_key=like.compute_mode_*&select=setting_key,setting_value');
       cfgRows.forEach(function(r){ computeDefaults[r.setting_key.replace('compute_mode_','')] = r.setting_value; });
     } catch(e) {
-      computeDefaults = { VACATION:'THEORETICAL_HOURS', SICK_LEAVE:'THEORETICAL_HOURS', SICK_DAY:'THEORETICAL_HOURS', PAID_LEAVE:'THEORETICAL_HOURS', HOLIDAY:'ZERO_HOURS' };
+      computeDefaults = { VACANCES:'THEORETICAL_HOURS', BAIXA_MEDICA:'THEORETICAL_HOURS', PERMIS_RETRIBUIT:'THEORETICAL_HOURS', FESTIU:'ZERO_HOURS', NORMAL:'THEORETICAL_HOURS' };
     }
     var maxSickDays = 3;
     try {
@@ -2003,11 +2018,10 @@ function openModal(type){
       '<div class="input-group">'+
         '<label class="input-label">Tipus de perm&iacute;s</label>'+
         '<select id="perm-type" class="input" onchange="updatePermComputeInfo()">'+
-          '<option value="VACATION">&#127958; Vacances</option>'+
-          '<option value="SICK_LEAVE">&#127973; Baixa m&egrave;dica (amb justificant)</option>'+
-          '<option value="SICK_DAY">&#129298; Malaltia domicili&agrave;ria (sense justificant)</option>'+
-          '<option value="PAID_LEAVE">&#128203; Perm&iacute;s legal retribu&iuml;t</option>'+
-          '<option value="HOLIDAY">&#128197; Festiu</option>'+
+          '<option value="VACANCES">&#127958; Vacances</option>'+
+          '<option value="BAIXA_MEDICA">&#127973; Baixa m&egrave;dica</option>'+
+          '<option value="PERMIS_RETRIBUIT">&#128203; Perm&iacute;s retribu&iuml;t</option>'+
+          '<option value="FESTIU">&#128197; Festiu</option>'+
         '</select>'+
       '</div>'+
       '<div id="perm-compute-info" style="margin-bottom:12px;font-size:13px;">'+getComputeInfo('SICK_LEAVE')+'</div>'+
@@ -2955,11 +2969,18 @@ async function loadCardsWorkers(){
   var el=document.getElementById('cards-workers-list');
   var ws=state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*').catch(function(){return[];});
   var html='';
-  ws.forEach(function(w){
-    html+='<div class="worker-item" style="user-select:none;cursor:pointer;align-items:center" id="cw-'+w.id+'" '+
-      'onclick="state.selectedCardWorker='+w.id+';document.querySelectorAll(\"#cards-workers-list .worker-item\").forEach(function(x){x.style.background=\"\";});this.style.background=\"var(--accent-lt)\";">'+
+  ws.forEach(function(w,i){
+    html+='<div class="worker-item" style="align-items:center;cursor:pointer" id="cw-'+w.id+'" '+
+      'onclick="(function(){'+ 
+        'document.querySelectorAll(\"#cards-workers-list .worker-item\").forEach(function(x){x.style.background=\"\";x.querySelector(\"input\").checked=false;});'+
+        'var el=document.getElementById(\"cw-'+w.id+'\");'+
+        'el.style.background=\"var(--accent-lt)\";'+
+        'el.querySelector(\"input\").checked=true;'+
+        'state.selectedCardWorker='+w.id+';'+
+      '})()">'+
+      '<input type="checkbox" class="cw-check" style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;margin-right:4px" onclick="event.stopPropagation()">'+
       '<div class="worker-avatar-sm">'+workerAvatar(w)+'</div>'+
-      '<div style="flex:1"><div style="font-weight:700;font-size:14px">'+(w.display_name||w.employee_code)+'</div>'+
+      '<div style="flex:1;margin-left:10px"><div style="font-weight:700;font-size:14px">'+(w.display_name||w.employee_code)+'</div>'+
       '<div style="font-size:11px;color:var(--text2)">'+(w.employee_code||'')+'</div></div>'+
       '<div id="qr-card-'+w.id+'" style="width:52px;height:52px;flex-shrink:0;border-radius:6px;overflow:hidden;border:1px solid var(--border)"></div>'+
     '</div>';
@@ -3140,38 +3161,45 @@ async function drawCard3B(doc, worker, x, y, w, h){
   doc.setFillColor(255,255,255);
   doc.roundedRect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 1.5, 1.5, 'F');
   try{
-    // Carregar QR com a imatge
-    var qrResp = await fetch(qrUrl);
-    var qrBlob = await qrResp.blob();
-    var qrData = await new Promise(function(r){var fr=new FileReader();fr.onload=function(){r(fr.result);};fr.readAsDataURL(qrBlob);});
-    doc.addImage(qrData,'PNG',qrX,qrY,qrSize,qrSize,'','FAST');
+    if(qrUrl){
+      // qrUrl pot ser data:URL (base64) o URL externa
+      if(qrUrl.startsWith('data:')){
+        doc.addImage(qrUrl,'PNG',qrX,qrY,qrSize,qrSize,'','FAST');
+      } else {
+        var qrResp=await fetch(qrUrl);
+        var qrBlob=await qrResp.blob();
+        var qrData=await new Promise(function(r){var fr=new FileReader();fr.onload=function(){r(fr.result);};fr.readAsDataURL(qrBlob);});
+        doc.addImage(qrData,'PNG',qrX,qrY,qrSize,qrSize,'','FAST');
+      }
+    } else { throw new Error('no qr'); }
   }catch(e){
+    doc.setFillColor(255,255,255);
+    doc.roundedRect(qrX,qrY,qrSize,qrSize,1,1,'F');
     doc.setTextColor(30,144,232);
-    doc.setFontSize(6);
-    doc.text('QR',qrX+qrSize/2,qrY+qrSize/2,{align:'center'});
+    doc.setFontSize(5);
+    doc.text(worker.employee_code||'', qrX+qrSize/2, qrY+qrSize/2, {align:'center'});
   }
   doc.setTextColor(147,197,253);
   doc.setFontSize(4.5);
   doc.setFont('helvetica','normal');
   doc.text('QR ACCES', x+leftW/2, qrY+qrSize+3.5, {align:'center'});
 
-  // ZONA DRETA: nom, carrec, logo, codi
+  // ZONA DRETA: nom, carrec, linia, codi baix-esquerra, logo baix-dreta
   var tx = rightX + 5;
-  var maxW = rightW - 8;
+  var rightEdge = rightX + rightW - 4;
 
-  // Nom
+  // Nom (dalt, gran)
   doc.setTextColor(26,32,44);
   doc.setFont('helvetica','bold');
-  doc.setFontSize(12);
   var nomDisplay = worker.display_name||worker.employee_code;
-  // Partir per espai si es llarg
   var parts = nomDisplay.split(' ');
-  if(parts.length > 1 && nomDisplay.length > 14){
-    doc.text(parts.slice(0,-1).join(' '), tx, y+12);
-    doc.setFontSize(13);
+  if(parts.length > 1 && nomDisplay.length > 12){
+    doc.setFontSize(10);
+    doc.text(parts.slice(0,-1).join(' '), tx, y+11);
+    doc.setFontSize(12);
     doc.text(parts[parts.length-1], tx, y+19);
   } else {
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.text(nomDisplay, tx, y+14);
   }
 
@@ -3179,36 +3207,35 @@ async function drawCard3B(doc, worker, x, y, w, h){
   doc.setFont('helvetica','normal');
   doc.setFontSize(5.5);
   doc.setTextColor(100,116,139);
-  var carrec = worker.carrec||'';
-  doc.text(carrec.toUpperCase(), tx, y+24);
+  doc.text((worker.carrec||'').toUpperCase(), tx, y+25);
 
   // Linia divisoria
   doc.setDrawColor(30,144,232);
   doc.setLineWidth(0.4);
-  doc.line(tx, y+28, rightX+rightW-5, y+28);
+  doc.line(tx, y+29, rightEdge, y+29);
 
-  // Logo Jurislab
-  try{
-    doc.addImage(LOGO_B64,'PNG', tx, y+31, 14, 21, '', 'FAST');
-  }catch(e){
-    doc.setTextColor(30,144,232);
-    doc.setFontSize(6);
-    doc.setFont('helvetica','bold');
-    doc.text('JURISLAB', tx, y+38);
-    doc.setFont('helvetica','normal');
-    doc.setTextColor(100,116,139);
-    doc.text('Advocats', tx, y+43);
-  }
-
-  // Codi empleat (baix dreta)
+  // Codi empleat - baix esquerra
   doc.setFont('helvetica','normal');
   doc.setFontSize(5);
-  doc.setTextColor(203,213,225);
-  doc.text('CODI EMPLEAT', tx, y+h-8);
+  doc.setTextColor(160,180,200);
+  doc.text('CODI EMPLEAT', tx, y+h-9);
   doc.setFont('courier','bold');
-  doc.setFontSize(8);
+  doc.setFontSize(9);
   doc.setTextColor(30,144,232);
   doc.text(worker.employee_code, tx, y+h-3);
+
+  // Logo Jurislab - baix dreta (14x21mm -> escalar a 10x15 per cabre)
+  var logoW=12; var logoH=18;
+  var logoX=rightEdge-logoW;
+  var logoY=y+h-logoH-2;
+  try{
+    doc.addImage(LOGO_B64,'PNG', logoX, logoY, logoW, logoH, '', 'FAST');
+  }catch(e){
+    doc.setTextColor(30,144,232);
+    doc.setFontSize(5);
+    doc.setFont('helvetica','bold');
+    doc.text('JURISLAB', logoX+logoW/2, logoY+logoH/2, {align:'center'});
+  }
 
   // Linia blava peu dret
   doc.setFillColor(30,144,232);
@@ -4022,10 +4049,11 @@ async function loadEditsReport(){
   }catch(e){ el.innerHTML='<div class="empty-state">Error carregant informe</div>'; }
 }
 
-
-
 </script>
 <script>
+
+
+
 
 
 
@@ -4039,6 +4067,9 @@ async function loadEditsReport(){
 
 
 
+
+
+
 </script>
 <script>
 
@@ -4047,7 +4078,13 @@ async function loadEditsReport(){
 
 
 
+
+
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
+
+
 
 
 
