@@ -1961,7 +1961,7 @@ async function saveTimeEdit(entryId, workerId, originalDT, originalType){
     showToast('Fitxada actualitzada','success');
     await loadDayDetail(date);
   }catch(e){
-    showToast('Error guardant: '+(e.message||JSON.stringify(e).substring(0,60)),'error');
+    console.error('saveTimeEdit error:', e); showToast('Error guardant: '+(e.message||JSON.stringify(e).substring(0,80)),'error');
   }
 }
 
@@ -1999,12 +1999,29 @@ async function loadDayDetail(date){
     document.getElementById('day-summary-cards').innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px"><div class="stat-box"><div class="stat-val">'+minsToHM(record.worked_minutes||0)+'</div><div class="stat-lbl">Treballat</div></div><div class="stat-box"><div class="stat-val" style="color:'+(bal>=0?'var(--accent)':'var(--warn)')+'">'+( bal>=0?'+':'')+minsToHM(bal)+'</div><div class="stat-lbl">Saldo</div></div></div>'+(record.status?'<div>'+dayStatusTag(record.status)+'</div>':'');
     // Boto afegir registre (admin o si allow_worker_edits)
     var canAdd=state.worker&&(state.worker.role==='ADMIN'||(state.settings&&state.settings.allow_worker_edits!=='false'));
-    var addBtn=canAdd?
-      '<button onclick="addTimeEntry(\''+workDate+'\')" class="btn btn-ghost" style="padding:6px 12px;font-size:12px;margin-bottom:12px">+ Afegir registre</button>':'';
-    document.getElementById('day-summary-cards').insertAdjacentHTML('afterend',addBtn?'<div>'+addBtn+'</div>':'');
+    if(canAdd){
+      var addBtnEl=document.createElement('div');
+      addBtnEl.style.marginBottom='8px';
+      var addBtnInner=document.createElement('button');
+      addBtnInner.className='btn btn-ghost';
+      addBtnInner.style.cssText='padding:6px 12px;font-size:12px';
+      addBtnInner.textContent='+ Afegir registre';
+      addBtnInner.onclick=function(){ addTimeEntry(date); };
+      addBtnEl.appendChild(addBtnInner);
+      document.getElementById('day-summary-cards').insertAdjacentElement('afterend',addBtnEl);
+    }
 
     var tl=document.getElementById('day-timeline');
     if(!entries.length){tl.innerHTML='<div class="empty-state">Cap entrada per a aquest dia</div>';return;}
+    // Carregar edicions per badge EDITAT
+    var editedIds={};
+    try{
+      var entryIds=entries.map(function(e){return e.id;}).join(',');
+      if(entryIds){
+        var edits=await dbGet('time_entry_edits','entry_id=in.('+entryIds+')&select=entry_id');
+        edits.forEach(function(ed){editedIds[ed.entry_id]=true;});
+      }
+    }catch(edErr){}
     var typeL={START:'Inici de jornada',END:'Final de jornada',PAUSE_START:'Inici pausa',PAUSE_END:'Fi pausa'};
     tl.innerHTML=entries.map(function(e,idx){
       var t=new Date(e.entry_datetime).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'});
@@ -2018,10 +2035,9 @@ async function loadDayDetail(date){
         if(diffMin>0) durHtml='<div style="font-size:11px;color:var(--text3);margin-left:2px;">+'+diffMin+'min</div>';
       }
       var canEdit=state.worker&&(state.worker.role==='ADMIN'||(state.settings&&state.settings.allow_worker_edits!=='false'));
-      var editBtn=canEdit?'<button onclick="editTimeEntry('+e.id+','+e.worker_id+')" style="margin-left:auto;background:none;border:1px solid var(--accent);color:var(--accent);font-size:11px;cursor:pointer;padding:2px 8px;border-radius:4px">Editar</button>':'';
-      var canEdit=state.worker&&(state.worker.role==='ADMIN'||(state.settings&&state.settings.allow_worker_edits!=='false'));
       var editBtn=canEdit?'<button onclick="editTimeEntry('+e.id+','+e.worker_id+')" style="margin-left:auto;flex-shrink:0;background:none;border:1px solid var(--accent);color:var(--accent);font-size:11px;cursor:pointer;padding:2px 8px;border-radius:4px">Editar</button>':'';
-      return '<div class="timeline-item" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div class="timeline-dot '+dc+'" style="flex-shrink:0"></div><div style="flex:1"><div class="timeline-time">'+t+durHtml+'</div><div class="timeline-type">'+lbl+'</div></div>'+editBtn+'</div>'
+      var editBadge=editedIds[e.id]?'<span style="font-size:9px;background:#FFF3CD;color:#856404;padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700">EDITAT</span>':'';
+      return '<div class="timeline-item" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><div class="timeline-dot '+dc+'" style="flex-shrink:0"></div><div style="flex:1"><div class="timeline-time">'+t+durHtml+'</div><div class="timeline-type">'+lbl+editBadge+'</div></div>'+editBtn+'</div>'
     }).join('');
   }catch(e){document.getElementById('day-summary-cards').innerHTML='<div class="empty-state">Error carregant detall</div>';}
 }
@@ -4149,7 +4165,11 @@ async function loadEditsReport(){
 
 
 
+
+
 (function(){try{var el=document.getElementById('__ac__');if(!el)return;var code=el.textContent||el.innerHTML;var b=new Blob([code],{type:'application/javascript'});var u=URL.createObjectURL(b);var s=document.createElement('script');s.src=u;s.onload=function(){try{URL.revokeObjectURL(u);}catch(e){}};s.onerror=function(){try{URL.revokeObjectURL(u);var sc=document.createElement('script');sc.textContent=code;document.head.appendChild(sc);}catch(e){}};document.head.appendChild(s);}catch(e){}})();
+
+
 
 
 
@@ -4178,7 +4198,11 @@ async function loadEditsReport(){
 
 
 
+
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
+
 
 
 
