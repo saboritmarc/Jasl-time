@@ -1084,6 +1084,8 @@ textarea.input{resize:vertical;min-height:80px;}
 
 
 
+
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -1128,7 +1130,8 @@ function showPage(pageId){
 }
 
 function showAdminPage(name){ var pm={workers:'workers','all-records':'all-records','all-perms':'all-perms','all-balances':'all-balances',exports:'exports',cards:'cards',settings:'settings'}; showPage(pm[name]||name); if(name==='workers')loadWorkers(); if(name==='all-records')loadAllRecords(); if(name==='all-perms'){loadAllPerms();loadPendingPermsCount();} if(name==='all-balances')loadAllBalances(); if(name==='exports')loadExportWorkers(); if(name==='cards')loadCardsWorkers(); if(name==='settings'){ loadSettings(); loadComputeSettings(); }
-  if(name==='access-logs'){ loadAccessLogs(); } }
+  if(name==='access-logs'){ loadAccessLogs(); }
+  if(name==='edits-report'){ setTimeout(function(){loadEditsReport();},50); } }
 
 function switchTab(tab){
   var tabs=['home','history','perms','vacances','balance','profile'];
@@ -2200,9 +2203,15 @@ function openModal(type){
 }
 
 async function savePerm(){
-  var type=document.getElementById('perm-type').value; var start=document.getElementById('perm-start').value; var end=document.getElementById('perm-end').value; var comment=document.getElementById('perm-comment').value;
+  var type=document.getElementById('perm-type').value;
+  var start=document.getElementById('perm-start').value;
+  var end=document.getElementById('perm-end').value;
+  var comment=document.getElementById('perm-comment').value;
   if(!start||!end){showToast('Dates obligatories','error');return;}
   if(end<start){showToast('La data de fi no pot ser anterior a l\'inici','error');return;}
+  var computeMode=(window._computeDefaults&&window._computeDefaults[type])||'THEORETICAL_HOURS';
+  // VACANCES per treballador -> PENDING; resta -> APPROVED
+  var approvalStatus=(type==='VACANCES'&&state.worker&&state.worker.role!=='ADMIN')?'PENDING':'APPROVED';
   try{
     var computeMode = (window._computeDefaults&&window._computeDefaults[type])||'THEORETICAL_HOURS';
     // VACANCES sol&#183;licitades per treballador -> sempre PENDING
@@ -2243,6 +2252,7 @@ async function savePerm(){
 }
 
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+
 
 async function deleteMyPerm(id){
   if(!confirm('Segur que vols eliminar aquesta sol.licitud?')) return;
@@ -4306,8 +4316,12 @@ async function loadEditsReport(){
 
 
 
+
+
 </script>
 <script>
+
+
 
 
 
@@ -4363,6 +4377,8 @@ async function loadEditsReport(){
 
 
 
+
+
 </script>
 <script>
 
@@ -4392,7 +4408,11 @@ async function loadEditsReport(){
 
 
 
+
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
+
 
 
 
