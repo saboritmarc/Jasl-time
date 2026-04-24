@@ -1091,6 +1091,8 @@ textarea.input{resize:vertical;min-height:80px;}
 
 
 
+
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -1551,7 +1553,8 @@ async function saveVacances(){
       approval_status: approvalStatus
     });
     closeModal();
-    showToast(requiresApproval?'Sol\u00b7licitud enviada - pendent d\'aprovaci\u00f3':'Vacances registrades','success');
+    var isPending=(state.worker&&state.worker.role!=='ADMIN');
+    showToast(isPending?'Sol\u00b7licitud enviada - pendent d\'aprovaci\u00f3':'Vacances registrades','success');
     switchVacancesView('individual');
   }catch(e){ showToast((e&&e.message)||'Error guardant vacances','error'); }
 }
@@ -2229,46 +2232,26 @@ async function savePerm(){
   if(!start||!end){showToast('Dates obligatories','error');return;}
   if(end<start){showToast('La data de fi no pot ser anterior a l\'inici','error');return;}
   var computeMode=(window._computeDefaults&&window._computeDefaults[type])||'THEORETICAL_HOURS';
-  // VACANCES per treballador -> PENDING; resta -> APPROVED
-  var approvalStatus=(type==='VACANCES'&&state.worker&&state.worker.role!=='ADMIN')?'PENDING':'APPROVED';
+  var isPending=(type==='VACANCES'&&state.worker&&state.worker.role!=='ADMIN');
+  var approvalStatus=isPending?'PENDING':'APPROVED';
   try{
-    var computeMode = (window._computeDefaults&&window._computeDefaults[type])||'THEORETICAL_HOURS';
-    // VACANCES sol&#183;licitades per treballador -> sempre PENDING
-    var approvalStatus = (type==='VACANCES'&&state.worker&&state.worker.role!=='ADMIN') ? 'PENDING' : 'APPROVED';
-
     try{
-      await rpc('create_day_status',{p_worker_id:parseInt(state.worker.id),p_day_type:type,p_start_date:start,p_end_date:end,p_comment:comment,p_compute_mode:computeMode});
-      // Update approval_status after creation
-      var newPerms = await dbGet('day_status','worker_id=eq.'+state.worker.id+'&day_type=eq.'+type+'&start_date=eq.'+start+'&select=id&order=id.desc&limit=1');
-      if(newPerms[0]) await dbPatch('day_status','id=eq.'+newPerms[0].id,{approval_status:approvalStatus});
-    }
-    catch(e1){
-      await dbPost('day_status',{worker_id:state.worker.id,day_type:type,start_date:start,end_date:end,compute_mode:computeMode,comment:comment,is_active:true,approval_status:approvalStatus});
+      await rpc('create_day_status',{p_worker_id:parseInt(state.worker.id),p_day_type:type,
+        p_start_date:start,p_end_date:end,p_comment:comment,p_compute_mode:computeMode});
+      var np=await dbGet('day_status','worker_id=eq.'+state.worker.id+'&day_type=eq.'+type+
+        '&start_date=eq.'+start+'&select=id&order=id.desc&limit=1');
+      if(np[0]) await dbPatch('day_status','id=eq.'+np[0].id,{approval_status:approvalStatus});
+    }catch(e1){
+      await dbPost('day_status',{worker_id:state.worker.id,day_type:type,start_date:start,
+        end_date:end,compute_mode:computeMode,comment:comment,is_active:true,
+        approval_status:approvalStatus});
     }
     closeModal();
-    var msg = requiresApproval ? 'Sol.licitud enviada - pendent d\'aprovacio' : 'Permis creat';
-    showToast(msg,'success');
-    // Notificacio email si cal
-    if(requiresApproval){
-      try{
-        var emailRow=await dbGet('app_settings','setting_key=eq.admin_email&select=setting_value');
-        var notifyRow=await dbGet('app_settings','setting_key=eq.notify_email_on_perm&select=setting_value');
-        if(emailRow[0]&&notifyRow[0]&&notifyRow[0].setting_value==='true'){
-          fetch(SUPABASE_URL+'/functions/v1/notify-perm-request',{
-            method:'POST',
-            headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPABASE_KEY},
-            body:JSON.stringify({
-              worker_name:state.worker.display_name||state.worker.employee_code,
-              perm_type:type, start_date:start, end_date:end,
-              admin_email:emailRow[0].setting_value
-            })
-          }).catch(function(){});
-        }
-      }catch(e){}
-    }
+    showToast(isPending?'Sol&#183;licitud enviada - pendent d\'aprovaci&#243;':'Perm&#237;s creat','success');
     loadMyPerms();
-  }catch(e){showToast((e&&e.message)?e.message:'Error creant permis','error');}
+  }catch(e){showToast((e&&e.message)?e.message:'Error creant perm&#237;s','error');}
 }
+
 
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
 
@@ -4580,8 +4563,12 @@ async function exportEditsReport(){
 
 
 
+
+
 </script>
 <script>
+
+
 
 
 
@@ -4647,6 +4634,8 @@ async function exportEditsReport(){
 
 
 
+
+
 </script>
 <script>
 
@@ -4681,7 +4670,11 @@ async function exportEditsReport(){
 
 
 
+
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
+
 
 
 
