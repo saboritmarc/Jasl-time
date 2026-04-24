@@ -1082,6 +1082,7 @@ textarea.input{resize:vertical;min-height:80px;}
 <script type="text/plain" id="__ac__">
 
 
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -4264,59 +4265,57 @@ async function loadEditsReport(){
   if(!el) return;
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
   try{
-    // Carregar totes les edicions amb context
     var edits=await dbGet('time_entry_edits','order=edited_at.desc&select=*&limit=200');
     var workers=state.allWorkers.length?state.allWorkers:
       await dbGet('workers','is_active=eq.true&select=id,display_name,employee_code').catch(function(){return[];});
     if(!edits||!edits.length){
       el.innerHTML='<div class="empty-state">Cap edicio registrada</div>'; return;
     }
-    var typeLabels={START:'Inici jornada',PAUSE_START:'Inici pausa',PAUSE_END:'Fi pausa',END:'Fi jornada'};
+    var typeL={START:'Inici jornada',PAUSE_START:'Inici pausa',PAUSE_END:'Fi pausa',END:'Fi jornada'};
     el.innerHTML=edits.map(function(e){
       var wData=workers.find(function(w){return String(w.id)===String(e.worker_id);});
-      var workerName=wData?(wData.display_name||wData.employee_code):('Worker #'+e.worker_id);
+      var wName=wData?(wData.display_name||wData.employee_code):('Worker #'+e.worker_id);
       var date=e.work_date||'?';
       var editedAt=new Date(e.edited_at).toLocaleString('ca',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
       var origDT=e.old_datetime||e.old_value;
       var newDT=e.new_datetime||e.new_value;
       var origTime=origDT?new Date(origDT).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'}):'?';
       var newTime=newDT?new Date(newDT).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'}):'?';
-      var origType=typeLabels[e.old_entry_type]||e.old_entry_type||'';
-      var newType=typeLabels[e.new_entry_type]||e.new_entry_type||'';
-      var typeChanged=e.old_entry_type&&e.new_entry_type&&e.old_entry_type!==e.new_entry_type;
-      var timeChanged=origTime!==newTime;
-      return '<div class="card" style="margin-bottom:10px">'+
-        '<div style="display:flex;justify-content:space-between;margin-bottom:8px">'+
-          '<div><span style="font-weight:700">'+workerName+'</span>'+
+      var origType=typeL[e.old_entry_type]||e.old_entry_type||'';
+      var newType=typeL[e.new_entry_type]||e.new_entry_type||'';
+      return '<div class="card" style="margin-bottom:10px;padding:14px">'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center">'+
+          '<div><span style="font-weight:700">'+wName+'</span>'+
           '<span style="color:var(--text2);font-size:12px;margin-left:8px">'+date+'</span></div>'+
-          '<span style="font-size:11px;color:var(--text3)">'+editedAt+'</span>'+
+          '<span style="font-size:11px;color:var(--text2)">'+editedAt+'</span>'+
         '</div>'+
-        '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin-bottom:8px">'+
-          '<div style="background:var(--surface2);border-radius:8px;padding:8px 10px">'+
-            '<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Original</div>'+
-            '<div style="font-family:var(--mono);font-weight:700;color:var(--text)">'+origTime+'</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
+          '<div style="background:var(--surface2);border-radius:8px;padding:6px 10px;flex:1">'+
+            '<div style="font-size:10px;color:var(--text2);margin-bottom:2px">Original</div>'+
+            '<div style="font-weight:700;font-size:14px">'+origTime+'</div>'+
             (origType?'<div style="font-size:11px;color:var(--text2)">'+origType+'</div>':'')+
           '</div>'+
-          '<div style="font-size:18px;color:var(--accent)">&#8594;</div>'+
-          '<div style="background:var(--accent-lt);border:1px solid var(--accent);border-radius:8px;padding:8px 10px">'+
-            '<div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">Editat</div>'+
-            '<div style="font-family:var(--mono);font-weight:700;color:var(--accent)">'+newTime+'</div>'+
+          '<div style="font-size:20px;color:var(--accent)">&rarr;</div>'+
+          '<div style="background:var(--accent-lt);border:1px solid var(--accent);border-radius:8px;padding:6px 10px;flex:1">'+
+            '<div style="font-size:10px;color:var(--accent);margin-bottom:2px">Nou valor</div>'+
+            '<div style="font-weight:700;font-size:14px;color:var(--accent)">'+newTime+'</div>'+
             (newType?'<div style="font-size:11px;color:var(--accent)">'+newType+'</div>':'')+
           '</div>'+
         '</div>'+
-        '<div style="font-size:12px;color:var(--text2)">'+
-          '<span style="font-weight:700">Motiu: </span>'+e.reason_code+
-          (e.reason_text?'<span style="margin-left:8px;color:var(--text3)">'+e.reason_text+'</span>':'')+
+        '<div style="font-size:12px;padding:6px 10px;background:var(--surface2);border-radius:6px">'+
+          '<span style="font-weight:700">Motiu: </span>'+(e.reason_code||'-')+
+          (e.reason_text&&e.reason_text!=='-'?'<span style="margin-left:8px;color:var(--text2)">'+e.reason_text+'</span>':'')+
         '</div>'+
-        (typeChanged?'<div style="margin-top:4px;font-size:11px;background:#FFF8E6;border-radius:6px;padding:4px 8px;color:#C07800">&#9888; Tipus canviat</div>':'')+
       '</div>';
     }).join('');
-  }catch(e){ el.innerHTML='<div class="empty-state">Error carregant informe</div>'; }
+  }catch(ex){ el.innerHTML='<div class="empty-state">Error: '+ex.message+'</div>'; }
 }
+
 
 
 </script>
 <script>
+
 
 
 
@@ -4368,6 +4367,7 @@ async function loadEditsReport(){
 
 
 
+
 </script>
 <script>
 
@@ -4395,7 +4395,9 @@ async function loadEditsReport(){
 
 
 
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
 
 
 
