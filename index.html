@@ -559,6 +559,7 @@ textarea.input{resize:vertical;min-height:80px;}
 
 
 
+
 var SUPABASE_URL = 'https://fywkafpfcnqynvjdedfj.supabase.co';
 var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d2thZnBmY25xeW52amRlZGZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwODY1MjQsImV4cCI6MjA4ODY2MjUyNH0.G5UDh7jrjlHkjoEMMsqPipzzIWTkvOEsbgdhd61vJiQ';
 
@@ -2223,12 +2224,78 @@ async function doAdminClockAction(action){
 }
 
 async function loadExportWorkers(){
-  var sel=document.getElementById('export-worker-select');
-  var ws=state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*').catch(function(){return[];});
-  var opts='<option value="">Selecciona treballador</option>';
-  ws.forEach(function(w){ opts+='<option value="'+w.id+'">'+(w.display_name||w.employee_code)+'</option>'; });
-  sel.innerHTML=opts;
+  var el=document.getElementById('exports-content');
+  if(!el) return;
+  var ws=state.allWorkers.length?state.allWorkers:
+    await dbGet('workers','is_active=eq.true&select=*').catch(function(){return[];});
+  var year=new Date().getFullYear();
+  var mNames=['Gener','Febrer','Marc','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var curMonth=new Date().getMonth()+1;
+  var workerOpts='<option value="">Tots els treballadors</option>'+
+    ws.map(function(w){return '<option value="'+w.id+'">'+(w.display_name||w.employee_code)+'</option>';}).join('');
+  var monthOpts=mNames.map(function(n,i){
+    return '<option value="'+(i+1)+'"'+((i+1)===curMonth?' selected':'')+'>'+n+'</option>';
+  }).join('');
+
+  el.innerHTML=
+    '<div class="section-title">Exportar registres</div>'+
+    '<div class="card" style="margin-bottom:16px">'+
+      '<div class="input-group"><label class="input-label">Format d\'exportaci&#243;</label>'+
+        '<select id="exp-format" class="input" onchange="updateExportUI()">'+
+          '<option value="01_mensual">01 &#183; Registre mensual individual (amb pauses)</option>'+
+          '<option value="02_mensual_edicions">02 &#183; Registre mensual amb edicions</option>'+
+          '<option value="03_anual_mesos">03 &#183; Registre anual per mesos + resum</option>'+
+          '<option value="04_saldo_acumulat">04 &#183; Saldo acumulat anual</option>'+
+          '<option value="05_global_mes">05 &#183; Global tots treballadors (mes)</option>'+
+        '</select>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px">'+
+        '<div class="input-group" style="flex:2"><label class="input-label">Treballador</label>'+
+          '<select id="exp-worker" class="input">'+workerOpts+'</select>'+
+        '</div>'+
+        '<div class="input-group" style="flex:1"><label class="input-label">Any</label>'+
+          '<input type="number" id="exp-year" class="input" value="'+year+'" min="2020" max="2035">'+
+        '</div>'+
+      '</div>'+
+      '<div id="exp-month-row" class="input-group"><label class="input-label">Mes</label>'+
+        '<select id="exp-month" class="input">'+monthOpts+'</select>'+
+      '</div>'+
+      '<button class="btn btn-primary btn-full" onclick="runExport()">&#128190; Generar Excel</button>'+
+    '</div>';
 }
+
+function updateExportUI(){
+  var fmt=document.getElementById('exp-format');
+  if(!fmt) return;
+  var v=fmt.value;
+  var mr=document.getElementById('exp-month-row');
+  var ew=document.getElementById('exp-worker');
+  // Mes: visible per formats mensuals
+  if(mr) mr.style.display=(v==='01_mensual'||v==='02_mensual_edicions'||v==='05_global_mes')?'block':'none';
+  // Format 05 global: forcar tots (no selecci&#243; individual)
+  if(ew){
+    if(v==='05_global_mes'){ ew.value=''; ew.disabled=true; }
+    else { ew.disabled=false; }
+  }
+}
+
+async function runExport(){
+  var fmt=(document.getElementById('exp-format')||{value:'01_mensual'}).value;
+  var wId=(document.getElementById('exp-worker')||{value:''}).value;
+  var year=parseInt((document.getElementById('exp-year')||{value:new Date().getFullYear()}).value)||new Date().getFullYear();
+  var month=parseInt((document.getElementById('exp-month')||{value:new Date().getMonth()+1}).value)||new Date().getMonth()+1;
+  var allWorkers=state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*');
+  var targets=wId?allWorkers.filter(function(w){return String(w.id)===String(wId);}):allWorkers;
+  if(!targets.length){ showToast('Cap treballador seleccionat','error'); return; }
+  showToast('Generant Excel...','success');
+  await loadSheetJS();
+  if(fmt==='01_mensual') await exportFormat01(targets,year,month,false);
+  else if(fmt==='02_mensual_edicions') await exportFormat01(targets,year,month,true);
+  else if(fmt==='03_anual_mesos') await exportFormat03(targets,year);
+  else if(fmt==='04_saldo_acumulat') await exportFormat04(targets,year);
+  else if(fmt==='05_global_mes') await exportFormat05(allWorkers,year,month);
+}
+
 
 function loadSheetJS(){
   if(window.XLSX) return Promise.resolve();
@@ -4354,8 +4421,10 @@ async function exportEditsReport(){
 
 
 
+
 </script>
 <script>
+
 
 
 
@@ -4433,6 +4502,7 @@ async function exportEditsReport(){
 
 
 
+
 </script>
 <script>
 
@@ -4473,7 +4543,9 @@ async function exportEditsReport(){
 
 
 
+
 (function(){try{var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);var shown=false;try{shown=!!localStorage.getItem('pwa_ok');}catch(e){shown=true;}if(isIOS&&!window.navigator.standalone&&!shown){setTimeout(function(){var d=document.createElement('div');d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1E90E8;color:#fff;padding:14px 16px;z-index:9999;display:flex;align-items:center;gap:12px;font-size:13px';var msg=document.createElement('div');msg.style.flex='1';msg.innerHTML='<strong>Instal&middot;la JASL Time</strong><br>Compartir &rsaquo; Afegir a pantalla d&apos;inici';var btn=document.createElement('button');btn.textContent='Ara no';btn.style.cssText='background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer';btn.onclick=function(){d.remove();try{localStorage.setItem('pwa_ok','1');}catch(e){}};d.appendChild(msg);d.appendChild(btn);document.body.appendChild(d);},3000);}}catch(e){}})();
+
 
 
 
