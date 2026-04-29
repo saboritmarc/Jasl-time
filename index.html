@@ -7239,5 +7239,371 @@ if(typeof window!=='undefined'){
 }
 
 </script>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// v9 · Correccions finals: Excel amb estils, permisos robustos, calendari
+// amb marge inferior, i lector QR més fiable.
+// ─────────────────────────────────────────────────────────────────────────────
+(function(){
+  function installJASLV9(){
+    try{
+      // 1) Evitar que el calendari anual quedi tapat pel menú inferior fix.
+      if(!document.getElementById('jasl-v9-calendar-css')){
+        var st=document.createElement('style');
+        st.id='jasl-v9-calendar-css';
+        st.textContent='\n#page-vacances-content{padding-bottom:112px!important;scroll-padding-bottom:112px!important;}\n#page-vacances .content{padding-bottom:112px!important;}\n.vacances-year-wrap{margin-bottom:12px;}\n@media(max-width:520px){#page-vacances-content .vac-year-grid{grid-template-columns:1fr!important;}}\n';
+        document.head.appendChild(st);
+      }
+
+      // 2) Excel: carregar sempre xlsx-js-style abans d'exportar i descarregar via Blob.
+      window.loadSheetJS = async function loadSheetJS_V9(){
+        function addScript(src){
+          return new Promise(function(resolve,reject){
+            var scripts=[].slice.call(document.querySelectorAll('script'));
+            var existing=scripts.find(function(s){return (s.src||'').indexOf(src)>=0;});
+            if(existing){
+              if(existing.getAttribute('data-loaded')==='1') return resolve();
+              existing.addEventListener('load',function(){existing.setAttribute('data-loaded','1');resolve();});
+              existing.addEventListener('error',reject);
+              return;
+            }
+            var s=document.createElement('script');
+            s.src=src;
+            s.onload=function(){s.setAttribute('data-loaded','1');resolve();};
+            s.onerror=reject;
+            document.head.appendChild(s);
+          });
+        }
+        try{
+          // Encara que ja hi hagi SheetJS estàndard carregat, carreguem la versió amb estils.
+          await addScript('https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js');
+          if(!(window.XLSX&&window.XLSX.utils)) throw new Error('xlsx-js-style no inicialitzat');
+          window.__jasl_xlsx_style_loaded=true;
+        }catch(e){
+          if(!(window.XLSX&&window.XLSX.utils)){
+            await addScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+          }
+        }
+        if(!(window.XLSX&&window.XLSX.utils)) throw new Error('No s’ha pogut carregar la llibreria Excel');
+      };
+
+      window.appendStyledSheetV4 = function appendStyledSheetV4_V9(wb, rows, name, opts){
+        opts=opts||{}; rows=rows||[];
+        var ws=XLSX.utils.aoa_to_sheet(rows);
+        var cols=opts.cols||(typeof autoColsV4==='function'?autoColsV4(rows,opts.minWidth||10,opts.maxWidth||85):[]);
+        ws['!cols']=cols;
+        if(typeof rowHeightsV4==='function') ws['!rows']=rowHeightsV4(rows,cols);
+        if(opts.merges) ws['!merges']=opts.merges;
+        try{
+          var ref=ws['!ref'];
+          if(ref){
+            var range=XLSX.utils.decode_range(ref);
+            for(var R=range.s.r; R<=range.e.r; R++){
+              for(var C=range.s.c; C<=range.e.c; C++){
+                var cellRef=XLSX.utils.encode_cell({r:R,c:C});
+                if(!ws[cellRef]) ws[cellRef]={t:'s',v:''};
+                var style='base';
+                if((opts.headerRows||[]).indexOf(R)>=0) style='header';
+                else if((opts.titleRows||[]).indexOf(R)>=0) style='title';
+                else if((opts.boldRows||[]).indexOf(R)>=0) style='bold';
+                else if((opts.redRows||[]).indexOf(R)>=0) style='red';
+                ws[cellRef].s=(typeof xlStyleV4==='function'?xlStyleV4(style):{});
+              }
+            }
+          }
+        }catch(e){console.warn('Estils Excel no aplicats completament',e);}
+        XLSX.utils.book_append_sheet(wb,ws,name);
+        return ws;
+      };
+
+      window.downloadWorkbookV4 = function downloadWorkbookV4_V9(wb,fileName){
+        if(!wb||!wb.SheetNames||!wb.SheetNames.length) throw new Error('No hi ha cap fulla per exportar');
+        fileName=String(fileName||'export.xlsx').replace(/[\\/:*?"<>|]+/g,'_');
+        var out=XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true});
+        var blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        var a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=fileName;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function(){try{URL.revokeObjectURL(a.href);}catch(e){} a.remove();},700);
+      };
+
+      // Cobrir també els botons antics, si el navegador manté la interfície antiga en cache.
+      window.generateWorkerExcel = async function generateWorkerExcel_V9(wId, month, year){
+        await window.loadSheetJS();
+        var workers=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*');
+        var w=workers.find(function(x){return String(x.id)===String(wId);});
+        if(!w) throw new Error('Treballador no trobat');
+        return exportFormat01([w],parseInt(year,10),parseInt(month,10),false);
+      };
+      window.generateAllWorkersMonthExcel = async function generateAllWorkersMonthExcel_V9(month, year){
+        await window.loadSheetJS();
+        var workers=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*&order=display_name.asc');
+        return exportFormat05(workers,parseInt(year,10),parseInt(month,10));
+      };
+      window.generateAnalyticsExcel = async function generateAnalyticsExcel_V9(year){
+        await window.loadSheetJS();
+        var workers=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*&order=display_name.asc');
+        return exportFormat03(workers,parseInt(year,10));
+      };
+      window.callExport = async function callExport_V9(type){
+        var month=parseInt((document.getElementById('export-month')||{}).value,10)||new Date().getMonth()+1;
+        var year=parseInt((document.getElementById('export-year')||{}).value,10)||new Date().getFullYear();
+        await window.loadSheetJS();
+        if(type==='individual'){
+          var wId=(document.getElementById('export-worker-select')||{}).value;
+          if(!wId){showToast('Selecciona un treballador','error');return;}
+          return window.generateWorkerExcel(wId,month,year);
+        }
+        if(type==='all-month') return window.generateAllWorkersMonthExcel(month,year);
+        if(type==='analytics') return window.generateAnalyticsExcel(year);
+      };
+
+      // 3) Permisos: inserció robusta per tots els tipus, inclosa malaltia sense justificant.
+      function uniqueList(arr){var seen={};return arr.filter(function(x){if(!x||seen[x])return false;seen[x]=1;return true;});}
+      async function recalcPermRangeV9(workerId,start,end){
+        try{
+          var d=new Date(start+'T12:00:00'), e=new Date(end+'T12:00:00');
+          for(; d<=e; d.setDate(d.getDate()+1)){
+            try{await rpc('recalculate_daily_record',{p_worker_id:parseInt(workerId,10),p_work_date:localDateISO?localDateISO(d):(d.toISOString().split('T')[0])});}catch(x){}
+          }
+        }catch(e){}
+      }
+      async function insertDayStatusV9(payload, preferredType){
+        var aliases=[preferredType];
+        if(preferredType==='SICK_DAY') aliases.push('BAIXA_MEDICA','SICK_LEAVE');
+        if(preferredType==='BAIXA_MEDICA') aliases.push('SICK_LEAVE');
+        if(preferredType==='PERMIS_RETRIBUIT') aliases.push('PAID_LEAVE');
+        if(preferredType==='FESTIU') aliases.push('HOLIDAY');
+        if(preferredType==='VACANCES') aliases.push('VACATION');
+        aliases=uniqueList(aliases);
+        var errors=[];
+        for(var i=0;i<aliases.length;i++){
+          var t=aliases[i];
+          var body=Object.assign({},payload,{day_type:t});
+          if(preferredType==='SICK_DAY' && t!=='SICK_DAY'){
+            body.comment=('Malaltia sense justificant'+(payload.comment?': '+payload.comment:''));
+          }
+          try{
+            await dbPost('day_status',body);
+            await recalcPermRangeV9(body.worker_id,body.start_date,body.end_date);
+            return {ok:true,day_type:t};
+          }catch(e1){errors.push(e1);}
+          try{
+            await rpc('create_day_status',{p_worker_id:parseInt(body.worker_id,10),p_day_type:t,p_start_date:body.start_date,p_end_date:body.end_date,p_comment:body.comment||'',p_compute_mode:body.compute_mode||'THEORETICAL_HOURS'});
+            try{
+              var q='worker_id=eq.'+body.worker_id+'&day_type=eq.'+encodeURIComponent(t)+'&start_date=eq.'+body.start_date+'&end_date=eq.'+body.end_date+'&select=id&order=id.desc&limit=1';
+              var rows=await dbGet('day_status',q);
+              if(rows&&rows[0]) await dbPatch('day_status','id=eq.'+rows[0].id,{approval_status:body.approval_status||'APPROVED'});
+            }catch(patchErr){}
+            await recalcPermRangeV9(body.worker_id,body.start_date,body.end_date);
+            return {ok:true,day_type:t};
+          }catch(e2){errors.push(e2);}
+        }
+        var msg='';
+        try{msg=(errors[errors.length-1]&&errors[errors.length-1].message)||JSON.stringify(errors[errors.length-1]);}catch(e){}
+        throw new Error(msg||'No s’ha pogut crear el permís');
+      }
+      window.savePerm = async function savePerm_V9(){
+        var type=(document.getElementById('perm-type')||{}).value;
+        var start=(document.getElementById('perm-start')||{}).value;
+        var end=(document.getElementById('perm-end')||{}).value;
+        var comment=(document.getElementById('perm-comment')||{}).value||'';
+        if(!type){showToast('Cal seleccionar el tipus de permís','error');return;}
+        if(!start||!end){showToast('Dates obligatòries','error');return;}
+        if(end<start){showToast('La data de fi no pot ser anterior a l’inici','error');return;}
+        var computeDefaults=window._computeDefaults||{};
+        var computeMode=computeDefaults[type]||'THEORETICAL_HOURS';
+        if(type==='FESTIU' && !computeDefaults[type]) computeMode='ZERO_HOURS';
+        var isPending=(type==='VACANCES'&&state.worker&&String(state.worker.role).toUpperCase()!=='ADMIN');
+        var payload={
+          worker_id:parseInt(state.worker.id,10),
+          day_type:type,
+          start_date:start,
+          end_date:end,
+          compute_mode:computeMode,
+          comment:comment,
+          is_active:true,
+          approval_status:isPending?'PENDING':'APPROVED'
+        };
+        try{
+          var res=await insertDayStatusV9(payload,type);
+          closeModal();
+          var fallback=(type==='SICK_DAY'&&res.day_type!=='SICK_DAY')?' Guardat com a baixa mèdica amb nota de malaltia sense justificant.':'';
+          showToast((isPending?'Sol·licitud enviada - pendent d’aprovació':'Permís creat')+fallback,'success');
+          if(typeof loadMyPerms==='function') loadMyPerms();
+          if(typeof checkPendingPerms==='function') checkPendingPerms();
+        }catch(e){
+          console.error('savePerm v9',e);
+          showToast('Error creant permís: '+(e&&e.message?e.message:''),'error');
+        }
+      };
+
+      // 4) QR de targeta amb zona blanca de seguretat i millor correcció d'errors.
+      window.generateBlueQRDataURLV7 = async function generateBlueQRDataURLV9(text){
+        text=String(text||'').trim();
+        if(!text) return null;
+        return new Promise(function(resolve){
+          function loadQRCodeJs(done){
+            if(typeof QRCode!=='undefined' && QRCode.CorrectLevel){done();return;}
+            var s=document.createElement('script');
+            s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+            s.onload=done; s.onerror=function(){resolve(null);};
+            document.head.appendChild(s);
+          }
+          loadQRCodeJs(function(){
+            try{
+              var holder=document.createElement('div');
+              holder.style.cssText='position:absolute;left:-9999px;top:-9999px;background:#fff;width:380px;height:380px;padding:0;';
+              document.body.appendChild(holder);
+              new QRCode(holder,{text:text,width:320,height:320,colorDark:'#126FC3',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+              setTimeout(function(){
+                try{
+                  var srcCanvas=holder.querySelector('canvas');
+                  var out=document.createElement('canvas');
+                  out.width=380; out.height=380;
+                  var ctx=out.getContext('2d');
+                  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,out.width,out.height);
+                  if(srcCanvas) ctx.drawImage(srcCanvas,30,30,320,320);
+                  var data=out.toDataURL('image/png');
+                  holder.remove();
+                  resolve(data);
+                }catch(e){try{holder.remove();}catch(x){} resolve(null);}
+              },60);
+            }catch(e){resolve(null);}
+          });
+        });
+      };
+
+      // 5) Lector QR més robust + acceptació de QR token o codi de treballador.
+      function normalizeQRTokenV9(raw){
+        var s=String(raw||'').trim();
+        if(!s) return '';
+        try{
+          if(s.charAt(0)==='{'){
+            var o=JSON.parse(s);
+            s=String(o.qr_token||o.token||o.employee_code||o.code||s).trim();
+          }
+        }catch(e){}
+        try{
+          if(/^https?:\/\//i.test(s)){
+            var u=new URL(s);
+            s=u.searchParams.get('token')||u.searchParams.get('qr')||u.searchParams.get('code')||u.pathname.split('/').filter(Boolean).pop()||s;
+          }
+        }catch(e){}
+        return String(s||'').trim();
+      }
+      async function ensureJsQRV9(){
+        if(window.jsQR) return;
+        await new Promise(function(resolve){
+          var s=document.createElement('script');
+          s.src='https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
+          s.onload=resolve; s.onerror=resolve;
+          document.head.appendChild(s);
+        });
+      }
+      window.stopQR = function stopQR_V9(){
+        try{ if(window.__jasl_qr_raf) cancelAnimationFrame(window.__jasl_qr_raf); }catch(e){}
+        window.__jasl_qr_raf=null;
+        try{ if(window.__jasl_qr_stream){window.__jasl_qr_stream.getTracks().forEach(function(t){t.stop();});} }catch(e){}
+        window.__jasl_qr_stream=null;
+        try{ var v=document.getElementById('qr-video'); if(v){v.pause(); v.srcObject=null;} }catch(e){}
+      };
+      window.loginByQR = async function loginByQR_V9(rawToken){
+        var token=normalizeQRTokenV9(rawToken);
+        try{
+          var worker=null;
+          try{
+            var res=await rpc('login_by_qr',{p_qr_token:token});
+            worker=Array.isArray(res)?res[0]:res;
+          }catch(e1){}
+          if(!worker||!worker.id){
+            var rows=await dbGet('workers','qr_token=eq.'+encodeURIComponent(token)+'&is_active=eq.true&select=*').catch(function(){return[];});
+            worker=rows&&rows[0];
+          }
+          if((!worker||!worker.id) && token){
+            var code=token.toUpperCase();
+            var rows2=await dbGet('workers','employee_code=eq.'+encodeURIComponent(code)+'&is_active=eq.true&select=*').catch(function(){return[];});
+            worker=rows2&&rows2[0];
+          }
+          if(!worker||!worker.id) throw new Error('QR no reconegut');
+          state._loginByQR=true;
+          state.worker=worker;
+          afterLogin();
+        }catch(e){
+          showToast((e&&e.message)||'QR no reconegut','error');
+          showPage('splash');
+        }
+      };
+      window.startQRScan = async function startQRScan_V9(){
+        showPage('qr-scan');
+        window.stopQR();
+        var hint=document.getElementById('qr-scan-hint');
+        var video=document.getElementById('qr-video');
+        if(hint) hint.textContent='Obrint càmera...';
+        try{
+          if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('Aquest navegador no permet accedir a la càmera');
+          var constraints={video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false};
+          var stream=await navigator.mediaDevices.getUserMedia(constraints);
+          window.__jasl_qr_stream=stream;
+          video.setAttribute('playsinline','true');
+          video.muted=true;
+          video.srcObject=stream;
+          await video.play();
+          if(hint) hint.textContent='Apunta al QR i mantén-lo dins el requadre';
+          await ensureJsQRV9();
+          var detector=null;
+          try{ if('BarcodeDetector' in window) detector=new BarcodeDetector({formats:['qr_code']}); }catch(e){}
+          var canvas=document.createElement('canvas');
+          var ctx=canvas.getContext('2d',{willReadFrequently:true});
+          var busy=false;
+          async function scan(){
+            if(!window.__jasl_qr_stream) return;
+            if(video.readyState>=2 && !busy){
+              busy=true;
+              try{
+                var value='';
+                if(detector){
+                  try{
+                    var codes=await detector.detect(video);
+                    if(codes&&codes.length) value=codes[0].rawValue||codes[0].rawData||'';
+                  }catch(e){}
+                }
+                if(!value && window.jsQR && video.videoWidth>0){
+                  canvas.width=video.videoWidth;
+                  canvas.height=video.videoHeight;
+                  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+                  var img=ctx.getImageData(0,0,canvas.width,canvas.height);
+                  var qr=window.jsQR(img.data,img.width,img.height,{inversionAttempts:'attemptBoth'});
+                  if(qr&&qr.data) value=qr.data;
+                }
+                if(value){
+                  window.stopQR();
+                  await window.loginByQR(value);
+                  return;
+                }
+              }finally{busy=false;}
+            }
+            window.__jasl_qr_raf=requestAnimationFrame(scan);
+          }
+          scan();
+        }catch(e){
+          console.error('startQRScan v9',e);
+          if(hint) hint.textContent='No s’ha pogut accedir a la càmera';
+          showToast((e&&e.message)||'No s’ha pogut accedir a la càmera','error');
+        }
+      };
+    }catch(e){console.error('installJASLV9',e);}
+  }
+  installJASLV9();
+  setTimeout(installJASLV9,50);
+  setTimeout(installJASLV9,300);
+  setTimeout(installJASLV9,1200);
+  window.addEventListener('load',function(){setTimeout(installJASLV9,100);});
+})();
+</script>
+
 </body>
 </html>
