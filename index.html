@@ -4214,7 +4214,203 @@ function printVacancesPDF(){
     '<h2>'+workerName+'</h2>'+
     el.innerHTML+
     '</div>'+
-    '</body></html>');
+    '
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// v10 · Refinament quirúrgic de targetes
+// - Disseny més fidel al mockup aprovat
+// - JURISLAB més gran que ADVOCATS
+// - QR amb més quiet-zone i sense retall
+// - Rol ocult de manera robusta si configuració = No
+// - La resta de funcionalitats roman intacta
+// ─────────────────────────────────────────────────────────────────────────────
+(function(){
+  function boolFromAny(v, defaultValue){
+    if(v===undefined || v===null) return defaultValue;
+    if(typeof v === 'boolean') return v;
+    var s = String(v).trim().toLowerCase();
+    if(s==='') return defaultValue;
+    if(['false','0','no','off','n','hidden','hide','fals'].includes(s)) return false;
+    if(['true','1','yes','on','y','si','sí','mostrar','show','cert'].includes(s)) return true;
+    return defaultValue;
+  }
+
+  ensureCardSettingsV8 = async function ensureCardSettingsV10(force){
+    state.settings = state.settings || {};
+    if(!force && Object.prototype.hasOwnProperty.call(state.settings,'show_role_on_card')) return;
+    try{
+      var rows = await dbGet('app_settings','select=setting_key,setting_value');
+      var next = {};
+      (rows||[]).forEach(function(r){ next[r.setting_key]=r.setting_value; });
+      state.settings = Object.assign({}, state.settings||{}, next);
+    }catch(e){ console.warn('ensureCardSettingsV10',e); }
+  };
+
+  cardSettingBoolV8 = function cardSettingBoolV10(key, defaultValue){
+    state.settings = state.settings || {};
+    var aliases = [key];
+    if(key==='show_role_on_card') aliases.push('role_on_card','show_position_on_card','show_charge_on_card');
+    for(var i=0;i<aliases.length;i++){
+      var k = aliases[i];
+      if(Object.prototype.hasOwnProperty.call(state.settings,k)) return boolFromAny(state.settings[k], defaultValue);
+    }
+    return defaultValue;
+  };
+
+  generateBlueQRDataURLV7 = async function generateBlueQRDataURLV10(text){
+    text = String(text||'').trim();
+    if(!text) return null;
+    return new Promise(function(resolve){
+      function loadQRCodeJs(done){
+        if(typeof QRCode!=='undefined' && QRCode.CorrectLevel){ done(); return; }
+        var s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+        s.onload=done; s.onerror=function(){ resolve(null); };
+        document.head.appendChild(s);
+      }
+      loadQRCodeJs(function(){
+        try{
+          var holder=document.createElement('div');
+          holder.style.cssText='position:absolute;left:-9999px;top:-9999px;background:#fff;width:420px;height:420px;padding:0;overflow:hidden';
+          document.body.appendChild(holder);
+          new QRCode(holder,{text:text,width:300,height:300,colorDark:'#1E90E8',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+          setTimeout(function(){
+            try{
+              var srcCanvas = holder.querySelector('canvas');
+              var out = document.createElement('canvas');
+              out.width = 420; out.height = 420;
+              var ctx = out.getContext('2d');
+              ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,420,420);
+              if(srcCanvas){
+                // quiet zone generosa per evitar retalls i millorar lectura impresa
+                ctx.drawImage(srcCanvas,48,48,324,324);
+              }
+              var data = out.toDataURL('image/png');
+              try{holder.remove();}catch(_e){}
+              resolve(data);
+            }catch(e){ try{holder.remove();}catch(_e){} resolve(null); }
+          }, 100);
+        }catch(e){ resolve(null); }
+      });
+    });
+  };
+
+  drawCardVerticalD_V7 = async function drawCardVerticalD_V10(doc, worker, x, y, w, h){
+    var blue=[30,144,232], gray=[141,146,155], dark=[33,55,79], line=[214,222,230], pale=[232,243,252];
+    await ensureCardSettingsV8(true);
+    var showRole = cardSettingBoolV8('show_role_on_card', false);
+
+    // base
+    doc.setFillColor(255,255,255);
+    doc.roundedRect(x,y,w,h,3.2,3.2,'F');
+    doc.setDrawColor(221,227,234);
+    doc.setLineWidth(0.25);
+    doc.roundedRect(x,y,w,h,3.2,3.2,'S');
+
+    // capçalera superior amb més aire i jerarquia com el mockup
+    var titleCx = x + 17.2;
+    var titleTop = y + 11.8;
+    fitTextCenterV7(doc,'JURISLAB',titleCx,titleTop,26.8,10.8,7.4,blue);
+    fitTextCenterV7(doc,'ADVOCATS',titleCx,titleTop+6.2,23.8,6.8,4.95,gray);
+
+    // separador vertical i puzzle a la dreta
+    doc.setDrawColor(210,216,224);
+    doc.setLineWidth(0.22);
+    doc.line(x+31.9,y+8.9,x+31.9,y+21.8);
+    drawJurislabPuzzleV7(doc,x+36.1,y+9.1,11.9,11.6);
+
+    // subtítol discret sota la marca
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(4.7);
+    doc.setTextColor(110,126,144);
+    doc.text('Control de jornada',x+w/2,y+27.2,{align:'center'});
+
+    // QR dominant i complet, amb marc subtil i quiet zone visible
+    var footerY = y + (showRole ? 70.8 : 72.5);
+    var footerH = h - (footerY-y);
+    var qrFrame = showRole ? 40.4 : 41.2;
+    var qrSize  = showRole ? 34.9 : 35.7;
+    var qrFrameX = x + (w-qrFrame)/2;
+    var qrFrameY = y + 29.8;
+    doc.setFillColor(255,255,255);
+    doc.setDrawColor(202,223,242);
+    doc.setLineWidth(0.34);
+    doc.roundedRect(qrFrameX,qrFrameY,qrFrame,qrFrame,3.0,3.0,'FD');
+    // marc interior molt suau per accentuar la zona blanca sense menjar QR
+    doc.setDrawColor(233,241,248);
+    doc.setLineWidth(0.18);
+    doc.roundedRect(qrFrameX+1.6,qrFrameY+1.6,qrFrame-3.2,qrFrame-3.2,2.2,2.2,'S');
+    var qr = await generateBlueQRDataURLV7(worker.qr_token||worker.employee_code||'');
+    if(qr){
+      doc.addImage(qr,'PNG',x+(w-qrSize)/2,qrFrameY+(qrFrame-qrSize)/2,qrSize,qrSize,undefined,'FAST');
+    }else{
+      doc.setFont('courier','bold');
+      doc.setTextColor(blue[0],blue[1],blue[2]);
+      doc.setFontSize(6);
+      doc.text(worker.employee_code||'',x+w/2,qrFrameY+qrFrame/2,{align:'center'});
+    }
+
+    // peu blau més fi
+    doc.setFillColor(blue[0],blue[1],blue[2]);
+    doc.roundedRect(x,footerY,w,footerH,3.2,3.2,'F');
+    doc.rect(x,footerY,w,3.4,'F');
+
+    var name = String(worker.display_name||worker.employee_code||'').trim();
+    doc.setTextColor(255,255,255);
+    fitTextCenterV7(doc,name,x+w/2,footerY+5.8,w-8.8,8.4,5.95,[255,255,255]);
+    doc.setDrawColor(132,198,248);
+    doc.setLineWidth(0.22);
+    doc.line(x+9.8,footerY+8.8,x+w-9.8,footerY+8.8);
+
+    if(showRole){
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(5.0);
+      doc.setTextColor(220,240,255);
+      doc.text('Codi:',x+17.8,footerY+12.6,{align:'right'});
+      doc.text('Rol:',x+17.8,footerY+15.8,{align:'right'});
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(5.8);
+      doc.setTextColor(255,255,255);
+      doc.text(String(worker.employee_code||''),x+20.9,footerY+12.6);
+      doc.text(String(worker.role||'WORKER').toUpperCase(),x+20.9,footerY+15.8);
+    }else{
+      drawTextPairCenteredV8(doc,'Codi: ',String(worker.employee_code||''),x+w/2,footerY+13.1,5.95,[220,240,255],[255,255,255]);
+    }
+  };
+
+  loadCardsWorkers = async function loadCardsWorkersV10(){
+    await ensureCardSettingsV8(true);
+    var el=document.getElementById('cards-workers-list');
+    var ws=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*').catch(function(){return[];});
+    if(ws.length) state.allWorkers=ws;
+    var showRole=cardSettingBoolV8('show_role_on_card', false);
+    var html='';
+    ws.forEach(function(w){
+      var sub = (w.employee_code||'') + (showRole ? (' · '+(w.role||'WORKER')) : '');
+      html += '<div class="worker-item" style="align-items:center;cursor:pointer" id="cw-'+w.id+'" data-worker-id="'+w.id+'" onclick="selectCardWorkerV7('+w.id+')">'+
+        '<input type="radio" name="card-worker-v7" class="cw-check" value="'+w.id+'" style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;margin-right:4px" onclick="event.stopPropagation();selectCardWorkerV7('+w.id+')">'+
+        '<div style="width:42px;height:58px;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#fff 60%,#1E90E8 60%,#1E90E8 100%);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px;flex-shrink:0">▦</div>'+
+        '<div style="flex:1;margin-left:10px"><div style="font-weight:700;font-size:14px">'+(w.display_name||w.employee_code)+'</div>'+
+        '<div style="font-size:11px;color:var(--text2)">'+sub+'</div></div>'+
+        '<div id="qr-card-'+w.id+'" style="width:52px;height:52px;flex-shrink:0;border-radius:6px;overflow:hidden;border:1px solid var(--border);background:#fff"></div>'+
+      '</div>';
+    });
+    el.innerHTML = html || '<div class="empty-state">Cap treballador</div>';
+    ws.forEach(function(w){ var qrEl=document.getElementById('qr-card-'+w.id); if(qrEl){ generateQRSVG(w.qr_token||w.employee_code||'',qrEl,52); } });
+    if(state.selectedCardWorker){ selectCardWorkerV7(state.selectedCardWorker,true); }
+  };
+
+  if(typeof window!=='undefined'){
+    window.ensureCardSettingsV8 = ensureCardSettingsV8;
+    window.cardSettingBoolV8 = cardSettingBoolV8;
+    window.generateBlueQRDataURLV7 = generateBlueQRDataURLV7;
+    window.drawCardVerticalD_V7 = drawCardVerticalD_V7;
+    window.loadCardsWorkers = loadCardsWorkers;
+  }
+})();
+</script>
+
+</body></html>');
   printWin.document.close();
   printWin.focus();
   setTimeout(function(){ printWin.print(); printWin.close(); }, 800);
@@ -7602,6 +7798,202 @@ if(typeof window!=='undefined'){
   setTimeout(installJASLV9,300);
   setTimeout(installJASLV9,1200);
   window.addEventListener('load',function(){setTimeout(installJASLV9,100);});
+})();
+</script>
+
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// v10 · Refinament quirúrgic de targetes
+// - Disseny més fidel al mockup aprovat
+// - JURISLAB més gran que ADVOCATS
+// - QR amb més quiet-zone i sense retall
+// - Rol ocult de manera robusta si configuració = No
+// - La resta de funcionalitats roman intacta
+// ─────────────────────────────────────────────────────────────────────────────
+(function(){
+  function boolFromAny(v, defaultValue){
+    if(v===undefined || v===null) return defaultValue;
+    if(typeof v === 'boolean') return v;
+    var s = String(v).trim().toLowerCase();
+    if(s==='') return defaultValue;
+    if(['false','0','no','off','n','hidden','hide','fals'].includes(s)) return false;
+    if(['true','1','yes','on','y','si','sí','mostrar','show','cert'].includes(s)) return true;
+    return defaultValue;
+  }
+
+  ensureCardSettingsV8 = async function ensureCardSettingsV10(force){
+    state.settings = state.settings || {};
+    if(!force && Object.prototype.hasOwnProperty.call(state.settings,'show_role_on_card')) return;
+    try{
+      var rows = await dbGet('app_settings','select=setting_key,setting_value');
+      var next = {};
+      (rows||[]).forEach(function(r){ next[r.setting_key]=r.setting_value; });
+      state.settings = Object.assign({}, state.settings||{}, next);
+    }catch(e){ console.warn('ensureCardSettingsV10',e); }
+  };
+
+  cardSettingBoolV8 = function cardSettingBoolV10(key, defaultValue){
+    state.settings = state.settings || {};
+    var aliases = [key];
+    if(key==='show_role_on_card') aliases.push('role_on_card','show_position_on_card','show_charge_on_card');
+    for(var i=0;i<aliases.length;i++){
+      var k = aliases[i];
+      if(Object.prototype.hasOwnProperty.call(state.settings,k)) return boolFromAny(state.settings[k], defaultValue);
+    }
+    return defaultValue;
+  };
+
+  generateBlueQRDataURLV7 = async function generateBlueQRDataURLV10(text){
+    text = String(text||'').trim();
+    if(!text) return null;
+    return new Promise(function(resolve){
+      function loadQRCodeJs(done){
+        if(typeof QRCode!=='undefined' && QRCode.CorrectLevel){ done(); return; }
+        var s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+        s.onload=done; s.onerror=function(){ resolve(null); };
+        document.head.appendChild(s);
+      }
+      loadQRCodeJs(function(){
+        try{
+          var holder=document.createElement('div');
+          holder.style.cssText='position:absolute;left:-9999px;top:-9999px;background:#fff;width:420px;height:420px;padding:0;overflow:hidden';
+          document.body.appendChild(holder);
+          new QRCode(holder,{text:text,width:300,height:300,colorDark:'#1E90E8',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+          setTimeout(function(){
+            try{
+              var srcCanvas = holder.querySelector('canvas');
+              var out = document.createElement('canvas');
+              out.width = 420; out.height = 420;
+              var ctx = out.getContext('2d');
+              ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,420,420);
+              if(srcCanvas){
+                // quiet zone generosa per evitar retalls i millorar lectura impresa
+                ctx.drawImage(srcCanvas,48,48,324,324);
+              }
+              var data = out.toDataURL('image/png');
+              try{holder.remove();}catch(_e){}
+              resolve(data);
+            }catch(e){ try{holder.remove();}catch(_e){} resolve(null); }
+          }, 100);
+        }catch(e){ resolve(null); }
+      });
+    });
+  };
+
+  drawCardVerticalD_V7 = async function drawCardVerticalD_V10(doc, worker, x, y, w, h){
+    var blue=[30,144,232], gray=[141,146,155], dark=[33,55,79], line=[214,222,230], pale=[232,243,252];
+    await ensureCardSettingsV8(true);
+    var showRole = cardSettingBoolV8('show_role_on_card', false);
+
+    // base
+    doc.setFillColor(255,255,255);
+    doc.roundedRect(x,y,w,h,3.2,3.2,'F');
+    doc.setDrawColor(221,227,234);
+    doc.setLineWidth(0.25);
+    doc.roundedRect(x,y,w,h,3.2,3.2,'S');
+
+    // capçalera superior amb més aire i jerarquia com el mockup
+    var titleCx = x + 17.2;
+    var titleTop = y + 11.8;
+    fitTextCenterV7(doc,'JURISLAB',titleCx,titleTop,26.8,10.8,7.4,blue);
+    fitTextCenterV7(doc,'ADVOCATS',titleCx,titleTop+6.2,23.8,6.8,4.95,gray);
+
+    // separador vertical i puzzle a la dreta
+    doc.setDrawColor(210,216,224);
+    doc.setLineWidth(0.22);
+    doc.line(x+31.9,y+8.9,x+31.9,y+21.8);
+    drawJurislabPuzzleV7(doc,x+36.1,y+9.1,11.9,11.6);
+
+    // subtítol discret sota la marca
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(4.7);
+    doc.setTextColor(110,126,144);
+    doc.text('Control de jornada',x+w/2,y+27.2,{align:'center'});
+
+    // QR dominant i complet, amb marc subtil i quiet zone visible
+    var footerY = y + (showRole ? 70.8 : 72.5);
+    var footerH = h - (footerY-y);
+    var qrFrame = showRole ? 40.4 : 41.2;
+    var qrSize  = showRole ? 34.9 : 35.7;
+    var qrFrameX = x + (w-qrFrame)/2;
+    var qrFrameY = y + 29.8;
+    doc.setFillColor(255,255,255);
+    doc.setDrawColor(202,223,242);
+    doc.setLineWidth(0.34);
+    doc.roundedRect(qrFrameX,qrFrameY,qrFrame,qrFrame,3.0,3.0,'FD');
+    // marc interior molt suau per accentuar la zona blanca sense menjar QR
+    doc.setDrawColor(233,241,248);
+    doc.setLineWidth(0.18);
+    doc.roundedRect(qrFrameX+1.6,qrFrameY+1.6,qrFrame-3.2,qrFrame-3.2,2.2,2.2,'S');
+    var qr = await generateBlueQRDataURLV7(worker.qr_token||worker.employee_code||'');
+    if(qr){
+      doc.addImage(qr,'PNG',x+(w-qrSize)/2,qrFrameY+(qrFrame-qrSize)/2,qrSize,qrSize,undefined,'FAST');
+    }else{
+      doc.setFont('courier','bold');
+      doc.setTextColor(blue[0],blue[1],blue[2]);
+      doc.setFontSize(6);
+      doc.text(worker.employee_code||'',x+w/2,qrFrameY+qrFrame/2,{align:'center'});
+    }
+
+    // peu blau més fi
+    doc.setFillColor(blue[0],blue[1],blue[2]);
+    doc.roundedRect(x,footerY,w,footerH,3.2,3.2,'F');
+    doc.rect(x,footerY,w,3.4,'F');
+
+    var name = String(worker.display_name||worker.employee_code||'').trim();
+    doc.setTextColor(255,255,255);
+    fitTextCenterV7(doc,name,x+w/2,footerY+5.8,w-8.8,8.4,5.95,[255,255,255]);
+    doc.setDrawColor(132,198,248);
+    doc.setLineWidth(0.22);
+    doc.line(x+9.8,footerY+8.8,x+w-9.8,footerY+8.8);
+
+    if(showRole){
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(5.0);
+      doc.setTextColor(220,240,255);
+      doc.text('Codi:',x+17.8,footerY+12.6,{align:'right'});
+      doc.text('Rol:',x+17.8,footerY+15.8,{align:'right'});
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(5.8);
+      doc.setTextColor(255,255,255);
+      doc.text(String(worker.employee_code||''),x+20.9,footerY+12.6);
+      doc.text(String(worker.role||'WORKER').toUpperCase(),x+20.9,footerY+15.8);
+    }else{
+      drawTextPairCenteredV8(doc,'Codi: ',String(worker.employee_code||''),x+w/2,footerY+13.1,5.95,[220,240,255],[255,255,255]);
+    }
+  };
+
+  loadCardsWorkers = async function loadCardsWorkersV10(){
+    await ensureCardSettingsV8(true);
+    var el=document.getElementById('cards-workers-list');
+    var ws=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*').catch(function(){return[];});
+    if(ws.length) state.allWorkers=ws;
+    var showRole=cardSettingBoolV8('show_role_on_card', false);
+    var html='';
+    ws.forEach(function(w){
+      var sub = (w.employee_code||'') + (showRole ? (' · '+(w.role||'WORKER')) : '');
+      html += '<div class="worker-item" style="align-items:center;cursor:pointer" id="cw-'+w.id+'" data-worker-id="'+w.id+'" onclick="selectCardWorkerV7('+w.id+')">'+
+        '<input type="radio" name="card-worker-v7" class="cw-check" value="'+w.id+'" style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;margin-right:4px" onclick="event.stopPropagation();selectCardWorkerV7('+w.id+')">'+
+        '<div style="width:42px;height:58px;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#fff 60%,#1E90E8 60%,#1E90E8 100%);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px;flex-shrink:0">▦</div>'+
+        '<div style="flex:1;margin-left:10px"><div style="font-weight:700;font-size:14px">'+(w.display_name||w.employee_code)+'</div>'+
+        '<div style="font-size:11px;color:var(--text2)">'+sub+'</div></div>'+
+        '<div id="qr-card-'+w.id+'" style="width:52px;height:52px;flex-shrink:0;border-radius:6px;overflow:hidden;border:1px solid var(--border);background:#fff"></div>'+
+      '</div>';
+    });
+    el.innerHTML = html || '<div class="empty-state">Cap treballador</div>';
+    ws.forEach(function(w){ var qrEl=document.getElementById('qr-card-'+w.id); if(qrEl){ generateQRSVG(w.qr_token||w.employee_code||'',qrEl,52); } });
+    if(state.selectedCardWorker){ selectCardWorkerV7(state.selectedCardWorker,true); }
+  };
+
+  if(typeof window!=='undefined'){
+    window.ensureCardSettingsV8 = ensureCardSettingsV8;
+    window.cardSettingBoolV8 = cardSettingBoolV8;
+    window.generateBlueQRDataURLV7 = generateBlueQRDataURLV7;
+    window.drawCardVerticalD_V7 = drawCardVerticalD_V7;
+    window.loadCardsWorkers = loadCardsWorkers;
+  }
 })();
 </script>
 
