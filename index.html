@@ -7713,7 +7713,7 @@ if(typeof window!=='undefined'){
         // Capçalera més fidel a la proposta: JURISLAB dominant i ADVOCATS secundari.
         var titleCx = x + 17.0;
         fitTextCenterV7(doc,'JURISLAB',titleCx,y+12.1,27.2,11.2,7.6,blue);
-        fitTextCenterV7(doc,'ADVOCATS',titleCx,y+18.4,23.8,6.9,4.95,gray);
+        fitTextCenterV7(doc,'ADVOCATS',titleCx,y+17.0,23.8,6.9,4.95,gray);
 
         doc.setDrawColor(210,216,224);
         doc.setLineWidth(0.22);
@@ -7726,7 +7726,7 @@ if(typeof window!=='undefined'){
         doc.text('Control de jornada',x+w/2,y+27.3,{align:'center'});
 
         // QR complet, amb zona blanca de seguretat dins la imatge.
-        var footerY = y + (showRole ? 70.8 : 72.5);
+        var footerY = y + (showRole ? 69.9 : 71.2);
         var qrFrame = showRole ? 40.4 : 41.2;
         var qrSize  = showRole ? 35.2 : 36.0;
         var qrFrameX = x + (w-qrFrame)/2;
@@ -7757,24 +7757,24 @@ if(typeof window!=='undefined'){
 
         var name = String(worker.display_name||worker.employee_code||'').trim();
         doc.setTextColor(255,255,255);
-        fitTextCenterV7(doc,name,x+w/2,footerY+5.8,w-8.8,8.4,5.95,[255,255,255]);
+        fitTextCenterV7(doc,name,x+w/2,footerY+5.4,w-8.8,8.4,5.95,[255,255,255]);
         doc.setDrawColor(132,198,248);
         doc.setLineWidth(0.22);
-        doc.line(x+9.8,footerY+8.8,x+w-9.8,footerY+8.8);
+        doc.line(x+9.8,footerY+8.3,x+w-9.8,footerY+8.3);
 
         if(showRole){
           doc.setFont('helvetica','normal');
           doc.setFontSize(5.0);
           doc.setTextColor(220,240,255);
-          doc.text('Codi:',x+17.8,footerY+12.6,{align:'right'});
-          doc.text('Rol:',x+17.8,footerY+15.8,{align:'right'});
+          doc.text('Codi:',x+17.8,footerY+11.6,{align:'right'});
+          doc.text('Rol:',x+17.8,footerY+14.6,{align:'right'});
           doc.setFont('helvetica','bold');
           doc.setFontSize(5.8);
           doc.setTextColor(255,255,255);
-          doc.text(String(worker.employee_code||''),x+20.9,footerY+12.6);
-          doc.text(String(worker.role||'WORKER').toUpperCase(),x+20.9,footerY+15.8);
+          doc.text(String(worker.employee_code||''),x+20.9,footerY+11.6);
+          doc.text(String(worker.role||'WORKER').toUpperCase(),x+20.9,footerY+14.6);
         }else{
-          drawTextPairCenteredV8(doc,'Codi: ',String(worker.employee_code||''),x+w/2,footerY+13.1,5.95,[220,240,255],[255,255,255]);
+          drawTextPairCenteredV8(doc,'Codi: ',String(worker.employee_code||''),x+w/2,footerY+11.8,5.95,[220,240,255],[255,255,255]);
         }
       };
       drawCardVerticalD_V7 = window.drawCardVerticalD_V7;
