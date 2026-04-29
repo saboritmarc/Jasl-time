@@ -406,44 +406,10 @@ textarea.input{resize:vertical;min-height:80px;}
   <div class="topbar">
     <button class="back-btn" onclick="showPage('admin-home')">&#8592;</button>
     <div class="topbar-title">Exportacions</div>
-  <div id="exports-content" class="page-content"></div>
     <div style="width:28px"></div>
   </div>
-  <div id="exports-content" class="page-content"></div>
   <div class="content" style="flex:1;overflow-y:auto">
-    <div class="flex-gap" style="margin-bottom:20px">
-      <div class="input-group" style="flex:1;margin-bottom:0">
-        <label class="input-label">Mes</label>
-        <select id="export-month" class="input">
-          <option value="1">Gener</option><option value="2">Febrer</option>
-          <option value="3">Mar&ccedil;</option><option value="4">Abril</option>
-          <option value="5">Maig</option><option value="6">Juny</option>
-          <option value="7">Juliol</option><option value="8">Agost</option>
-          <option value="9">Setembre</option><option value="10">Octubre</option>
-          <option value="11">Novembre</option><option value="12">Desembre</option>
-        </select>
-      </div>
-      <div class="input-group" style="flex:1;margin-bottom:0">
-        <label class="input-label">Any</label>
-        <input type="number" id="export-year" class="input" value="2026">
-      </div>
-    </div>
-    <div class="section-title">Excel individual</div>
-    <div class="input-group">
-      <label class="input-label">Treballador</label>
-      <select id="export-worker-select" class="input">
-        <option value=""> - Selecciona treballador - </option>
-      </select>
-    </div>
-    <button class="btn btn-primary btn-full" style="margin-bottom:20px" onclick="callExport('individual')">&#128202; Excel individual (full per mes)</button>
-    <div class="sep" style="margin:0 0 20px"></div>
-    <div class="section-title">Tots els treballadors</div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Full resum + un full per treballador.</p>
-    <button class="btn btn-secondary btn-full" style="margin-bottom:20px" onclick="callExport('all-month')">&#128101; Excel global del mes</button>
-    <div class="sep" style="margin:0 0 20px"></div>
-    <div class="section-title">Informe anal&iacute;tic anual</div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Resum anual, comparativa mensual, hores extres, permisos i absencies.</p>
-    <button class="btn btn-ghost btn-full" onclick="callExport('analytics')">&#128200; Informe anal&iacute;tic</button>
+    <div id="exports-content"></div>
   </div>
 </div>
 
@@ -782,7 +748,7 @@ async function loadVacances(){
       var endD=new Date(p.end_date+'T12:00:00');
       while(d<=endD){
         var dow=d.getDay();
-        var ds=d.toISOString().split('T')[0];
+        var ds=localDateISO(d);
         if(dow!==0&&dow!==6){
           if(isVac) usedDays++;
           vacDates[ds]=vacDates[ds]||{status:p.approval_status,type:dt,icon:permIcons[dt]||'\uD83D\uDCC5',isVac:isVac};
@@ -869,7 +835,7 @@ async function loadVacancesGlobal(){
       while(d<=end){
         var dow=d.getDay();
         if(dow!==0&&dow!==6){
-          var ds=d.toISOString().split('T')[0];
+          var ds=localDateISO(d);
           if(!dateMap[ds]) dateMap[ds]=[];
           dateMap[ds].push({workerId:p.worker_id,color:color,name:w.display_name||w.employee_code,status:p.approval_status});
         }
@@ -972,7 +938,7 @@ function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
         }
       }
 
-      var isToday=ds===new Date().toISOString().split('T')[0];
+      var isToday=ds===localDateISO(new Date());
       var borderStyle=isToday?'2px solid var(--accent)':'1px solid transparent';
 
       html+='<div style="text-align:center;border-radius:4px;padding:2px 1px;'+(bgColor.indexOf('gradient')>=0?'background-image:'+bgColor+';background-color:#e8f4fd':('background:'+bgColor))+
@@ -1123,7 +1089,7 @@ async function logAccess(workerId, method){
 
 async function loadTodaySummary(){
   if(!state.worker)return;
-  var today=new Date().toISOString().split('T')[0];
+  var today=localDateISO(new Date());
   try{
     var summary;
     try{ var raw=await rpc('get_today_summary',{p_worker_id:parseInt(state.worker.id)}); summary=Array.isArray(raw)?raw[0]:raw; }
@@ -1165,7 +1131,7 @@ async function doClockAction(action){
       );
       if(!ok) return;
       try{
-        var todayDate=new Date().toISOString().split('T')[0];
+        var todayDate=localDateISO(new Date());
         var allEnts=await dbGet('time_entries',
           'worker_id=eq.'+state.worker.id+'&entry_date=eq.'+todayDate+
           '&is_active=eq.true&order=entry_datetime.desc&select=*');
@@ -1208,7 +1174,7 @@ async function doClockAction(action){
     }
     catch(e1){
       var etm={start:'START',pause:'PAUSE_START',resume:'PAUSE_END',end:'END'};
-      var today=new Date().toISOString().split('T')[0];
+      var today=localDateISO(new Date());
       var pauseNum=null;
       if(action==='pause'||action==='resume'){ var ents=await dbGet('time_entries','worker_id=eq.'+state.worker.id+'&entry_date=eq.'+today+'&is_active=eq.true&select=pause_number&order=entry_datetime.asc'); var pauses=ents.filter(function(e){return e.pause_number!==null;}); pauseNum=action==='pause'?(pauses.length+1):(pauses.length>0?pauses[pauses.length-1].pause_number:1); }
       await dbPost('time_entries',{worker_id:state.worker.id,entry_date:today,entry_datetime:new Date().toISOString(),entry_type:etm[action],pause_number:pauseNum,source_method:(state._loginByQR?'QR':'CODE'),is_active:true});
@@ -1284,7 +1250,7 @@ async function editTimeEntry(entryId, workerId){
   if(!entry) return;
 
   var oldDT = new Date(entry.entry_datetime);
-  var oldDate = oldDT.toISOString().split('T')[0];
+  var oldDate = localDateISO(oldDT);
   var oldTime = oldDT.toTimeString().substring(0,5);
 
   var typeLabels={START:'Inici de jornada',PAUSE_START:'Inici pausa',PAUSE_END:'Fi pausa',END:'Fi jornada'};
@@ -1356,7 +1322,7 @@ async function deleteTimeEntry(entryId, entryDate){
     // Marcar com a inactiu (soft delete)
     await dbPatch('time_entries','id=eq.'+entryId,{is_active:false});
     // Recalcular
-    var date=entryDate||(new Date().toISOString().split('T')[0]);
+    var date=entryDate||(localDateISO(new Date()));
     try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:date}); }catch(er){}
     closeModal();
     showToast('Registre eliminat','success');
@@ -1400,7 +1366,7 @@ async function saveNewTimeEntry(workDate){
   var reason=(document.getElementById('new-entry-reason')||{}).value||'Afegit manualment';
   if(!dt){showToast('Cal indicar la data i hora','error');return;}
   var dtIso=new Date(dt).toISOString();
-  var date=dtIso.split('T')[0];
+  var date=localDateISO(new Date(dt));
   try{
     // pause_number es obligatori per PAUSE_START i PAUSE_END
     var entryObj={
@@ -1460,7 +1426,7 @@ async function saveTimeEdit(entryId, workerId, originalDT, originalType){
 
   try{
     // 1. Guardar auditoria completa
-    var workDate = newIso.split('T')[0];
+    var workDate = localDateISO(new Date(newDT));
     await dbPost('time_entry_edits', {
       worker_id: parseInt(workerId),
       entry_id: parseInt(entryId),
@@ -1496,7 +1462,7 @@ async function saveTimeEdit(entryId, workerId, originalDT, originalType){
     await dbPatch('time_entries','id=eq.'+entryId, patchObj);
 
     // 3. Recalcular
-    var date = newIso.split('T')[0];
+    var date = localDateISO(new Date(newDT));
     try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(state.worker.id),p_work_date:date}); }catch(er){}
 
     closeModal();
@@ -1663,7 +1629,7 @@ function openModal(type){
           '<option value="FESTIU">&#128197; Festiu</option>'+
         '</select>'+
       '</div>'+
-      '<div id="perm-compute-info" style="margin-bottom:12px;font-size:13px;">'+getComputeInfo('SICK_LEAVE')+'</div>'+
+      '<div id="perm-compute-info" style="margin-bottom:12px;font-size:13px;">'+getComputeInfo('VACANCES')+'</div>'+
       '<div id="perm-sick-day-info" style="display:none">'+getSickDayInfo()+'</div>'+
       '<div class="flex-gap">'+
         '<div class="input-group" style="flex:1"><label class="input-label">Inici</label><input type="date" id="perm-start" class="input"></div>'+
@@ -1980,7 +1946,7 @@ async function loadAdminStats(){
   try{
     var data;
     try{ var raw3=await rpc('get_admin_dashboard_summary',{}); data=Array.isArray(raw3)?raw3[0]:raw3; }
-    catch(e1){ var today=new Date().toISOString().split('T')[0]; var ws=await dbGet('workers','is_active=eq.true&select=id'); var ip=await dbGet('daily_records','work_date=eq.'+today+'&status=eq.IN_PROGRESS&select=id'); var inc=await dbGet('daily_records','work_date=eq.'+today+'&has_incidence=eq.true&select=id'); var fin=await dbGet('daily_records','work_date=eq.'+today+'&status=eq.FINISHED&select=id'); data={total_workers:ws.length,in_progress_today:ip.length,incidences_today:inc.length,finished_today:fin.length}; }
+    catch(e1){ var today=localDateISO(new Date()); var ws=await dbGet('workers','is_active=eq.true&select=id'); var ip=await dbGet('daily_records','work_date=eq.'+today+'&status=eq.IN_PROGRESS&select=id'); var inc=await dbGet('daily_records','work_date=eq.'+today+'&has_incidence=eq.true&select=id'); var fin=await dbGet('daily_records','work_date=eq.'+today+'&status=eq.FINISHED&select=id'); data={total_workers:ws.length,in_progress_today:ip.length,incidences_today:inc.length,finished_today:fin.length}; }
     el.innerHTML='<div class="admin-stat"><div class="admin-stat-val">'+(data.total_workers||0)+'</div><div class="admin-stat-lbl">Treballadors actius</div></div><div class="admin-stat"><div class="admin-stat-val" style="color:var(--accent)">'+(data.in_progress_today||0)+'</div><div class="admin-stat-lbl">En curs avui</div></div><div class="admin-stat"><div class="admin-stat-val" style="color:var(--warn)">'+(data.incidences_today||0)+'</div><div class="admin-stat-lbl">Incidencies</div></div><div class="admin-stat"><div class="admin-stat-val" style="color:var(--accent2)">'+(data.finished_today||0)+'</div><div class="admin-stat-lbl">Finalitzats</div></div>';
   }catch(e){el.innerHTML='<div style="color:var(--text2);font-size:13px">Error estadistiques</div>';}
 }
@@ -2213,7 +2179,7 @@ async function doAdminClockAction(action){
       await rpc(actionMap[action],{p_worker_id:workerId});
     }catch(e1){
       var etm={start:'START',pause:'PAUSE_START',resume:'PAUSE_END',end:'END'};
-      var today=new Date().toISOString().split('T')[0];
+      var today=localDateISO(new Date());
       await dbPost('time_entries',{worker_id:workerId,entry_date:today,entry_datetime:new Date().toISOString(),entry_type:etm[action],source_method:'CODE',is_active:true});
       try{ await rpc('recalculate_daily_record',{p_worker_id:workerId,p_work_date:today}); }catch(e2){}
     }
@@ -3261,7 +3227,7 @@ async function loadVacances(){
         var dow=d.getDay();
         if(dow!==0&&dow!==6){
           usedDays++;
-          vacDates[d.toISOString().split('T')[0]]={status:p.approval_status};
+          vacDates[localDateISO(d)]={status:p.approval_status};
         }
         d.setDate(d.getDate()+1);
       }
@@ -3334,7 +3300,7 @@ async function loadVacancesGlobal(){
       while(d<=end){
         var dow=d.getDay();
         if(dow!==0&&dow!==6){
-          var ds=d.toISOString().split('T')[0];
+          var ds=localDateISO(d);
           if(!dateMap[ds]) dateMap[ds]=[];
           dateMap[ds].push({workerId:p.worker_id,color:color,name:w.display_name||w.employee_code,status:p.approval_status});
         }
@@ -3429,7 +3395,7 @@ function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
         }
       }
 
-      var isToday=ds===new Date().toISOString().split('T')[0];
+      var isToday=ds===localDateISO(new Date());
       var borderStyle=isToday?'2px solid var(--accent)':'1px solid transparent';
 
       html+='<div style="text-align:center;border-radius:4px;padding:2px 1px;background:'+bgColor+
@@ -3544,7 +3510,7 @@ async function loadVacances(){
         var dow=d.getDay();
         if(dow!==0&&dow!==6){
           usedDays++;
-          vacDates[d.toISOString().split('T')[0]]={status:p.approval_status};
+          vacDates[localDateISO(d)]={status:p.approval_status};
         }
         d.setDate(d.getDate()+1);
       }
@@ -3617,7 +3583,7 @@ async function loadVacancesGlobal(){
       while(d<=end){
         var dow=d.getDay();
         if(dow!==0&&dow!==6){
-          var ds=d.toISOString().split('T')[0];
+          var ds=localDateISO(d);
           if(!dateMap[ds]) dateMap[ds]=[];
           dateMap[ds].push({workerId:p.worker_id,color:color,name:w.display_name||w.employee_code,status:p.approval_status});
         }
@@ -3712,7 +3678,7 @@ function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
         }
       }
 
-      var isToday=ds===new Date().toISOString().split('T')[0];
+      var isToday=ds===localDateISO(new Date());
       var borderStyle=isToday?'2px solid var(--accent)':'1px solid transparent';
 
       html+='<div style="text-align:center;border-radius:4px;padding:2px 1px;background:'+bgColor+
@@ -3876,7 +3842,7 @@ async function exportFormat01(targets, year, month, withEdits){
     var wsSum=XLSX.utils.aoa_to_sheet(sumRows);
     wsSum['!cols']=[{wch:22},{wch:8},{wch:10},{wch:10},{wch:12},{wch:12},{wch:12},{wch:8},{wch:8},{wch:6},{wch:6},{wch:6},{wch:6}];
     wsSum['!merges']=[{s:{r:0,c:0},e:{r:0,c:12}}];
-    XLSX.utils.book_append_sheet(wb,'Resum',wsSum);
+    XLSX.utils.book_append_sheet(wb,wsSum,'Resum');
   }
 
   // Full per cada treballador
@@ -3965,7 +3931,7 @@ async function exportFormat01(targets, year, month, withEdits){
     for(var ci=0;ci<ncols;ci++) cols.push({wch:ci===0?12:ci===1?4:ci===2&&withEdits?16:9});
     wsW['!cols']=cols;
     wsW['!merges']=[{s:{r:0,c:0},e:{r:0,c:ncols-1}}];
-    XLSX.utils.book_append_sheet(wb,sheetName,wsW);
+    XLSX.utils.book_append_sheet(wb,wsW,sheetName);
   }
 
   var fname='JASL_Time_'+(targets.length===1?targets[0].employee_code:'tots')+'_'+monthNames[month-1]+'_'+year+(withEdits?'_edicions':'')+'.xlsx';
@@ -3996,7 +3962,7 @@ async function exportFormat03(targets, year){
     }
     var wsSum=XLSX.utils.aoa_to_sheet(sumHdr.concat(sumData));
     wsSum['!cols']=[{wch:22},{wch:8},{wch:12},{wch:12},{wch:12},{wch:10},{wch:8},{wch:6}];
-    XLSX.utils.book_append_sheet(wb,'Resum anual',wsSum);
+    XLSX.utils.book_append_sheet(wb,wsSum,'Resum anual');
   }
 
   for(var i=0;i<targets.length;i++){
@@ -4028,7 +3994,7 @@ async function exportFormat03(targets, year){
     var wsM=XLSX.utils.aoa_to_sheet([[mHeaders[0]],[mHeaders[1]],[],mHdr].concat(mRows).concat([[],['TOTAL','','','','',''+(accumulated>=0?'+':'')+minsToHHMM(Math.abs(accumulated)),'']]) );
     wsM['!cols']=[{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:8}];
     var sheetName=('Resum '+(w.employee_code||'W'+w.id)).substring(0,31);
-    XLSX.utils.book_append_sheet(wb,sheetName,wsM);
+    XLSX.utils.book_append_sheet(wb,wsM,sheetName);
   }
 
   var fname='JASL_Time_anual_mesos_'+year+'.xlsx';
@@ -4083,7 +4049,7 @@ async function exportFormat04(targets, year){
     var wsW=XLSX.utils.aoa_to_sheet(rows);
     wsW['!cols']=[{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:8},{wch:6},{wch:20}];
     wsW['!merges']=[{s:{r:0,c:0},e:{r:0,c:8}}];
-    XLSX.utils.book_append_sheet(wb,sheetName,wsW);
+    XLSX.utils.book_append_sheet(wb,wsW,sheetName);
   }
 
   // Fulla global acumulat
@@ -4109,7 +4075,7 @@ async function exportFormat04(targets, year){
   var wsG=XLSX.utils.aoa_to_sheet(gRows);
   wsG['!cols']=[{wch:22},{wch:8},{wch:14},{wch:12},{wch:14},{wch:10},{wch:14},{wch:8},{wch:6},{wch:20}];
   wsG['!merges']=[{s:{r:0,c:0},e:{r:0,c:9}}];
-  XLSX.utils.book_append_sheet(wb,'Global acumulat',wsG);
+  XLSX.utils.book_append_sheet(wb,wsG,'Global acumulat');
 
   var fname='JASL_Time_saldo_acumulat_'+year+'.xlsx';
   XLSX.writeFile(wb,fname);
@@ -4153,7 +4119,7 @@ async function exportFormat05(workers, year, month){
   var wsSum=XLSX.utils.aoa_to_sheet(sumHdr.concat(sumData));
   wsSum['!cols']=[{wch:22},{wch:8},{wch:14},{wch:10},{wch:14},{wch:8},{wch:14},{wch:14},{wch:14},{wch:8},{wch:6}];
   wsSum['!merges']=[{s:{r:0,c:0},e:{r:0,c:10}}];
-  XLSX.utils.book_append_sheet(wb,'Resum',wsSum);
+  XLSX.utils.book_append_sheet(wb,wsSum,'Resum');
 
   // Full individual per cada treballador (format 01)
   for(var i=0;i<workers.length;i++){
@@ -4200,7 +4166,7 @@ async function exportFormat05(workers, year, month){
     var wsW=XLSX.utils.aoa_to_sheet(rows);
     wsW['!cols']=[{wch:12},{wch:4},{wch:8},{wch:10},{wch:10},{wch:8},{wch:6},{wch:10},{wch:10},{wch:10},{wch:8},{wch:10},{wch:20}];
     wsW['!merges']=[{s:{r:0,c:0},e:{r:0,c:12}}];
-    XLSX.utils.book_append_sheet(wb,sheetName,wsW);
+    XLSX.utils.book_append_sheet(wb,wsW,sheetName);
   }
 
   var fname='JASL_Time_global_'+monthNames[month-1]+'_'+year+'.xlsx';
@@ -4412,7 +4378,7 @@ async function exportEditsReport(){
   var wb=XLSX.utils.book_new();
   var ws=XLSX.utils.aoa_to_sheet(rows);
   ws['!cols']=[{wch:20},{wch:12},{wch:10},{wch:10},{wch:15},{wch:15},{wch:25},{wch:25},{wch:20},{wch:16}];
-  XLSX.utils.book_append_sheet(wb,'Edicions',ws);
+  XLSX.utils.book_append_sheet(wb,ws,'Edicions');
   XLSX.writeFile(wb,'registre_edicions_'+new Date().getFullYear()+'.xlsx');
   showToast('Excel exportat!','success');
 }
@@ -4421,6 +4387,547 @@ async function exportEditsReport(){
 
 
 
+
+
+
+/* ============================================================================
+   JASL Time - Revisio funcional final
+   - Corregeix exportacions, vacances/permisos, modal, dates locals i calendari.
+   - No altera la maqueta ni el disseny general.
+============================================================================ */
+
+function localDateISO(dateObj){
+  var d = dateObj instanceof Date ? dateObj : new Date(dateObj);
+  if(isNaN(d.getTime())) d = new Date();
+  var y=d.getFullYear();
+  var m=String(d.getMonth()+1).padStart(2,'0');
+  var day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+
+function closeModal(){
+  var ov=document.getElementById('modal-overlay');
+  if(ov) ov.classList.remove('open');
+  var box=document.getElementById('modal-box');
+  if(box) box.innerHTML='';
+}
+
+function minsToHHMM(mins){
+  if(mins===null||mins===undefined||mins==='') return '';
+  mins=Math.round(Number(mins)||0);
+  var neg=mins<0; var abs=Math.abs(mins);
+  var h=Math.floor(abs/60); var m=abs%60;
+  return (neg?'-':'')+h+':'+String(m).padStart(2,'0');
+}
+
+function permTypeLabel(t){
+  var k=(t||'').toUpperCase();
+  var m={
+    VACANCES:'Vacances', VACATION:'Vacances',
+    BAIXA_MEDICA:'Baixa mèdica', SICK_LEAVE:'Baixa mèdica',
+    SICK_DAY:'Malaltia sense justificant',
+    PERMIS_RETRIBUIT:'Permís retribuït', PAID_LEAVE:'Permís retribuït',
+    FESTIU:'Festiu', HOLIDAY:'Festiu',
+    NORMAL:'Normal', OTHER:'Altres'
+  };
+  return m[k]||t||'-';
+}
+
+function isAdminUser(){
+  return state.worker && String(state.worker.role||'').toUpperCase()==='ADMIN';
+}
+
+function isVacationType(t){
+  t=String(t||'').toUpperCase();
+  return t==='VACANCES'||t==='VACATION';
+}
+function isHolidayType(t){
+  t=String(t||'').toUpperCase();
+  return t==='FESTIU'||t==='HOLIDAY';
+}
+function isSickType(t){
+  t=String(t||'').toUpperCase();
+  return t==='BAIXA_MEDICA'||t==='SICK_LEAVE'||t==='SICK_DAY';
+}
+function isPaidLeaveType(t){
+  t=String(t||'').toUpperCase();
+  return t==='PERMIS_RETRIBUIT'||t==='PAID_LEAVE';
+}
+function isActiveApproval(p){
+  var s=String((p&&p.approval_status)||'APPROVED').toUpperCase();
+  return s!=='REJECTED' && s!=='DELETE_REQUESTED';
+}
+
+function getWorkerColor(workerId){
+  if(state.settings&&state.settings['worker_color_'+workerId]) return state.settings['worker_color_'+workerId];
+  if(!state.allWorkers||!state.allWorkers.length) return WORKER_COLORS[0];
+  var idx=state.allWorkers.findIndex(function(w){return String(w.id)===String(workerId);});
+  return WORKER_COLORS[(idx>=0?idx:0) % WORKER_COLORS.length];
+}
+
+async function loadSheetJS(){
+  if(window.XLSX) return;
+  function addScript(src){
+    return new Promise(function(resolve,reject){
+      var s=document.createElement('script');
+      s.src=src; s.onload=resolve; s.onerror=reject;
+      document.head.appendChild(s);
+    });
+  }
+  try{
+    await addScript('https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js');
+  }catch(e){
+    await addScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+  }
+}
+
+function safeSheetName(name, used){
+  used=used||{};
+  var base=String(name||'Full').replace(/[\\/?*\[\]:]/g,' ').trim()||'Full';
+  base=base.substring(0,31);
+  var out=base, i=2;
+  while(used[out]){
+    var suffix=' '+i++;
+    out=base.substring(0,31-suffix.length)+suffix;
+  }
+  used[out]=true;
+  return out;
+}
+
+function appendSheet(wb, rows, name, cols, opts){
+  opts=opts||{};
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  if(cols) ws['!cols']=cols;
+  if(opts.merges) ws['!merges']=opts.merges;
+  try{
+    var range=XLSX.utils.decode_range(ws['!ref']);
+    for(var R=range.s.r;R<=range.e.r;R++){
+      for(var C=range.s.c;C<=range.e.c;C++){
+        var ref=XLSX.utils.encode_cell({r:R,c:C});
+        if(!ws[ref]) continue;
+        ws[ref].s=ws[ref].s||{font:{name:'Arial Narrow',sz:12},alignment:{vertical:'center'}};
+        if((opts.headerRows||[]).indexOf(R)>=0){
+          ws[ref].s={font:{name:'Arial Narrow',sz:12,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1E90E8'}},alignment:{horizontal:'center',vertical:'center'}};
+        }
+        if((opts.boldRows||[]).indexOf(R)>=0){
+          ws[ref].s.font=Object.assign({},ws[ref].s.font||{}, {bold:true});
+        }
+      }
+    }
+  }catch(e){}
+  XLSX.utils.book_append_sheet(wb,ws,name);
+  return ws;
+}
+
+function exportDateRange(year, month){
+  var moS=String(month).padStart(2,'0');
+  return {moS:moS,start:year+'-'+moS+'-01',end:year+'-'+moS+'-31',days:new Date(year,month,0).getDate()};
+}
+
+async function loadExportWorkers(){
+  var el=document.getElementById('exports-content');
+  if(!el) return;
+  var ws=state.allWorkers&&state.allWorkers.length?state.allWorkers:
+    await dbGet('workers','is_active=eq.true&select=*&order=display_name.asc').catch(function(){return[];});
+  if(ws.length) state.allWorkers=ws;
+  var year=new Date().getFullYear();
+  var monthNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var workerOpts='<option value="">Tots els treballadors</option>'+ws.map(function(w){
+    return '<option value="'+w.id+'">'+(w.display_name||w.employee_code)+'</option>';
+  }).join('');
+  var monthOpts=monthNames.map(function(n,i){
+    return '<option value="'+(i+1)+'"'+((i+1)===(new Date().getMonth()+1)?' selected':'')+'>'+n+'</option>';
+  }).join('');
+  el.innerHTML=
+    '<div class="section-title">Exportar registres</div>'+ 
+    '<div class="card" style="margin-bottom:16px">'+
+      '<div class="input-group"><label class="input-label">Format d\'exportació</label>'+ 
+        '<select id="exp-format" class="input" onchange="updateExportUI()">'+
+          '<option value="01_mensual">01 · Registre mensual individual (amb pauses)</option>'+ 
+          '<option value="02_mensual_edicions">02 · Registre mensual amb edicions</option>'+ 
+          '<option value="03_anual_mesos">03 · Registre anual per mesos + resum</option>'+ 
+          '<option value="04_saldo_acumulat">04 · Saldo acumulat anual</option>'+ 
+          '<option value="05_global">05 · Global tots els treballadors del mes + resum anual</option>'+ 
+        '</select>'+ 
+      '</div>'+ 
+      '<div class="flex-gap">'+
+        '<div class="input-group" style="flex:2"><label class="input-label">Treballador</label>'+ 
+          '<select id="exp-worker" class="input">'+workerOpts+'</select></div>'+ 
+        '<div class="input-group" style="flex:1"><label class="input-label">Any</label>'+ 
+          '<input type="number" id="exp-year" class="input" value="'+year+'" min="2020" max="2035"></div>'+ 
+      '</div>'+ 
+      '<div id="exp-month-row" class="input-group"><label class="input-label">Mes</label>'+ 
+        '<select id="exp-month" class="input">'+monthOpts+'</select></div>'+ 
+      '<div id="exp-help" style="font-size:12px;color:var(--text2);margin:-4px 0 14px">Selecciona format, període i treballador. En el format 05 es genera un llibre global amb resum anual inicial.</div>'+ 
+      '<button class="btn btn-primary btn-full" onclick="runExport()">💾 Generar Excel</button>'+ 
+    '</div>';
+  updateExportUI();
+}
+
+function updateExportUI(){
+  var fmtEl=document.getElementById('exp-format');
+  if(!fmtEl) return;
+  var fmt=fmtEl.value;
+  var mr=document.getElementById('exp-month-row');
+  var wr=document.getElementById('exp-worker');
+  var help=document.getElementById('exp-help');
+  if(mr) mr.style.display=(fmt==='01_mensual'||fmt==='02_mensual_edicions'||fmt==='05_global')?'block':'none';
+  if(wr){
+    if(fmt==='05_global'){wr.value=''; wr.disabled=true;}
+    else wr.disabled=false;
+  }
+  if(help){
+    help.textContent=fmt==='05_global'
+      ? 'Aquest format genera un únic Excel global: resum anual inicial i fulls mensuals/agregats del mes seleccionat.'
+      : 'Selecciona el treballador o deixa tots per generar un llibre amb un full per treballador.';
+  }
+}
+
+async function runExport(){
+  var fmt=(document.getElementById('exp-format')||{}).value||'01_mensual';
+  var wId=(document.getElementById('exp-worker')||{}).value||'';
+  var year=parseInt((document.getElementById('exp-year')||{}).value)||new Date().getFullYear();
+  var month=parseInt((document.getElementById('exp-month')||{}).value)||new Date().getMonth()+1;
+  var workers=state.allWorkers&&state.allWorkers.length?state.allWorkers:
+    await dbGet('workers','is_active=eq.true&select=*&order=display_name.asc');
+  if(workers.length) state.allWorkers=workers;
+  var targets=wId?workers.filter(function(w){return String(w.id)===String(wId);}):workers;
+  if(!targets.length){showToast('Cap treballador seleccionat','error');return;}
+  try{
+    showToast('Generant Excel...','success');
+    await loadSheetJS();
+    if(fmt==='01_mensual') await exportFormat01(targets,year,month,false);
+    else if(fmt==='02_mensual_edicions') await exportFormat01(targets,year,month,true);
+    else if(fmt==='03_anual_mesos') await exportFormat03(targets,year);
+    else if(fmt==='04_saldo_acumulat') await exportFormat04(targets,year);
+    else if(fmt==='05_global') await exportFormat05(workers,year,month);
+  }catch(e){
+    console.error('runExport',e);
+    showToast('Error generant Excel: '+(e.message||e),'error');
+  }
+}
+
+async function exportFormat05(workers, year, month){
+  var wb=XLSX.utils.book_new();
+  var used={};
+  var monthNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var dayNames=['Dg','Dl','Dt','Dc','Dj','Dv','Ds'];
+  var rng=exportDateRange(year,month);
+
+  var annualRows=[
+    ['JASL Time · Resum anual '+year],
+    ['Primer full del llibre global. Dades acumulades anuals i totals del mes '+monthNames[month-1]+'.'],
+    [],
+    ['Treballador','Codi','H. treballades any','H. teòriques any','Saldo any','H. treballades mes','H. teòriques mes','Saldo mes','Dies treballats mes','Incidències mes']
+  ];
+
+  var allMonthRows=[['Format 01 · Registre mensual global '+monthNames[month-1]+' '+year],[],['Treballador','Codi','Data','Dia','Entrada','Inici pausa','Final pausa','Sortida','Núm. pauses','Temps pausa','H. treballades','H. teòriques','Saldo','Estat','Observacions']];
+  var editsRows=[['Format 02 · Registre mensual global amb edicions '+monthNames[month-1]+' '+year],[],['Treballador','Codi','Data','Dia','Entrada','Sortida','H. treballades','H. teòriques','Saldo','Estat','Editat','Motiu última edició']];
+  var annualMonthRows=[['Format 03 · Registre anual per mesos '+year],[],['Treballador','Codi','Mes','H. treballades','Total pauses','H. teòriques','Saldo mensual','Saldo acumulat','Dies treballats','Incidències']];
+  var saldoRows=[['Format 04 · Saldo acumulat anual '+year],[],['Treballador','Codi'].concat(monthNames).concat(['Saldo anual','H. treballades any','H. teòriques any'])];
+  var globalRows=[['Format 05 · Global tots els treballadors '+monthNames[month-1]+' '+year],[],['Treballador','Codi','H. treballades mes','Pauses mes','H. teòriques mes','Saldo mes','H. treballades any','H. teòriques any','Saldo acumulat any','Dies treballats mes','Incidències']];
+
+  for(var wi=0;wi<workers.length;wi++){
+    var w=workers[wi];
+    var mRecs=await dbGet('daily_records','worker_id=eq.'+w.id+'&work_date=gte.'+rng.start+'&work_date=lte.'+rng.end+'&order=work_date.asc&select=*');
+    var mEntries=await dbGet('time_entries','worker_id=eq.'+w.id+'&entry_date=gte.'+rng.start+'&entry_date=lte.'+rng.end+'&is_active=eq.true&order=entry_datetime.asc&select=*');
+    var mEdits=await dbGet('time_entry_edits','worker_id=eq.'+w.id+'&work_date=gte.'+rng.start+'&work_date=lte.'+rng.end+'&order=edited_at.asc&select=*').catch(function(){return[];});
+    var aRecs=await dbGet('daily_records','worker_id=eq.'+w.id+'&work_date=gte.'+year+'-01-01&work_date=lte.'+year+'-12-31&order=work_date.asc&select=*');
+
+    var byDay={}; mEntries.forEach(function(e){if(!byDay[e.entry_date]) byDay[e.entry_date]=[]; byDay[e.entry_date].push(e);});
+    var editsByDate={}; mEdits.forEach(function(e){if(!editsByDate[e.work_date]) editsByDate[e.work_date]=[]; editsByDate[e.work_date].push(e);});
+
+    var mtw=mRecs.reduce(function(a,r){return a+(r.worked_minutes||0);},0);
+    var mtt=mRecs.reduce(function(a,r){return a+(r.theoretical_minutes||0);},0);
+    var mtb=mRecs.reduce(function(a,r){return a+(r.balance_minutes||0);},0);
+    var mtp=mRecs.reduce(function(a,r){return a+(r.pause_minutes||0);},0);
+    var mwd=mRecs.filter(function(r){return r.status==='FINISHED'||r.status==='COMPLETED';}).length;
+    var minc=mRecs.filter(function(r){return r.has_incidence;}).length;
+    var atw=aRecs.reduce(function(a,r){return a+(r.worked_minutes||0);},0);
+    var att=aRecs.reduce(function(a,r){return a+(r.theoretical_minutes||0);},0);
+    var atb=aRecs.reduce(function(a,r){return a+(r.balance_minutes||0);},0);
+
+    annualRows.push([w.display_name||w.employee_code,w.employee_code,minsToHHMM(atw),minsToHHMM(att),(atb>=0?'+':'')+minsToHHMM(Math.abs(atb)),minsToHHMM(mtw),minsToHHMM(mtt),(mtb>=0?'+':'')+minsToHHMM(Math.abs(mtb)),mwd,minc]);
+    globalRows.push([w.display_name||w.employee_code,w.employee_code,minsToHHMM(mtw),minsToHHMM(mtp),minsToHHMM(mtt),(mtb>=0?'+':'')+minsToHHMM(Math.abs(mtb)),minsToHHMM(atw),minsToHHMM(att),(atb>=0?'+':'')+minsToHHMM(Math.abs(atb)),mwd,minc]);
+
+    var accumulated=0;
+    var saldoLine=[w.display_name||w.employee_code,w.employee_code];
+    for(var am=1;am<=12;am++){
+      var mS=String(am).padStart(2,'0');
+      var recs=aRecs.filter(function(r){return r.work_date&&r.work_date.indexOf(year+'-'+mS)===0;});
+      var tw=recs.reduce(function(a,r){return a+(r.worked_minutes||0);},0);
+      var tt=recs.reduce(function(a,r){return a+(r.theoretical_minutes||0);},0);
+      var tb=recs.reduce(function(a,r){return a+(r.balance_minutes||0);},0);
+      var tp=recs.reduce(function(a,r){return a+(r.pause_minutes||0);},0);
+      var wd=recs.filter(function(r){return r.status==='FINISHED'||r.status==='COMPLETED';}).length;
+      var inc=recs.filter(function(r){return r.has_incidence;}).length;
+      accumulated+=tb;
+      annualMonthRows.push([w.display_name||w.employee_code,w.employee_code,monthNames[am-1],minsToHHMM(tw),minsToHHMM(tp),minsToHHMM(tt),(tb>=0?'+':'')+minsToHHMM(Math.abs(tb)),(accumulated>=0?'+':'')+minsToHHMM(Math.abs(accumulated)),wd,inc]);
+      saldoLine.push(tb?(tb>=0?'+':'')+minsToHHMM(Math.abs(tb)):'');
+    }
+    saldoLine.push((atb>=0?'+':'')+minsToHHMM(Math.abs(atb)),minsToHHMM(atw),minsToHHMM(att));
+    saldoRows.push(saldoLine);
+
+    for(var d=1;d<=rng.days;d++){
+      var ds=year+'-'+rng.moS+'-'+String(d).padStart(2,'0');
+      var dow=new Date(ds+'T12:00:00').getDay();
+      var rec=mRecs.find(function(r){return r.work_date===ds;});
+      var dayE=byDay[ds]||[];
+      var startE=dayE.find(function(e){return e.entry_type==='START';});
+      var endE=dayE.filter(function(e){return e.entry_type==='END';}).pop();
+      var ps=dayE.filter(function(e){return e.entry_type==='PAUSE_START';}).sort(function(a,b){return (a.pause_number||0)-(b.pause_number||0);});
+      var pe=dayE.filter(function(e){return e.entry_type==='PAUSE_END';}).sort(function(a,b){return (a.pause_number||0)-(b.pause_number||0);});
+      var fmt=function(e){return e?new Date(e.entry_datetime).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'}):'';};
+      var wm=rec?rec.worked_minutes||0:0, tm=rec?rec.theoretical_minutes||0:0, bm=rec?rec.balance_minutes||0:0, pm=rec?rec.pause_minutes||0:0;
+      var status=rec?rec.status||'':'';
+      var eds=editsByDate[ds]||[];
+      var lastEd=eds.length?eds[eds.length-1]:null;
+      allMonthRows.push([w.display_name||w.employee_code,w.employee_code,ds,dayNames[dow],fmt(startE),fmt(ps[0]),fmt(pe[0]),fmt(endE),ps.length,pm?minsToHHMM(pm):'',wm?minsToHHMM(wm):'',tm?minsToHHMM(tm):'',bm?(bm>=0?'+':'')+minsToHHMM(Math.abs(bm)):'',status,'']);
+      editsRows.push([w.display_name||w.employee_code,w.employee_code,ds,dayNames[dow],fmt(startE),fmt(endE),wm?minsToHHMM(wm):'',tm?minsToHHMM(tm):'',bm?(bm>=0?'+':'')+minsToHHMM(Math.abs(bm)):'',status,eds.length?'Sí':'',lastEd?(lastEd.reason_code||''):'']);
+    }
+  }
+
+  appendSheet(wb,annualRows,safeSheetName('Resum anual',used),[{wch:24},{wch:9},{wch:14},{wch:14},{wch:11},{wch:14},{wch:14},{wch:11},{wch:10},{wch:10}],{headerRows:[3],boldRows:[0]});
+  appendSheet(wb,allMonthRows,safeSheetName('01 Mensual',used),[{wch:24},{wch:9},{wch:12},{wch:5},{wch:9},{wch:10},{wch:10},{wch:9},{wch:8},{wch:10},{wch:12},{wch:12},{wch:9},{wch:12},{wch:20}],{headerRows:[2],boldRows:[0]});
+  appendSheet(wb,editsRows,safeSheetName('02 Edicions',used),[{wch:24},{wch:9},{wch:12},{wch:5},{wch:9},{wch:9},{wch:12},{wch:12},{wch:9},{wch:12},{wch:7},{wch:25}],{headerRows:[2],boldRows:[0]});
+  appendSheet(wb,annualMonthRows,safeSheetName('03 Anual mesos',used),[{wch:24},{wch:9},{wch:12},{wch:12},{wch:11},{wch:12},{wch:11},{wch:14},{wch:9},{wch:9}],{headerRows:[2],boldRows:[0]});
+  appendSheet(wb,saldoRows,safeSheetName('04 Saldo acumulat',used),[{wch:24},{wch:9}].concat(monthNames.map(function(){return {wch:9};})).concat([{wch:11},{wch:14},{wch:14}]),{headerRows:[2],boldRows:[0]});
+  appendSheet(wb,globalRows,safeSheetName('05 Global mes',used),[{wch:24},{wch:9},{wch:14},{wch:11},{wch:14},{wch:10},{wch:14},{wch:14},{wch:14},{wch:10},{wch:10}],{headerRows:[2],boldRows:[0]});
+
+  XLSX.writeFile(wb,'JASL_Time_global_'+monthNames[month-1]+'_'+year+'.xlsx');
+  showToast('Excel global generat!','success');
+}
+
+async function loadVacances(){
+  var el=document.getElementById('page-vacances-content');
+  if(!el||!state.worker) return;
+  el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  if(!state.settings||!Object.keys(state.settings).length){
+    try{var sr=await dbGet('app_settings','select=setting_key,setting_value');state.settings=state.settings||{};sr.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});}catch(e){}
+  }
+  try{
+    var yr=new Date().getFullYear();
+    var maxDaysRows=await dbGet('app_settings','setting_key=eq.vacation_days_per_year&select=setting_value').catch(function(){return[];});
+    var maxDays=maxDaysRows[0]?parseInt(maxDaysRows[0].setting_value,10):VACATION_DAYS_DEFAULT;
+    var permsAll=await dbGet('day_status','worker_id=eq.'+state.worker.id+'&start_date=lte.'+yr+'-12-31&end_date=gte.'+yr+'-01-01&is_active=eq.true&select=id,day_type,start_date,end_date,approval_status,comment');
+    var usedDays=0, pendingVacDays=0, vacDates={};
+    var permIcons={BAIXA_MEDICA:'🩺',SICK_LEAVE:'🩺',SICK_DAY:'🤒',PERMIS_RETRIBUIT:'📋',PAID_LEAVE:'📋',FESTIU:'🔴',HOLIDAY:'🔴',VACANCES:'🏖',VACATION:'🏖'};
+    permsAll.forEach(function(p){
+      if(!isActiveApproval(p) && String(p.approval_status||'').toUpperCase()!=='PENDING') return;
+      var dt=String(p.day_type||'').toUpperCase();
+      var d=new Date(p.start_date+'T12:00:00');
+      var endD=new Date(p.end_date+'T12:00:00');
+      while(d<=endD){
+        var dow=d.getDay(); var ds=localDateISO(d);
+        if(dow!==0&&dow!==6){
+          if(isVacationType(dt) && String(p.approval_status||'APPROVED').toUpperCase()==='APPROVED') usedDays++;
+          if(isVacationType(dt) && String(p.approval_status||'').toUpperCase()==='PENDING') pendingVacDays++;
+          var obj={status:p.approval_status||'APPROVED',type:dt,icon:permIcons[dt]||'📅',isVac:isVacationType(dt),isHoliday:isHolidayType(dt),comment:p.comment||''};
+          if(!vacDates[ds] || obj.isVac || obj.isHoliday) vacDates[ds]=obj;
+        }
+        d.setDate(d.getDate()+1);
+      }
+    });
+    var remaining=maxDays-usedDays;
+    var color=getWorkerColor(state.worker.id);
+    var pct=maxDays>0?Math.min(100,Math.round(usedDays/maxDays*100)):0;
+    var html='<div style="display:flex;gap:8px;margin-bottom:16px">'+
+      '<button class="btn btn-primary" style="flex:1" onclick="openVacancesModal()">+ Sol·licitar vacances</button>'+ 
+      '<button class="btn btn-ghost" onclick="printVacancesPDF()" style="flex-shrink:0;padding:10px">🖨 PDF</button>'+ 
+    '</div>'+ 
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">'+
+      '<div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+maxDays+'</div><div class="stat-lbl">Dies totals</div></div>'+ 
+      '<div class="stat-box"><div class="stat-val" style="color:'+color+'">'+usedDays+'</div><div class="stat-lbl">Dies usats</div></div>'+ 
+      '<div class="stat-box"><div class="stat-val" style="color:'+(remaining>0?'var(--success)':'var(--warn)')+'">'+remaining+'</div><div class="stat-lbl">Dies pendents</div></div>'+ 
+    '</div>'+ 
+    (pendingVacDays?'<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Vacances pendents d’aprovació: <strong>'+pendingVacDays+'</strong> dies laborables.</div>':'')+
+    '<div class="card" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px"><span>Vacances '+yr+'</span><span>'+pct+'%</span></div>'+ 
+    '<div style="background:var(--surface2);border-radius:6px;height:8px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:6px"></div></div></div>'+ 
+    '<div class="section-title">Calendari '+yr+'</div>'+renderCalendarYear(yr,vacDates,color,null,true);
+    el.innerHTML=html;
+  }catch(e){console.error('loadVacances final',e);el.innerHTML='<div class="empty-state">Error carregant vacances</div>';}
+}
+
+async function loadVacancesGlobal(){
+  var el=document.getElementById('page-vacances-content');
+  if(!el) return;
+  el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  if(!state.settings||!Object.keys(state.settings).length){try{var sRows=await dbGet('app_settings','select=setting_key,setting_value');state.settings=state.settings||{};sRows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});}catch(e){}}
+  try{
+    var yr=new Date().getFullYear();
+    if(!state.allWorkers||!state.allWorkers.length){state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*');}
+    var perms=await dbGet('day_status','start_date=lte.'+yr+'-12-31&end_date=gte.'+yr+'-01-01&is_active=eq.true&select=day_type,worker_id,start_date,end_date,approval_status');
+    var dateMap={};
+    perms.filter(function(p){return isVacationType(p.day_type)&&isActiveApproval(p);}).forEach(function(p){
+      var w=state.allWorkers.find(function(x){return String(x.id)===String(p.worker_id);}); if(!w) return;
+      var color=getWorkerColor(p.worker_id); var d=new Date(p.start_date+'T12:00:00'); var end=new Date(p.end_date+'T12:00:00');
+      while(d<=end){
+        var dow=d.getDay(); if(dow!==0&&dow!==6){var ds=localDateISO(d); if(!dateMap[ds]) dateMap[ds]=[]; dateMap[ds].push({workerId:p.worker_id,color:color,name:w.display_name||w.employee_code,status:p.approval_status||'APPROVED'});} d.setDate(d.getDate()+1);
+      }
+    });
+    var html='<div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px">';
+    state.allWorkers.forEach(function(w){var c=getWorkerColor(w.id);html+='<div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:18px;height:6px;border-radius:6px;background:'+c+';flex-shrink:0"></div><span>'+(w.display_name||w.employee_code)+'</span></div>';});
+    html+='</div><div class="section-title">Calendari global '+yr+'</div>'+renderCalendarYear(yr,dateMap,null,state.allWorkers,false);
+    el.innerHTML=html;
+  }catch(e){console.error('loadVacancesGlobal final',e);el.innerHTML='<div class="empty-state">Error carregant calendari global</div>';}
+}
+
+function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
+  var mNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var dNames=['Dl','Dt','Dc','Dj','Dv','Ds','Dg'];
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+  for(var m=0;m<12;m++){
+    var firstDay=new Date(yr,m,1), daysInMonth=new Date(yr,m+1,0).getDate(), startDow=(firstDay.getDay()+6)%7;
+    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px"><div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:8px;text-align:center">'+mNames[m]+'</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:4px">';
+    dNames.forEach(function(d){html+='<div style="text-align:center;font-size:9px;font-weight:700;color:var(--text3);padding:2px">'+d+'</div>';});
+    html+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
+    for(var e=0;e<startDow;e++) html+='<div></div>';
+    for(var d=1;d<=daysInMonth;d++){
+      var date=new Date(yr,m,d), dow=date.getDay(), ds=yr+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      var isWeekend=(dow===0||dow===6), entry=dateMap[ds], hasEntry=entry&&(isIndividual?true:entry.length>0);
+      var bg='transparent', bgImage='', textColor=isWeekend?'#e53935':'var(--text)', title='', extra='';
+      if(hasEntry){
+        if(isIndividual){
+          var status=String(entry.status||'APPROVED').toUpperCase();
+          if(entry.isVac){bg=status==='APPROVED'?singleColor:(status==='PENDING'?'#FFF3CD':'#FEF0F0'); textColor=status==='APPROVED'?'#fff':(status==='PENDING'?'#856404':'#c62828'); title=status==='PENDING'?'Vacances pendents':'Vacances aprovades';}
+          else if(entry.isHoliday){bg='#FEF0F0'; textColor='var(--warn)'; title='Festiu'; extra='<div style="font-size:8px;line-height:1;margin-top:1px">'+(entry.icon||'🔴')+'</div>';}
+          else {bg='transparent'; textColor=isWeekend?'#e53935':'var(--text)'; title=permTypeLabel(entry.type); extra='<div style="font-size:8px;line-height:1;margin-top:1px">'+(entry.icon||'📅')+'</div>';}
+        }else{
+          var n=Math.min(entry.length,4);
+          var fr=entry.slice(0,4).map(function(x,i){var p0=Math.round(i*100/n),p1=Math.round((i+1)*100/n);return x.color+' '+p0+'% '+p1+'%';});
+          bgImage='linear-gradient(to bottom,'+fr.join(',')+')'; bg='#e8f4fd'; textColor='#fff'; title=entry.map(function(x){return x.name+(String(x.status||'').toUpperCase()==='PENDING'?' (pendent)':'');}).join(', ');
+        }
+      }
+      var isToday=ds===localDateISO(new Date()); var border=isToday?'2px solid var(--accent)':'1px solid transparent';
+      html+='<div style="text-align:center;border-radius:4px;padding:2px 1px;'+(bgImage?'background-image:'+bgImage+';background-color:'+bg:'background:'+bg)+';cursor:'+(hasEntry?'default':'auto')+';border:'+border+'" '+(title?'title="'+title+'"':'')+'><div style="font-size:10px;color:'+textColor+';font-weight:'+(isToday?'800':'400')+'">'+d+'</div>'+extra+'</div>';
+    }
+    html+='</div></div>';
+  }
+  html+='</div>'; return html;
+}
+
+function switchVacancesView(view){
+  var btnInd=document.getElementById('vac-btn-ind'), btnGlo=document.getElementById('vac-btn-glo');
+  if(btnInd){btnInd.style.color=view==='individual'?'var(--accent)':'var(--text3)';btnInd.style.borderBottomColor=view==='individual'?'var(--accent)':'transparent';}
+  if(btnGlo){btnGlo.style.color=view==='global'?'var(--accent)':'var(--text3)';btnGlo.style.borderBottomColor=view==='global'?'var(--accent)':'transparent';}
+  if(view==='individual') loadVacances(); else loadVacancesGlobal();
+}
+
+async function savePerm(){
+  var type=document.getElementById('perm-type').value;
+  var start=document.getElementById('perm-start').value;
+  var end=document.getElementById('perm-end').value;
+  var comment=(document.getElementById('perm-comment')||{}).value||'';
+  if(!start||!end){showToast('Dates obligatòries','error');return;}
+  if(end<start){showToast('La data de fi no pot ser anterior a l’inici','error');return;}
+  var computeMode=(window._computeDefaults&&window._computeDefaults[type])||'THEORETICAL_HOURS';
+  var approvalStatus=isAdminUser()?'APPROVED':'PENDING';
+  try{
+    await dbPost('day_status',{worker_id:state.worker.id,day_type:type,start_date:start,end_date:end,compute_mode:computeMode,comment:comment,is_active:true,approval_status:approvalStatus});
+    closeModal(); showToast(approvalStatus==='PENDING'?'Sol·licitud enviada - pendent d’aprovació':'Permís creat','success');
+    loadMyPerms(); checkPendingPerms();
+  }catch(e){showToast((e&&e.message)||'Error creant permís','error');}
+}
+
+async function loadMyPerms(){
+  var el=document.getElementById('perms-list'); if(!el) return;
+  el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  try{
+    var rows=await dbGet('day_status','worker_id=eq.'+state.worker.id+'&is_active=eq.true&order=start_date.desc&select=id,day_type,start_date,end_date,compute_mode,comment,approval_status,admin_note,is_active');
+    if(!rows||!rows.length){el.innerHTML='<div class="empty-state" style="padding:40px 20px">🛡<br><br>Cap permís registrat.<br><span style="font-size:12px;color:var(--text3)">Toca + Nou per afegir una sol·licitud.</span></div>';return;}
+    el.innerHTML=rows.map(function(p){
+      var cc=p.compute_mode==='THEORETICAL_HOURS'?'tag-green':'tag-gray';
+      var cl=p.compute_mode==='THEORETICAL_HOURS'?'Compta':'No compta';
+      var ch=p.comment?'<div style="color:var(--text2);font-size:12px;margin-top:6px">📝 '+p.comment+'</div>':'';
+      var st=String(p.approval_status||'APPROVED').toUpperCase();
+      var approvalMap={PENDING:'<span class="tag tag-yellow">⏳ Pendent aprovació</span>',APPROVED:'<span class="tag tag-green">✓ Aprovada</span>',REJECTED:'<span class="tag tag-red">✕ Rebutjada</span>',CHANGE_REQUESTED:'<span class="tag tag-yellow">⚠ Canvi sol·licitat</span>',DELETE_REQUESTED:'<span class="tag tag-yellow">🗑 Eliminació sol·licitada</span>'};
+      var adminNote=(p.admin_note&&(st==='REJECTED'||st==='CHANGE_REQUESTED'))?'<div style="background:var(--warn-lt);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--warn);margin-top:6px">💬 Admin: '+p.admin_note+'</div>':'';
+      var actions='';
+      if(st==='PENDING'||st==='CHANGE_REQUESTED'){
+        actions='<div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="editMyPerm(this.dataset.id)" data-id="'+p.id+'">✎ Editar</button><button class="btn btn-danger" style="padding:5px 12px;font-size:12px;background:var(--warn-lt);color:var(--warn);border:1px solid var(--warn)" onclick="deleteMyPerm(this.dataset.id)" data-id="'+p.id+'">🗑 Eliminar</button></div>';
+      } else if(st==='APPROVED'){
+        actions='<div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;color:var(--warn);border-color:var(--warn)" onclick="requestPermDeletion(this.dataset.id)" data-id="'+p.id+'">🗑 Demanar eliminació</button></div>';
+      }
+      return '<div class="perm-row"><div class="card-row"><span style="font-weight:700;font-size:14px">'+permTypeLabel(p.day_type)+'</span>'+(approvalMap[st]||approvalMap.APPROVED)+'</div><div class="perm-dates">'+formatDateLong(p.start_date)+' → '+formatDateLong(p.end_date)+'</div><div style="margin-top:4px"><span class="tag '+cc+'" style="font-size:10px">'+cl+' per al saldo</span></div>'+adminNote+ch+actions+'</div>';
+    }).join('');
+  }catch(e){console.error('loadMyPerms final',e);el.innerHTML='<div class="empty-state">Error carregant permisos</div>';}
+}
+
+async function requestPermDeletion(permId){
+  if(!confirm('Vols demanar a l’administrador l’eliminació d’aquest permís?')) return;
+  try{await dbPatch('day_status','id=eq.'+permId,{approval_status:'DELETE_REQUESTED'});showToast('Sol·licitud d’eliminació enviada','success');loadMyPerms();checkPendingPerms();}
+  catch(e){showToast('Error sol·licitant eliminació','error');}
+}
+
+async function loadPendingPermsCount(){
+  try{
+    var pending=await dbGet('day_status','approval_status=in.(PENDING,DELETE_REQUESTED)&is_active=eq.true&select=id');
+    var count=pending.length;
+    var badge=document.getElementById('pending-perms-badge');
+    if(badge){badge.textContent=count>0?count:'';badge.style.display=count>0?'flex':'none';}
+    var alertEl=document.getElementById('admin-perms-alert');
+    if(alertEl){
+      if(count>0){alertEl.innerHTML='<div style="background:var(--accent-lt);border:1px solid var(--accent);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="showAdminPage(\'all-perms\')"><div><div style="font-weight:700;color:var(--accent)">'+count+(count>1?' sol·licituds pendents':' sol·licitud pendent')+'</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Permisos o eliminacions pendents de revisió</div></div><div style="font-size:20px">›</div></div>';alertEl.style.display='block';}
+      else alertEl.style.display='none';
+    }
+  }catch(e){}
+}
+
+async function loadAllPerms(){
+  if(!state.allWorkers||!state.allWorkers.length){try{state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*');}catch(e){}}
+  var el=document.getElementById('all-perms-list'); if(!el) return;
+  el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  try{
+    var rows=await dbGet('day_status','is_active=eq.true&order=approval_status.asc,start_date.desc&select=*');
+    if(!rows||!rows.length){el.innerHTML='<div class="empty-state">Cap permís</div>';return;}
+    el.innerHTML=rows.map(function(p){
+      var wData=state.allWorkers.find(function(w){return String(w.id)===String(p.worker_id);});
+      var name=wData?(wData.display_name||wData.employee_code):('Worker #'+p.worker_id);
+      var st=String(p.approval_status||'APPROVED').toUpperCase();
+      var colors={PENDING:'tag-yellow',APPROVED:'tag-green',REJECTED:'tag-red',CHANGE_REQUESTED:'tag-yellow',DELETE_REQUESTED:'tag-yellow'};
+      var labels={PENDING:'Pendent',APPROVED:'Aprovada',REJECTED:'Rebutjada',CHANGE_REQUESTED:'Canvi sol·licitat',DELETE_REQUESTED:'Eliminació sol·licitada'};
+      var tag='<span class="tag '+(colors[st]||'tag-gray')+'">'+(labels[st]||st)+'</span>';
+      var actions='';
+      if(st==='PENDING') actions='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn btn-primary" style="padding:5px 12px;font-size:12px" onclick="approveAdminPerm(this.dataset.id,this.dataset.status)" data-status="APPROVED" data-id="'+p.id+'">Aprovar</button><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="requestAdminPermChange(this.dataset.id)" data-id="'+p.id+'">Sol·licitar canvi</button><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;color:var(--warn);border-color:var(--warn)" onclick="approveAdminPerm(this.dataset.id,this.dataset.status)" data-status="REJECTED" data-id="'+p.id+'">Rebutjar</button></div>';
+      else if(st==='DELETE_REQUESTED') actions='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn btn-danger" style="padding:5px 12px;font-size:12px" onclick="approveDeletePerm(this.dataset.id)" data-id="'+p.id+'">Aprovar eliminació</button><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="rejectDeletePerm(this.dataset.id)" data-id="'+p.id+'">Mantenir permís</button></div>';
+      else actions='<div style="margin-top:6px"><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="togglePermCompute(this.dataset.id,this.dataset.mode)" data-id="'+p.id+'" data-mode="'+p.compute_mode+'">Canviar còmput</button></div>';
+      var note=(p.admin_note&&(st==='REJECTED'||st==='CHANGE_REQUESTED'))?'<div style="background:var(--warn-lt);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--warn);margin-top:6px">Admin: '+p.admin_note+'</div>':'';
+      return '<div class="perm-row"><div class="card-row"><div><span style="font-weight:700;font-size:14px">'+name+'</span><div style="font-size:12px;color:var(--text2);margin-top:1px">'+permTypeLabel(p.day_type)+'</div></div>'+tag+'</div><div class="perm-dates">'+p.start_date+' - '+p.end_date+'</div>'+(p.comment?'<div style="font-size:12px;color:var(--text2);margin-top:4px">'+p.comment+'</div>':'')+note+actions+'</div>';
+    }).join('');
+  }catch(e){console.error('loadAllPerms final',e);el.innerHTML='<div class="empty-state">Error</div>';}
+}
+
+async function approveDeletePerm(id){
+  if(!confirm('Confirmes que vols eliminar aquest permís?')) return;
+  try{await dbPatch('day_status','id=eq.'+id,{is_active:false,approval_status:'DELETED',approved_by_worker_id:state.worker?state.worker.id:null,approved_at:new Date().toISOString()});showToast('Permís eliminat','success');loadAllPerms();loadPendingPermsCount();}
+  catch(e){showToast('Error eliminant permís','error');}
+}
+async function rejectDeletePerm(id){
+  try{await dbPatch('day_status','id=eq.'+id,{approval_status:'APPROVED',admin_note:'Eliminació no acceptada'});showToast('Permís mantingut','success');loadAllPerms();loadPendingPermsCount();}
+  catch(e){showToast('Error actualitzant permís','error');}
+}
+
+if(typeof window!=='undefined'){
+  window.closeModal=closeModal;
+  window.localDateISO=localDateISO;
+  window.loadExportWorkers=loadExportWorkers;
+  window.updateExportUI=updateExportUI;
+  window.runExport=runExport;
+  window.loadSheetJS=loadSheetJS;
+  window.exportFormat05=exportFormat05;
+  window.loadVacances=loadVacances;
+  window.loadVacancesGlobal=loadVacancesGlobal;
+  window.renderCalendarYear=renderCalendarYear;
+  window.switchVacancesView=switchVacancesView;
+  window.savePerm=savePerm;
+  window.loadMyPerms=loadMyPerms;
+  window.requestPermDeletion=requestPermDeletion;
+  window.loadAllPerms=loadAllPerms;
+  window.approveDeletePerm=approveDeletePerm;
+  window.rejectDeletePerm=rejectDeletePerm;
+  window.loadPendingPermsCount=loadPendingPermsCount;
+}
 
 </script>
 <script>
