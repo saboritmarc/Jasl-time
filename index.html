@@ -7720,17 +7720,14 @@ if(typeof window!=='undefined'){
         doc.line(x+31.8,y+8.9,x+31.8,y+22.0);
         drawJurislabPuzzleV7(doc,x+36.1,y+9.1,11.9,11.6);
 
-        doc.setFont('helvetica','normal');
-        doc.setFontSize(4.7);
-        doc.setTextColor(110,126,144);
-        doc.text('Control de jornada',x+w/2,y+27.3,{align:'center'});
+        // Sense subtítol: deixem més aire visual i centrem millor el QR.
 
         // QR complet, amb zona blanca de seguretat dins la imatge.
         var footerY = y + (showRole ? 69.9 : 71.2);
         var qrFrame = showRole ? 40.4 : 41.2;
         var qrSize  = showRole ? 35.2 : 36.0;
         var qrFrameX = x + (w-qrFrame)/2;
-        var qrFrameY = y + 29.8;
+        var qrFrameY = y + 27.6;
         doc.setFillColor(255,255,255);
         doc.setDrawColor(202,223,242);
         doc.setLineWidth(0.34);
