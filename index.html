@@ -253,7 +253,7 @@ textarea.input{resize:vertical;min-height:80px;}
 <!-- DAY DETAIL -->
 <div id="page-day-detail" class="page" style="display:none;flex-direction:column">
   <div class="topbar">
-    <button class="back-btn" onclick="(function(){showPage('history');var nav=document.getElementById('worker-nav');var hp=document.getElementById('page-history');if(nav&&hp)hp.appendChild(nav);})()">&#8592;</button>
+    <button class="back-btn" onclick="showPage('history'); ensureWorkerNavAttached();">&#8592;</button>
     <div class="topbar-title" id="day-detail-title">Detall del dia</div>
     <div style="width:28px"></div>
   </div>
@@ -553,13 +553,27 @@ async function dbPost(table,body){ var r=await fetch(SUPABASE_URL+'/rest/v1/'+ta
 async function dbPatch(table,params,body){ var r=await fetch(SUPABASE_URL+'/rest/v1/'+table+'?'+params,{method:'PATCH',headers:hdrs(),body:JSON.stringify(body)}); if(!r.ok)throw await r.json(); return r.json(); }
 async function rpc(fn,body){ body=body||{}; var r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:hdrs(),body:JSON.stringify(body)}); if(!r.ok)throw await r.json(); return r.json(); }
 
+function ensureWorkerNavAttached(){
+  var app=document.getElementById('app');
+  var nav=document.getElementById('worker-nav');
+  if(app&&nav&&nav.parentElement!==app){
+    app.appendChild(nav);
+  }
+}
+
 function showPage(pageId){
+  // El menú inferior ha de quedar sempre penjat directament de #app.
+  // Si queda dins d'una .page que després s'oculta, desapareix visualment.
+  ensureWorkerNavAttached();
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');p.style.display='none';});
   var page=document.getElementById('page-'+pageId);
   if(page){page.style.display='flex';page.classList.add('active');}
   var workerPages=['worker-home','history','perms','vacances','balance','profile','day-detail','qr-scan'];
   var nav=document.getElementById('worker-nav');
-  if(nav) nav.style.display=workerPages.indexOf(pageId)>=0?'flex':'none';
+  if(nav){
+    ensureWorkerNavAttached();
+    nav.style.display=workerPages.indexOf(pageId)>=0?'flex':'none';
+  }
   var t={splash:'JASL Time',login:'Identifica-t','worker-home':'Inici',history:'Historial',
     balance:'Saldo',perms:'Permisos',vacances:'Vacances',profile:'Perfil',
     'admin-home':'Admin','day-detail':'Detall',workers:'Treballadors',
@@ -3867,7 +3881,7 @@ async function exportFormat01(targets, year, month, withEdits){
       }
     }
 
-    var vers=withEdits?'Amb edicions':'Model simulat amb pauses';
+    var vers=withEdits?'Amb edicions':'Registre mensual';
     var hdrs=withEdits?
       ['Data','Dia','Tipus de l&#237;nia','Entrada','Inici pausa','Final pausa','Sortida','N&#250;m. pauses','Temps pausa','H. treballades','H. te&#242;riques','Saldo','Estat','Editat per','Motiu / observacions']:
       ['Data','Dia','Entrada','Inici pausa','Final pausa','Sortida','N&#250;m. pauses','Temps pausa','H. treballades','H. te&#242;riques','Saldo','Estat','Observacions'];
@@ -4131,8 +4145,8 @@ async function exportFormat05(workers, year, month){
 
     var rows=[
       ['Registre mensual individual &#183; JASL Time'],
-      ['Treballador:',w.display_name||w.employee_code,'','Codi:',w.employee_code,'','Per&#237;ode:',monthNames[month-1]+' '+year,'','Versi&#243;:','Model final global','',''],
-      ['Model simulat amb pauses'],
+      ['Treballador:',w.display_name||w.employee_code,'','Codi:',w.employee_code,'','Per&#237;ode:',monthNames[month-1]+' '+year,'','Versi&#243;:','Registre global','',''],
+      ['Dades reals del mes'],
       [],[],
       ['Data','Dia','Entrada','Inici pausa','Final pausa','Sortida','N&#250;m. pauses','Temps pausa','H. treballades','H. te&#242;riques','Saldo','Estat','Observacions']
     ];
@@ -4856,7 +4870,17 @@ async function loadMyPerms(){
 
 async function requestPermDeletion(permId){
   if(!confirm('Vols demanar a l’administrador l’eliminació d’aquest permís?')) return;
-  try{await dbPatch('day_status','id=eq.'+permId,{approval_status:'DELETE_REQUESTED'});showToast('Sol·licitud d’eliminació enviada','success');loadMyPerms();checkPendingPerms();}
+  try{
+    await dbPatch('day_status','id=eq.'+permId,{approval_status:'DELETE_REQUESTED'});
+    showToast('Sol·licitud d’eliminació enviada','success');
+    ensureWorkerNavAttached();
+    showPage('perms');
+    await loadMyPerms();
+    await checkPendingPerms();
+    ensureWorkerNavAttached();
+    var nav=document.getElementById('worker-nav');
+    if(nav) nav.style.display='flex';
+  }
   catch(e){showToast('Error sol·licitant eliminació','error');}
 }
 
@@ -4908,8 +4932,645 @@ async function rejectDeletePerm(id){
   catch(e){showToast('Error actualitzant permís','error');}
 }
 
+
+/* ============================================================================
+   JASL Time - Revisió funcional v3
+   Objectiu: exportacions fiables amb dades reals, informe d'edicions filtrable,
+   calendari amb festius/permisos visibles i estil Excel corporatiu.
+============================================================================ */
+
+var JASL_BLUE = '1E90E8';
+var JASL_FONT = 'Arial Narrow';
+
+function xlBaseStyle(){
+  return {font:{name:JASL_FONT,sz:12,color:{rgb:'000000'}},alignment:{vertical:'center',wrapText:true}};
+}
+function xlHeaderStyle(){
+  return {font:{name:JASL_FONT,sz:12,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:JASL_BLUE}},alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+}
+function xlTitleStyle(){
+  return {font:{name:JASL_FONT,sz:12,bold:true,color:{rgb:JASL_BLUE}},alignment:{vertical:'center',wrapText:true}};
+}
+function xlBoldStyle(){
+  return {font:{name:JASL_FONT,sz:12,bold:true,color:{rgb:'000000'}},alignment:{vertical:'center',wrapText:true}};
+}
+function xlRedStyle(){
+  return {font:{name:JASL_FONT,sz:12,bold:true,color:{rgb:'C00000'}},alignment:{vertical:'center',wrapText:true}};
+}
+
+async function loadSheetJS(){
+  if(window.XLSX && window.XLSX.utils && window.XLSX.writeFile) return;
+  function addScript(src){
+    return new Promise(function(resolve,reject){
+      var existing=document.querySelector('script[src="'+src+'"]');
+      if(existing){ existing.addEventListener('load',resolve); existing.addEventListener('error',reject); return; }
+      var s=document.createElement('script');
+      s.src=src; s.onload=resolve; s.onerror=reject;
+      document.head.appendChild(s);
+    });
+  }
+  try{
+    await addScript('https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js');
+  }catch(e){
+    await addScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+  }
+}
+
+function textLen(v){
+  if(v===null||v===undefined) return 0;
+  return String(v).replace(/<[^>]*>/g,'').length;
+}
+function autoCols(rows, minW, maxW){
+  minW=minW||8; maxW=maxW||55;
+  var maxCols=0;
+  rows.forEach(function(r){ if(r&&r.length>maxCols) maxCols=r.length; });
+  var cols=[];
+  for(var c=0;c<maxCols;c++){
+    var mx=minW;
+    rows.forEach(function(r){ if(r&&r[c]!==undefined&&r[c]!==null) mx=Math.max(mx, textLen(r[c])+2); });
+    cols.push({wch:Math.min(maxW, Math.max(minW, mx))});
+  }
+  return cols;
+}
+function safeSheetName(name, used){
+  used=used||{};
+  var base=String(name||'Full').replace(/[\\/?*\[\]:]/g,' ').replace(/\s+/g,' ').trim()||'Full';
+  base=base.substring(0,31);
+  var out=base, i=2;
+  while(used[out]){
+    var suffix=' '+i++;
+    out=base.substring(0,31-suffix.length)+suffix;
+  }
+  used[out]=true;
+  return out;
+}
+function appendStyledSheet(wb, rows, name, opts){
+  opts=opts||{};
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=opts.cols||autoCols(rows, 9, opts.maxWidth||55);
+  if(opts.merges) ws['!merges']=opts.merges;
+  try{
+    var ref=ws['!ref'];
+    if(ref){
+      var range=XLSX.utils.decode_range(ref);
+      for(var R=range.s.r; R<=range.e.r; R++){
+        for(var C=range.s.c; C<=range.e.c; C++){
+          var cellRef=XLSX.utils.encode_cell({r:R,c:C});
+          if(!ws[cellRef]) ws[cellRef]={t:'s',v:''};
+          ws[cellRef].s=xlBaseStyle();
+          if((opts.headerRows||[]).indexOf(R)>=0) ws[cellRef].s=xlHeaderStyle();
+          if((opts.titleRows||[]).indexOf(R)>=0) ws[cellRef].s=xlTitleStyle();
+          if((opts.boldRows||[]).indexOf(R)>=0) ws[cellRef].s=xlBoldStyle();
+          if((opts.redRows||[]).indexOf(R)>=0) ws[cellRef].s=xlRedStyle();
+        }
+      }
+    }
+  }catch(e){ console.warn('Estils Excel no aplicats completament', e); }
+  if(opts.freeze){ ws['!freeze']=opts.freeze; }
+  XLSX.utils.book_append_sheet(wb,ws,name);
+  return ws;
+}
+
+function exportDateRange(year, month){
+  var moS=String(month).padStart(2,'0');
+  return {moS:moS,start:year+'-'+moS+'-01',end:year+'-'+moS+'-'+String(new Date(year,month,0).getDate()).padStart(2,'0'),days:new Date(year,month,0).getDate()};
+}
+function localDateISO(dateObj){
+  var d=dateObj instanceof Date?dateObj:new Date(dateObj);
+  if(isNaN(d.getTime())) d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function minsToHHMM(mins){
+  if(mins===null||mins===undefined||mins==='') return '';
+  mins=Math.round(Number(mins)||0);
+  var neg=mins<0, abs=Math.abs(mins);
+  return (neg?'-':'')+Math.floor(abs/60)+':'+String(abs%60).padStart(2,'0');
+}
+function formatBalance(mins){
+  if(mins===null||mins===undefined||mins==='') return '';
+  mins=Math.round(Number(mins)||0);
+  return (mins>=0?'+':'')+minsToHHMM(mins);
+}
+function timeOfEntry(e){
+  if(!e||!e.entry_datetime) return '';
+  try{return new Date(e.entry_datetime).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'});}catch(err){return '';}
+}
+function dateTimeText(v){
+  if(!v) return '';
+  try{return new Date(v).toLocaleString('ca',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return String(v);}
+}
+function recordStatusLabel(s){
+  s=String(s||'').toUpperCase();
+  var m={NOT_STARTED:'No iniciat',IN_PROGRESS:'En curs',PAUSED:'En pausa',ON_PAUSE:'En pausa',FINISHED:'Finalitzat',COMPLETED:'Finalitzat',INCIDENCE:'Incidència',INCIDENT:'Incidència',ABSENT:'Absent'};
+  return m[s]||s||'';
+}
+function typeEntryLabel(t){
+  t=String(t||'').toUpperCase();
+  var m={START:'Inici jornada',PAUSE_START:'Inici pausa',PAUSE_END:'Fi pausa',END:'Fi jornada'};
+  return m[t]||t||'';
+}
+function permTypeLabel(t){
+  var k=String(t||'').toUpperCase();
+  var m={
+    VACANCES:'Vacances', VACATION:'Vacances',
+    BAIXA_MEDICA:'Baixa mèdica', SICK_LEAVE:'Baixa mèdica',
+    SICK_DAY:'Malaltia sense justificant',
+    PERMIS_RETRIBUIT:'Permís retribuït', PAID_LEAVE:'Permís retribuït',
+    FESTIU:'Festiu', HOLIDAY:'Festiu', NORMAL:'Normal', OTHER:'Altres'
+  };
+  return m[k]||t||'-';
+}
+function permIcon(t){
+  var k=String(t||'').toUpperCase();
+  var m={VACANCES:'🏖',VACATION:'🏖',BAIXA_MEDICA:'🩺',SICK_LEAVE:'🩺',SICK_DAY:'🤒',PERMIS_RETRIBUIT:'📋',PAID_LEAVE:'📋',FESTIU:'🔴',HOLIDAY:'🔴',NORMAL:'',OTHER:'📅'};
+  return m[k]||'📅';
+}
+function isAdminUser(){ return state.worker && String(state.worker.role||'').toUpperCase()==='ADMIN'; }
+function isVacationType(t){ t=String(t||'').toUpperCase(); return t==='VACANCES'||t==='VACATION'; }
+function isHolidayType(t){ t=String(t||'').toUpperCase(); return t==='FESTIU'||t==='HOLIDAY'; }
+function isSickType(t){ t=String(t||'').toUpperCase(); return t==='BAIXA_MEDICA'||t==='SICK_LEAVE'||t==='SICK_DAY'; }
+function isPaidLeaveType(t){ t=String(t||'').toUpperCase(); return t==='PERMIS_RETRIBUIT'||t==='PAID_LEAVE'; }
+function isActiveApproval(p){
+  var s=String((p&&p.approval_status)||'APPROVED').toUpperCase();
+  return s!=='REJECTED' && s!=='DELETE_REQUESTED' && s!=='DELETED';
+}
+function getWorkerColor(workerId){
+  if(state.settings&&state.settings['worker_color_'+workerId]) return state.settings['worker_color_'+workerId];
+  if(!state.allWorkers||!state.allWorkers.length) return WORKER_COLORS[0];
+  var idx=state.allWorkers.findIndex(function(w){return String(w.id)===String(workerId);});
+  return WORKER_COLORS[(idx>=0?idx:0)%WORKER_COLORS.length];
+}
+
+function groupEntriesByDate(entries){
+  var byDay={};
+  (entries||[]).forEach(function(e){ if(!byDay[e.entry_date]) byDay[e.entry_date]=[]; byDay[e.entry_date].push(e); });
+  return byDay;
+}
+function groupEditsByDate(edits){
+  var byDay={};
+  (edits||[]).forEach(function(e){ if(!byDay[e.work_date]) byDay[e.work_date]=[]; byDay[e.work_date].push(e); });
+  return byDay;
+}
+function groupPermsByDate(statuses, year, month){
+  var rng=month?exportDateRange(year,month):{start:year+'-01-01',end:year+'-12-31'};
+  var map={};
+  (statuses||[]).forEach(function(p){
+    if(!isActiveApproval(p) && String(p.approval_status||'').toUpperCase()!=='PENDING') return;
+    var start=new Date(p.start_date+'T12:00:00');
+    var end=new Date(p.end_date+'T12:00:00');
+    var min=new Date(rng.start+'T12:00:00');
+    var max=new Date(rng.end+'T12:00:00');
+    if(start<min) start=min;
+    if(end>max) end=max;
+    for(var d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+      var ds=localDateISO(d);
+      if(!map[ds]) map[ds]=[];
+      map[ds].push(p);
+    }
+  });
+  return map;
+}
+function dayPermText(perms){
+  if(!perms||!perms.length) return '';
+  return perms.map(function(p){ return permIcon(p.day_type)+' '+permTypeLabel(p.day_type)+(String(p.approval_status||'').toUpperCase()==='PENDING'?' pendent':''); }).join(' · ');
+}
+function dayLineForMonth(worker, records, entriesByDay, editsByDate, permsByDate, year, month, day, withEdits){
+  var rng=exportDateRange(year,month);
+  var ds=year+'-'+rng.moS+'-'+String(day).padStart(2,'0');
+  var dow=new Date(ds+'T12:00:00').getDay();
+  var dayNames=['Dg','Dl','Dt','Dc','Dj','Dv','Ds'];
+  var rec=(records||[]).find(function(r){return r.work_date===ds;});
+  var dayE=(entriesByDay[ds]||[]).slice().sort(function(a,b){return String(a.entry_datetime).localeCompare(String(b.entry_datetime));});
+  var startE=dayE.find(function(e){return e.entry_type==='START';});
+  var endE=dayE.filter(function(e){return e.entry_type==='END';}).pop();
+  var ps=dayE.filter(function(e){return e.entry_type==='PAUSE_START';}).sort(function(a,b){return (a.pause_number||0)-(b.pause_number||0);});
+  var pe=dayE.filter(function(e){return e.entry_type==='PAUSE_END';}).sort(function(a,b){return (a.pause_number||0)-(b.pause_number||0);});
+  var edits=editsByDate[ds]||[];
+  var lastEd=edits.length?edits[edits.length-1]:null;
+  var perms=permsByDate[ds]||[];
+  var wm=rec?(rec.worked_minutes||0):0;
+  var tm=rec?(rec.theoretical_minutes||0):0;
+  var bm=rec?(rec.balance_minutes||0):0;
+  var pm=rec?(rec.pause_minutes||0):0;
+  var base=[ds,dayNames[dow],timeOfEntry(startE),timeOfEntry(ps[0]),timeOfEntry(pe[0]),timeOfEntry(endE),ps.length||'',pm?minsToHHMM(pm):'',wm?minsToHHMM(wm):'',tm?minsToHHMM(tm):'',(rec?formatBalance(bm):''),rec?recordStatusLabel(rec.status):'',dayPermText(perms)];
+  if(withEdits){
+    base.push(edits.length?'Sí':'');
+    base.push(lastEd?(lastEd.reason_code||''):'' );
+    base.push(lastEd?(lastEd.reason_text||''):'' );
+  }
+  return base;
+}
+async function fetchWorkerMonthBundle(workerId, year, month){
+  var rng=exportDateRange(year,month);
+  var records=await dbGet('daily_records','worker_id=eq.'+workerId+'&work_date=gte.'+rng.start+'&work_date=lte.'+rng.end+'&order=work_date.asc&select=*');
+  var entries=await dbGet('time_entries','worker_id=eq.'+workerId+'&entry_date=gte.'+rng.start+'&entry_date=lte.'+rng.end+'&is_active=eq.true&order=entry_datetime.asc&select=*');
+  var edits=await dbGet('time_entry_edits','worker_id=eq.'+workerId+'&work_date=gte.'+rng.start+'&work_date=lte.'+rng.end+'&order=edited_at.asc&select=*').catch(function(){return[];});
+  var statuses=await dbGet('day_status','worker_id=eq.'+workerId+'&start_date=lte.'+rng.end+'&end_date=gte.'+rng.start+'&is_active=eq.true&select=*').catch(function(){return[];});
+  return {records:records,entries:entries,edits:edits,statuses:statuses,entriesByDay:groupEntriesByDate(entries),editsByDate:groupEditsByDate(edits),permsByDate:groupPermsByDate(statuses,year,month),rng:rng};
+}
+async function fetchWorkerYearRecords(workerId, year){
+  var records=await dbGet('daily_records','worker_id=eq.'+workerId+'&work_date=gte.'+year+'-01-01&work_date=lte.'+year+'-12-31&order=work_date.asc&select=*');
+  var statuses=await dbGet('day_status','worker_id=eq.'+workerId+'&start_date=lte.'+year+'-12-31&end_date=gte.'+year+'-01-01&is_active=eq.true&select=*').catch(function(){return[];});
+  return {records:records,statuses:statuses};
+}
+function sumRecords(records){
+  records=records||[];
+  return {
+    worked:records.reduce(function(a,r){return a+(r.worked_minutes||0);},0),
+    theoretical:records.reduce(function(a,r){return a+(r.theoretical_minutes||0);},0),
+    balance:records.reduce(function(a,r){return a+(r.balance_minutes||0);},0),
+    pause:records.reduce(function(a,r){return a+(r.pause_minutes||0);},0),
+    days:records.filter(function(r){var s=String(r.status||'').toUpperCase(); return s==='FINISHED'||s==='COMPLETED';}).length,
+    incidences:records.filter(function(r){return !!r.has_incidence;}).length
+  };
+}
+
+async function loadExportWorkers(){
+  var el=document.getElementById('exports-content');
+  if(!el) return;
+  var ws=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*&order=display_name.asc').catch(function(){return[];});
+  if(ws.length) state.allWorkers=ws;
+  var year=new Date().getFullYear();
+  var monthNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var workerOpts='<option value="">Tots els treballadors</option>'+ws.map(function(w){return '<option value="'+w.id+'">'+(w.display_name||w.employee_code)+'</option>';}).join('');
+  var monthOpts=monthNames.map(function(n,i){return '<option value="'+(i+1)+'"'+((i+1)===(new Date().getMonth()+1)?' selected':'')+'>'+n+'</option>';}).join('');
+  el.innerHTML='<div class="section-title">Exportar registres</div>'+ 
+    '<div class="card" style="margin-bottom:16px">'+
+      '<div class="input-group"><label class="input-label">Format d\'exportació</label><select id="exp-format" class="input" onchange="updateExportUI()">'+
+        '<option value="01_mensual">01 · Registre mensual individual</option>'+ 
+        '<option value="02_mensual_edicions">02 · Registre mensual amb edicions</option>'+ 
+        '<option value="03_anual_mesos">03 · Registre anual per mesos + resum</option>'+ 
+        '<option value="04_saldo_acumulat">04 · Saldo acumulat anual</option>'+ 
+        '<option value="05_global">05 · Global tots els treballadors del mes + resum anual</option>'+ 
+      '</select></div>'+ 
+      '<div class="flex-gap"><div class="input-group" style="flex:2"><label class="input-label">Treballador</label><select id="exp-worker" class="input">'+workerOpts+'</select></div>'+ 
+      '<div class="input-group" style="flex:1"><label class="input-label">Any</label><input type="number" id="exp-year" class="input" value="'+year+'" min="2020" max="2035"></div></div>'+ 
+      '<div id="exp-month-row" class="input-group"><label class="input-label">Mes</label><select id="exp-month" class="input">'+monthOpts+'</select></div>'+ 
+      '<div id="exp-help" style="font-size:12px;color:var(--text2);margin:-4px 0 14px"></div>'+ 
+      '<button class="btn btn-primary btn-full" onclick="runExport()">💾 Generar Excel</button>'+ 
+    '</div>';
+  updateExportUI();
+}
+function updateExportUI(){
+  var fmt=(document.getElementById('exp-format')||{}).value||'01_mensual';
+  var mr=document.getElementById('exp-month-row'), wr=document.getElementById('exp-worker'), help=document.getElementById('exp-help');
+  if(mr) mr.style.display=(fmt==='01_mensual'||fmt==='02_mensual_edicions'||fmt==='05_global')?'block':'none';
+  if(wr){ if(fmt==='05_global'){wr.value='';wr.disabled=true;} else wr.disabled=false; }
+  if(help){
+    help.textContent=fmt==='05_global'
+      ? 'Genera un únic Excel amb un resum anual a la primera fulla i una fulla per cada format establert amb dades reals del mes seleccionat.'
+      : 'Genera l’informe amb dades reals de la base de dades. Pots seleccionar un treballador o deixar-los tots.';
+  }
+}
+async function runExport(){
+  var fmt=(document.getElementById('exp-format')||{}).value||'01_mensual';
+  var wId=(document.getElementById('exp-worker')||{}).value||'';
+  var year=parseInt((document.getElementById('exp-year')||{}).value)||new Date().getFullYear();
+  var month=parseInt((document.getElementById('exp-month')||{}).value)||new Date().getMonth()+1;
+  var workers=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*&order=display_name.asc');
+  if(workers.length) state.allWorkers=workers;
+  var targets=wId?workers.filter(function(w){return String(w.id)===String(wId);}):workers;
+  if(fmt==='05_global') targets=workers;
+  if(!targets.length){showToast('Cap treballador seleccionat','error');return;}
+  try{
+    showToast('Generant Excel...','success');
+    await loadSheetJS();
+    if(fmt==='01_mensual') await exportFormat01(targets,year,month,false);
+    else if(fmt==='02_mensual_edicions') await exportFormat01(targets,year,month,true);
+    else if(fmt==='03_anual_mesos') await exportFormat03(targets,year);
+    else if(fmt==='04_saldo_acumulat') await exportFormat04(targets,year);
+    else if(fmt==='05_global') await exportFormat05(workers,year,month);
+  }catch(e){
+    console.error('runExport v3',e);
+    showToast('Error generant Excel: '+(e&&e.message?e.message:e),'error');
+  }
+}
+
+async function exportFormat01(targets, year, month, withEdits){
+  var wb=XLSX.utils.book_new(), used={};
+  var monthNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  for(var i=0;i<targets.length;i++){
+    var w=targets[i], data=await fetchWorkerMonthBundle(w.id,year,month);
+    var rows=[
+      ['JASL Time · '+(withEdits?'Registre mensual amb edicions':'Registre mensual individual')],
+      ['Treballador',w.display_name||w.employee_code,'Codi',w.employee_code,'Període',monthNames[month-1]+' '+year],
+      [],
+      withEdits?['Data','Dia','Entrada','Inici pausa','Final pausa','Sortida','Núm. pauses','Temps pausa','H. treballades','H. teòriques','Saldo','Estat','Permís / dia especial','Editat','Motiu última edició','Observacions edició']:
+                ['Data','Dia','Entrada','Inici pausa','Final pausa','Sortida','Núm. pauses','Temps pausa','H. treballades','H. teòriques','Saldo','Estat','Permís / dia especial']
+    ];
+    var total={worked:0,theoretical:0,balance:0,pause:0};
+    for(var d=1;d<=data.rng.days;d++){
+      var line=dayLineForMonth(w,data.records,data.entriesByDay,data.editsByDate,data.permsByDate,year,month,d,withEdits);
+      rows.push(line);
+      var ds=year+'-'+data.rng.moS+'-'+String(d).padStart(2,'0');
+      var rec=data.records.find(function(r){return r.work_date===ds;});
+      if(rec){ total.worked+=rec.worked_minutes||0; total.theoretical+=rec.theoretical_minutes||0; total.balance+=rec.balance_minutes||0; total.pause+=rec.pause_minutes||0; }
+    }
+    rows.push([]);
+    rows.push(withEdits?['TOTAL','','','','','','',minsToHHMM(total.pause),minsToHHMM(total.worked),minsToHHMM(total.theoretical),formatBalance(total.balance),'','','','','']:
+                       ['TOTAL','','','','','','',minsToHHMM(total.pause),minsToHHMM(total.worked),minsToHHMM(total.theoretical),formatBalance(total.balance),'','']);
+    appendStyledSheet(wb,rows,safeSheetName((w.employee_code||w.display_name||('T'+w.id))+(withEdits?' Ed':'') ,used),{headerRows:[3],titleRows:[0],boldRows:[1,rows.length-1],maxWidth:60});
+  }
+  XLSX.writeFile(wb,'JASL_Time_'+(withEdits?'mensual_edicions':'mensual')+'_'+monthNames[month-1]+'_'+year+'.xlsx');
+  showToast('Excel generat!','success');
+}
+
+async function exportFormat03(targets, year){
+  var wb=XLSX.utils.book_new(), used={};
+  var monthNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var summary=[['JASL Time · Resum anual per mesos '+year],[],['Treballador','Codi','H. treballades','H. teòriques','Saldo anual','Dies treballats','Incidències','Vacances aprovades','Altres permisos/festius']];
+  for(var i=0;i<targets.length;i++){
+    var w=targets[i], yearly=await fetchWorkerYearRecords(w.id,year), accumulated=0;
+    var rows=[['JASL Time · Registre anual per mesos'],['Treballador',w.display_name||w.employee_code,'Codi',w.employee_code,'Exercici',year],[],['Mes','H. treballades','Total pauses','H. teòriques','Saldo mensual','Saldo acumulat','Dies treballats','Incidències','Permisos / dies especials']];
+    var annualTotals={worked:0,theoretical:0,balance:0,days:0,incidences:0}, vacCount=0, otherCount=0;
+    for(var m=1;m<=12;m++){
+      var moS=String(m).padStart(2,'0');
+      var recs=yearly.records.filter(function(r){return r.work_date&&r.work_date.indexOf(year+'-'+moS)===0;});
+      var s=sumRecords(recs); accumulated+=s.balance;
+      annualTotals.worked+=s.worked; annualTotals.theoretical+=s.theoretical; annualTotals.balance+=s.balance; annualTotals.days+=s.days; annualTotals.incidences+=s.incidences;
+      var perms=yearly.statuses.filter(function(p){return isActiveApproval(p)&&p.start_date<=year+'-'+moS+'-31'&&p.end_date>=year+'-'+moS+'-01';});
+      var permTxt=perms.map(function(p){return permIcon(p.day_type)+' '+permTypeLabel(p.day_type);}).join(' · ');
+      rows.push([monthNames[m-1],minsToHHMM(s.worked),minsToHHMM(s.pause),minsToHHMM(s.theoretical),formatBalance(s.balance),formatBalance(accumulated),s.days,s.incidences,permTxt]);
+    }
+    yearly.statuses.forEach(function(p){ if(isActiveApproval(p)){ if(isVacationType(p.day_type)) vacCount++; else otherCount++; } });
+    rows.push([]); rows.push(['TOTAL',minsToHHMM(annualTotals.worked),'',minsToHHMM(annualTotals.theoretical),formatBalance(annualTotals.balance),formatBalance(accumulated),annualTotals.days,annualTotals.incidences,'']);
+    appendStyledSheet(wb,rows,safeSheetName('Anual '+(w.employee_code||w.display_name),used),{headerRows:[3],titleRows:[0],boldRows:[1,rows.length-1],maxWidth:60});
+    summary.push([w.display_name||w.employee_code,w.employee_code,minsToHHMM(annualTotals.worked),minsToHHMM(annualTotals.theoretical),formatBalance(annualTotals.balance),annualTotals.days,annualTotals.incidences,vacCount,otherCount]);
+  }
+  appendStyledSheet(wb,summary,safeSheetName('Resum anual',used),{headerRows:[2],titleRows:[0],boldRows:[0],maxWidth:55});
+  wb.SheetNames.splice(wb.SheetNames.indexOf('Resum anual'),1);
+  wb.SheetNames.unshift('Resum anual');
+  XLSX.writeFile(wb,'JASL_Time_anual_mesos_'+year+'.xlsx');
+  showToast('Excel generat!','success');
+}
+
+async function exportFormat04(targets, year){
+  var wb=XLSX.utils.book_new(), used={};
+  var monthNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var global=[['JASL Time · Saldo acumulat anual '+year],[],['Treballador','Codi'].concat(monthNames).concat(['Saldo anual','H. treballades any','H. teòriques any'])];
+  for(var i=0;i<targets.length;i++){
+    var w=targets[i], yearly=await fetchWorkerYearRecords(w.id,year), accumulated=0, annual={worked:0,theoretical:0,balance:0};
+    var rows=[['JASL Time · Saldo acumulat individual'],['Treballador',w.display_name||w.employee_code,'Codi',w.employee_code,'Exercici',year],[],['Mes','Saldo mensual','Saldo acumulat','H. treballades','H. teòriques','Dies treballats','Incidències']];
+    var globalLine=[w.display_name||w.employee_code,w.employee_code];
+    for(var m=1;m<=12;m++){
+      var moS=String(m).padStart(2,'0');
+      var recs=yearly.records.filter(function(r){return r.work_date&&r.work_date.indexOf(year+'-'+moS)===0;});
+      var s=sumRecords(recs); accumulated+=s.balance; annual.worked+=s.worked; annual.theoretical+=s.theoretical; annual.balance+=s.balance;
+      rows.push([monthNames[m-1],formatBalance(s.balance),formatBalance(accumulated),minsToHHMM(s.worked),minsToHHMM(s.theoretical),s.days,s.incidences]);
+      globalLine.push(formatBalance(s.balance));
+    }
+    rows.push([]); rows.push(['TOTAL',formatBalance(annual.balance),formatBalance(accumulated),minsToHHMM(annual.worked),minsToHHMM(annual.theoretical),'','']);
+    appendStyledSheet(wb,rows,safeSheetName('Saldo '+(w.employee_code||w.display_name),used),{headerRows:[3],titleRows:[0],boldRows:[1,rows.length-1],maxWidth:55});
+    globalLine.push(formatBalance(annual.balance),minsToHHMM(annual.worked),minsToHHMM(annual.theoretical));
+    global.push(globalLine);
+  }
+  appendStyledSheet(wb,global,safeSheetName('Global acumulat',used),{headerRows:[2],titleRows:[0],boldRows:[0],maxWidth:55});
+  wb.SheetNames.splice(wb.SheetNames.indexOf('Global acumulat'),1);
+  wb.SheetNames.unshift('Global acumulat');
+  XLSX.writeFile(wb,'JASL_Time_saldo_acumulat_'+year+'.xlsx');
+  showToast('Excel generat!','success');
+}
+
+async function exportFormat05(workers, year, month){
+  var wb=XLSX.utils.book_new(), used={};
+  var monthNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var dayNames=['Dg','Dl','Dt','Dc','Dj','Dv','Ds'];
+  var annualRows=[['JASL Time · Resum anual '+year],['Dades reals acumulades de la base de dades. Mes seleccionat: '+monthNames[month-1]+'.'],[],['Treballador','Codi','H. treballades any','H. teòriques any','Saldo any','H. treballades mes','H. teòriques mes','Saldo mes','Dies treballats mes','Incidències mes']];
+  var f01=[['Format 01 · Registre mensual global '+monthNames[month-1]+' '+year],[],['Treballador','Codi','Data','Dia','Entrada','Inici pausa','Final pausa','Sortida','Núm. pauses','Temps pausa','H. treballades','H. teòriques','Saldo','Estat','Permís / dia especial']];
+  var f02=[['Format 02 · Registre mensual global amb edicions '+monthNames[month-1]+' '+year],[],['Treballador','Codi','Data','Dia','Entrada','Sortida','H. treballades','H. teòriques','Saldo','Estat','Editat','Motiu última edició','Observacions edició']];
+  var f03=[['Format 03 · Registre anual per mesos '+year],[],['Treballador','Codi','Mes','H. treballades','Total pauses','H. teòriques','Saldo mensual','Saldo acumulat','Dies treballats','Incidències']];
+  var f04=[['Format 04 · Saldo acumulat anual '+year],[],['Treballador','Codi'].concat(monthNames).concat(['Saldo anual','H. treballades any','H. teòriques any'])];
+  var f05=[['Format 05 · Global tots els treballadors '+monthNames[month-1]+' '+year],[],['Treballador','Codi','H. treballades mes','Pauses mes','H. teòriques mes','Saldo mes','H. treballades any','H. teòriques any','Saldo acumulat any','Dies treballats mes','Incidències mes']];
+  for(var i=0;i<workers.length;i++){
+    var w=workers[i], monthData=await fetchWorkerMonthBundle(w.id,year,month), yearData=await fetchWorkerYearRecords(w.id,year);
+    var mSum=sumRecords(monthData.records), ySum=sumRecords(yearData.records);
+    annualRows.push([w.display_name||w.employee_code,w.employee_code,minsToHHMM(ySum.worked),minsToHHMM(ySum.theoretical),formatBalance(ySum.balance),minsToHHMM(mSum.worked),minsToHHMM(mSum.theoretical),formatBalance(mSum.balance),mSum.days,mSum.incidences]);
+    f05.push([w.display_name||w.employee_code,w.employee_code,minsToHHMM(mSum.worked),minsToHHMM(mSum.pause),minsToHHMM(mSum.theoretical),formatBalance(mSum.balance),minsToHHMM(ySum.worked),minsToHHMM(ySum.theoretical),formatBalance(ySum.balance),mSum.days,mSum.incidences]);
+    for(var d=1;d<=monthData.rng.days;d++){
+      var line=dayLineForMonth(w,monthData.records,monthData.entriesByDay,monthData.editsByDate,monthData.permsByDate,year,month,d,true);
+      f01.push([w.display_name||w.employee_code,w.employee_code].concat(line.slice(0,13)));
+      f02.push([w.display_name||w.employee_code,w.employee_code,line[0],line[1],line[2],line[5],line[8],line[9],line[10],line[11],line[13],line[14],line[15]]);
+    }
+    var accumulated=0, saldoLine=[w.display_name||w.employee_code,w.employee_code];
+    for(var m=1;m<=12;m++){
+      var moS=String(m).padStart(2,'0');
+      var recs=yearData.records.filter(function(r){return r.work_date&&r.work_date.indexOf(year+'-'+moS)===0;});
+      var s=sumRecords(recs); accumulated+=s.balance;
+      f03.push([w.display_name||w.employee_code,w.employee_code,monthNames[m-1],minsToHHMM(s.worked),minsToHHMM(s.pause),minsToHHMM(s.theoretical),formatBalance(s.balance),formatBalance(accumulated),s.days,s.incidences]);
+      saldoLine.push(formatBalance(s.balance));
+    }
+    saldoLine.push(formatBalance(ySum.balance),minsToHHMM(ySum.worked),minsToHHMM(ySum.theoretical));
+    f04.push(saldoLine);
+  }
+  appendStyledSheet(wb,annualRows,safeSheetName('Resum anual',used),{headerRows:[3],titleRows:[0],boldRows:[0],maxWidth:55});
+  appendStyledSheet(wb,f01,safeSheetName('01 Mensual',used),{headerRows:[2],titleRows:[0],boldRows:[0],maxWidth:60});
+  appendStyledSheet(wb,f02,safeSheetName('02 Edicions',used),{headerRows:[2],titleRows:[0],boldRows:[0],maxWidth:65});
+  appendStyledSheet(wb,f03,safeSheetName('03 Anual mesos',used),{headerRows:[2],titleRows:[0],boldRows:[0],maxWidth:55});
+  appendStyledSheet(wb,f04,safeSheetName('04 Saldo acumulat',used),{headerRows:[2],titleRows:[0],boldRows:[0],maxWidth:55});
+  appendStyledSheet(wb,f05,safeSheetName('05 Global mes',used),{headerRows:[2],titleRows:[0],boldRows:[0],maxWidth:55});
+  XLSX.writeFile(wb,'JASL_Time_global_'+monthNames[month-1]+'_'+year+'.xlsx');
+  showToast('Excel global generat!','success');
+}
+
+function editReportCurrentFilters(){
+  var year=parseInt((document.getElementById('er-year')||{}).value)||new Date().getFullYear();
+  var monthVal=(document.getElementById('er-month')||{}).value||'all';
+  var workerId=(document.getElementById('er-worker')||{}).value||'';
+  var start=year+'-01-01', end=year+'-12-31';
+  if(monthVal!=='all'){
+    var rng=exportDateRange(year,parseInt(monthVal)); start=rng.start; end=rng.end;
+  }
+  return {year:year,monthVal:monthVal,workerId:workerId,start:start,end:end};
+}
+async function loadEditsReport(){
+  var root=document.getElementById('edits-report-list'); if(!root) return;
+  var workers=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&order=display_name.asc&select=id,display_name,employee_code').catch(function(){return[];});
+  if(workers.length) state.allWorkers=workers;
+  var now=new Date();
+  var monthNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  root.innerHTML='<div class="card" style="margin-bottom:14px">'+
+    '<div class="section-title" style="margin-top:0">Filtres</div>'+ 
+    '<div class="input-group"><label class="input-label">Treballador</label><select id="er-worker" class="input"><option value="">Tots els treballadors</option>'+workers.map(function(w){return '<option value="'+w.id+'">'+(w.display_name||w.employee_code)+'</option>';}).join('')+'</select></div>'+ 
+    '<div class="flex-gap"><div class="input-group" style="flex:1"><label class="input-label">Any</label><input type="number" id="er-year" class="input" value="'+now.getFullYear()+'" min="2020" max="2035"></div>'+ 
+    '<div class="input-group" style="flex:1"><label class="input-label">Període</label><select id="er-month" class="input"><option value="all">Tot l’any</option>'+monthNames.map(function(n,i){return '<option value="'+(i+1)+'"'+((i+1)===(now.getMonth()+1)?' selected':'')+'>'+n+'</option>';}).join('')+'</select></div></div>'+ 
+    '<div style="display:flex;gap:8px"><button class="btn btn-primary" style="flex:1" onclick="renderEditsReport()">Aplicar filtres</button><button class="btn btn-secondary" style="flex:1" onclick="exportEditsReport()">Exportar Excel</button></div>'+ 
+    '</div><div id="er-results"><div class="empty-state"><span class="loader"></span></div></div>';
+  await renderEditsReport();
+}
+async function renderEditsReport(){
+  var out=document.getElementById('er-results'); if(!out) return;
+  out.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  try{
+    var f=editReportCurrentFilters();
+    var q='work_date=gte.'+f.start+'&work_date=lte.'+f.end+'&order=work_date.asc,edited_at.asc&select=*&limit=2000';
+    if(f.workerId) q+='&worker_id=eq.'+f.workerId;
+    var edits=await dbGet('time_entry_edits',q);
+    var workers=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=id,display_name,employee_code').catch(function(){return[];});
+    if(!edits.length){out.innerHTML='<div class="empty-state">Cap edició registrada per al filtre seleccionat.</div>';return;}
+    out.innerHTML=edits.map(function(e){
+      var w=workers.find(function(x){return String(x.id)===String(e.worker_id);});
+      var editor=workers.find(function(x){return String(x.id)===String(e.edited_by_worker_id);});
+      var oldDT=e.old_datetime||e.old_value, newDT=e.new_datetime||e.new_value;
+      return '<div class="card" style="margin-bottom:10px;padding:14px">'+
+        '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:8px"><div><strong>'+(w?(w.display_name||w.employee_code):('Worker #'+e.worker_id))+'</strong><span style="color:var(--text2);font-size:12px;margin-left:8px">'+(e.work_date||'')+'</span></div><span style="font-size:11px;color:var(--text2)">'+dateTimeText(e.edited_at)+'</span></div>'+ 
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><div style="background:var(--surface2);border-radius:8px;padding:8px"><div style="font-size:10px;color:var(--text2)">Original</div><strong>'+dateTimeText(oldDT)+'</strong><div style="font-size:11px;color:var(--text2)">'+typeEntryLabel(e.old_entry_type)+'</div></div><div style="background:var(--accent-lt);border:1px solid var(--accent);border-radius:8px;padding:8px"><div style="font-size:10px;color:var(--accent)">Nou valor</div><strong style="color:var(--accent)">'+dateTimeText(newDT)+'</strong><div style="font-size:11px;color:var(--accent)">'+typeEntryLabel(e.new_entry_type)+'</div></div></div>'+ 
+        '<div style="font-size:12px;padding:6px 10px;background:var(--surface2);border-radius:6px"><strong>Motiu: </strong>'+(e.reason_code||'-')+(e.reason_text&&e.reason_text!=='-'?'<span style="margin-left:8px;color:var(--text2)">'+e.reason_text+'</span>':'')+'<br><strong>Editat per: </strong>'+(editor?(editor.display_name||editor.employee_code):(e.edited_by_worker_id||''))+'</div>'+ 
+      '</div>';
+    }).join('');
+  }catch(e){out.innerHTML='<div class="empty-state">Error carregant edicions: '+(e.message||e)+'</div>';}
+}
+async function exportEditsReport(){
+  try{
+    await loadSheetJS();
+    var f=editReportCurrentFilters();
+    var q='work_date=gte.'+f.start+'&work_date=lte.'+f.end+'&order=work_date.asc,edited_at.asc&select=*&limit=5000';
+    if(f.workerId) q+='&worker_id=eq.'+f.workerId;
+    var edits=await dbGet('time_entry_edits',q);
+    var workers=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=id,display_name,employee_code');
+    var rows=[['JASL Time · Registre d’edicions'],['Període',f.start+' a '+f.end,'Treballador',f.workerId||'Tots'],[],['Treballador','Codi','Data','Tipus original','Valor original','Tipus nou','Valor nou','Motiu','Explicació','Editat per','Data edició']];
+    edits.forEach(function(e){
+      var w=workers.find(function(x){return String(x.id)===String(e.worker_id);});
+      var editor=workers.find(function(x){return String(x.id)===String(e.edited_by_worker_id);});
+      rows.push([w?(w.display_name||w.employee_code):('Worker #'+e.worker_id),w?(w.employee_code||''):'',e.work_date||'',typeEntryLabel(e.old_entry_type),dateTimeText(e.old_datetime||e.old_value),typeEntryLabel(e.new_entry_type),dateTimeText(e.new_datetime||e.new_value),e.reason_code||'',e.reason_text||'',editor?(editor.display_name||editor.employee_code):(e.edited_by_worker_id||''),dateTimeText(e.edited_at)]);
+    });
+    var wb=XLSX.utils.book_new();
+    appendStyledSheet(wb,rows,'Edicions',{headerRows:[3],titleRows:[0],boldRows:[1],maxWidth:65});
+    XLSX.writeFile(wb,'JASL_Time_registre_edicions_'+f.start+'_'+f.end+'.xlsx');
+    showToast('Excel d’edicions generat!','success');
+  }catch(e){console.error('exportEditsReport',e);showToast('Error exportant edicions: '+(e.message||e),'error');}
+}
+
+async function loadVacances(){
+  var el=document.getElementById('page-vacances-content'); if(!el||!state.worker) return;
+  el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  if(!state.settings||!Object.keys(state.settings).length){try{var sr=await dbGet('app_settings','select=setting_key,setting_value');state.settings=state.settings||{};sr.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});}catch(e){}}
+  try{
+    var yr=new Date().getFullYear();
+    var maxRows=await dbGet('app_settings','setting_key=eq.vacation_days_per_year&select=setting_value').catch(function(){return[];});
+    var maxDays=maxRows[0]?parseInt(maxRows[0].setting_value,10):VACATION_DAYS_DEFAULT;
+    var statuses=await dbGet('day_status','worker_id=eq.'+state.worker.id+'&start_date=lte.'+yr+'-12-31&end_date=gte.'+yr+'-01-01&is_active=eq.true&select=*');
+    var usedDays=0,pendingVacDays=0,dateMap={};
+    statuses.forEach(function(p){
+      if(!isActiveApproval(p) && String(p.approval_status||'').toUpperCase()!=='PENDING') return;
+      var dt=String(p.day_type||'').toUpperCase();
+      var start=new Date(p.start_date+'T12:00:00'), end=new Date(p.end_date+'T12:00:00');
+      var min=new Date(yr+'-01-01T12:00:00'), max=new Date(yr+'-12-31T12:00:00');
+      if(start<min) start=min; if(end>max) end=max;
+      for(var d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+        var dow=d.getDay(), ds=localDateISO(d), isWeekday=dow!==0&&dow!==6;
+        if(isVacationType(dt)&&isWeekday&&String(p.approval_status||'APPROVED').toUpperCase()==='APPROVED') usedDays++;
+        if(isVacationType(dt)&&isWeekday&&String(p.approval_status||'').toUpperCase()==='PENDING') pendingVacDays++;
+        if(!isVacationType(dt) || isWeekday){
+          var obj={status:p.approval_status||'APPROVED',type:dt,icon:permIcon(dt),isVac:isVacationType(dt),isHoliday:isHolidayType(dt),comment:p.comment||''};
+          if(!dateMap[ds] || obj.isHoliday || obj.isVac) dateMap[ds]=obj;
+        }
+      }
+    });
+    var remaining=maxDays-usedDays, color=getWorkerColor(state.worker.id), pct=maxDays>0?Math.min(100,Math.round(usedDays/maxDays*100)):0;
+    el.innerHTML='<div style="display:flex;gap:8px;margin-bottom:16px"><button class="btn btn-primary" style="flex:1" onclick="openVacancesModal()">+ Sol·licitar vacances</button><button class="btn btn-ghost" onclick="printVacancesPDF()" style="flex-shrink:0;padding:10px">🖨 PDF</button></div>'+ 
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px"><div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+maxDays+'</div><div class="stat-lbl">Dies totals</div></div><div class="stat-box"><div class="stat-val" style="color:'+color+'">'+usedDays+'</div><div class="stat-lbl">Dies usats</div></div><div class="stat-box"><div class="stat-val" style="color:'+(remaining>0?'var(--success)':'var(--warn)')+'">'+remaining+'</div><div class="stat-lbl">Dies pendents</div></div></div>'+ 
+      (pendingVacDays?'<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Vacances pendents d’aprovació: <strong>'+pendingVacDays+'</strong> dies laborables.</div>':'')+
+      '<div class="card" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px"><span>Vacances '+yr+'</span><span>'+pct+'%</span></div><div style="background:var(--surface2);border-radius:6px;height:8px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:6px"></div></div></div>'+ 
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:10px">🏖 Vacances · 🩺 Baixa mèdica · 🤒 Malaltia · 📋 Permís retribuït · 🔴 Festiu</div>'+ 
+      '<div class="section-title">Calendari '+yr+'</div>'+renderCalendarYear(yr,dateMap,color,null,true);
+  }catch(e){console.error('loadVacances v3',e);el.innerHTML='<div class="empty-state">Error carregant vacances</div>';}
+}
+async function loadVacancesGlobal(){
+  var el=document.getElementById('page-vacances-content'); if(!el) return;
+  el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  if(!state.settings||!Object.keys(state.settings).length){try{var sr=await dbGet('app_settings','select=setting_key,setting_value');state.settings=state.settings||{};sr.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});}catch(e){}}
+  try{
+    var yr=new Date().getFullYear();
+    if(!state.allWorkers||!state.allWorkers.length) state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*');
+    var statuses=await dbGet('day_status','start_date=lte.'+yr+'-12-31&end_date=gte.'+yr+'-01-01&is_active=eq.true&select=*');
+    var dateMap={};
+    statuses.forEach(function(p){
+      if(!isActiveApproval(p) && String(p.approval_status||'').toUpperCase()!=='PENDING') return;
+      var w=state.allWorkers.find(function(x){return String(x.id)===String(p.worker_id);}); if(!w) return;
+      var dt=String(p.day_type||'').toUpperCase(), color=getWorkerColor(p.worker_id);
+      var start=new Date(p.start_date+'T12:00:00'), end=new Date(p.end_date+'T12:00:00');
+      var min=new Date(yr+'-01-01T12:00:00'), max=new Date(yr+'-12-31T12:00:00');
+      if(start<min) start=min; if(end>max) end=max;
+      for(var d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+        var dow=d.getDay(), isWeekday=dow!==0&&dow!==6;
+        if(isVacationType(dt)&&!isWeekday) continue;
+        var ds=localDateISO(d);
+        if(!dateMap[ds]) dateMap[ds]=[];
+        dateMap[ds].push({workerId:p.worker_id,color:color,name:w.display_name||w.employee_code,status:p.approval_status||'APPROVED',type:dt,icon:permIcon(dt),isVac:isVacationType(dt),isHoliday:isHolidayType(dt)});
+      }
+    });
+    var html='<div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px">';
+    state.allWorkers.forEach(function(w){var color=getWorkerColor(w.id);html+='<div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:22px;height:8px;border-radius:4px;background:'+color+';flex-shrink:0"></div><span>'+(w.display_name||w.employee_code)+'</span></div>';});
+    html+='</div><div style="font-size:11px;color:var(--text2);margin-bottom:10px">🏖 franges = vacances · 🩺 baixa mèdica · 🤒 malaltia · 📋 permís retribuït · 🔴 festiu</div><div class="section-title">Calendari global '+yr+'</div>'+renderCalendarYear(yr,dateMap,null,state.allWorkers,false);
+    el.innerHTML=html;
+  }catch(e){console.error('loadVacancesGlobal v3',e);el.innerHTML='<div class="empty-state">Error carregant calendari global</div>';}
+}
+function renderCalendarYear(yr, dateMap, singleColor, workers, isIndividual){
+  var mNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var dNames=['Dl','Dt','Dc','Dj','Dv','Ds','Dg'];
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+  for(var m=0;m<12;m++){
+    var firstDay=new Date(yr,m,1), daysInMonth=new Date(yr,m+1,0).getDate(), startDow=(firstDay.getDay()+6)%7;
+    html+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px"><div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:8px;text-align:center">'+mNames[m]+'</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:4px">';
+    dNames.forEach(function(d){html+='<div style="text-align:center;font-size:9px;font-weight:700;color:var(--text3);padding:2px">'+d+'</div>';});
+    html+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
+    for(var e=0;e<startDow;e++) html+='<div></div>';
+    for(var d=1;d<=daysInMonth;d++){
+      var date=new Date(yr,m,d), dow=date.getDay(), ds=yr+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      var isWeekend=(dow===0||dow===6), entry=dateMap[ds], hasEntry=!!entry;
+      var bg='transparent', bgImage='', textColor=isWeekend?'#e53935':'var(--text)', title='', extra='';
+      if(hasEntry){
+        if(isIndividual){
+          var status=String(entry.status||'APPROVED').toUpperCase();
+          if(entry.isHoliday){ bg='#FEF0F0'; textColor='#C00000'; title='Festiu'; extra='<div style="font-size:8px;line-height:1;margin-top:1px">🔴</div>'; }
+          else if(entry.isVac){ bg=status==='APPROVED'?singleColor:(status==='PENDING'?'#FFF3CD':'#FEF0F0'); textColor=status==='APPROVED'?'#fff':(status==='PENDING'?'#856404':'#c62828'); title=status==='PENDING'?'Vacances pendents':'Vacances aprovades'; extra=status==='PENDING'?'<div style="font-size:8px;line-height:1;margin-top:1px">🏖</div>':''; }
+          else { bg='transparent'; textColor=isWeekend?'#e53935':'var(--text)'; title=permTypeLabel(entry.type); extra='<div style="font-size:8px;line-height:1;margin-top:1px">'+(entry.icon||'📅')+'</div>'; }
+        } else {
+          var arr=Array.isArray(entry)?entry:[entry];
+          var vacs=arr.filter(function(x){return x.isVac;});
+          var hols=arr.filter(function(x){return x.isHoliday;});
+          var others=arr.filter(function(x){return !x.isVac&&!x.isHoliday;});
+          if(vacs.length){
+            var n=Math.min(vacs.length,4);
+            var fr=vacs.slice(0,4).map(function(x,i){var p0=Math.round(i*100/n),p1=Math.round((i+1)*100/n);return x.color+' '+p0+'% '+p1+'%';});
+            bgImage='linear-gradient(to bottom,'+fr.join(',')+')'; bg='#e8f4fd'; textColor='#fff';
+          }
+          if(hols.length&&!vacs.length){ bg='#FEF0F0'; textColor='#C00000'; }
+          if(hols.length) extra+='<div style="font-size:8px;line-height:1;margin-top:1px">🔴</div>';
+          if(others.length) extra+='<div style="font-size:8px;line-height:1;margin-top:1px">'+others.slice(0,2).map(function(x){return x.icon||'📅';}).join('')+'</div>';
+          title=arr.map(function(x){return (x.name?x.name+': ':'')+permTypeLabel(x.type)+(String(x.status||'').toUpperCase()==='PENDING'?' pendent':'');}).join(', ');
+        }
+      }
+      var isToday=ds===localDateISO(new Date()), border=isToday?'2px solid var(--accent)':'1px solid transparent';
+      html+='<div style="text-align:center;border-radius:4px;padding:2px 1px;'+(bgImage?'background-image:'+bgImage+';background-color:'+bg:'background:'+bg)+';cursor:'+(hasEntry?'default':'auto')+';border:'+border+'" '+(title?'title="'+title.replace(/"/g,'&quot;')+'"':'')+'><div style="font-size:10px;color:'+textColor+';font-weight:'+(isToday?'800':'400')+'">'+d+'</div>'+extra+'</div>';
+    }
+    html+='</div></div>';
+  }
+  html+='</div>'; return html;
+}
+
+if(typeof window!=='undefined'){
+  window.loadSheetJS=loadSheetJS;
+  window.loadExportWorkers=loadExportWorkers;
+  window.updateExportUI=updateExportUI;
+  window.runExport=runExport;
+  window.exportFormat01=exportFormat01;
+  window.exportFormat03=exportFormat03;
+  window.exportFormat04=exportFormat04;
+  window.exportFormat05=exportFormat05;
+  window.loadEditsReport=loadEditsReport;
+  window.renderEditsReport=renderEditsReport;
+  window.exportEditsReport=exportEditsReport;
+  window.loadVacances=loadVacances;
+  window.loadVacancesGlobal=loadVacancesGlobal;
+  window.renderCalendarYear=renderCalendarYear;
+}
+
+
 if(typeof window!=='undefined'){
   window.closeModal=closeModal;
+  window.ensureWorkerNavAttached=ensureWorkerNavAttached;
   window.localDateISO=localDateISO;
   window.loadExportWorkers=loadExportWorkers;
   window.updateExportUI=updateExportUI;
