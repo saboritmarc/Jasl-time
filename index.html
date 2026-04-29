@@ -3044,7 +3044,7 @@ async function loadSettings(){
     if(!rows||!rows.length){el.innerHTML='<div class="empty-state">Cap configuracio disponible</div>';return;}
     state.settings={};
     rows.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});
-    var lbl={'company_name':"Nom de l'empresa",'admin_email':'Correu admin','admin_password':'Contrasenya admin','notify_email_on_perm':'Email en permisos','vacation_days_per_year':'Dies vacances/any','daily_minutes':'Minuts/dia','weekly_hours':'Hores/setmana','daily_hours':'Hores/dia','working_days_per_week':'Dies laborables/setm.','annual_working_days':'Dies laborables/any','holidays_2025':'Festius 2025','holidays_2026':'Festius 2026','holidays_2027':'Festius 2027','default_compute_vacances':'Vacances - comput','default_compute_baixa_medica':'Baixa medica - comput','default_compute_permis_retribuit':'Permis retribuit - comput','default_compute_festiu':'Festiu - comput','requires_approval_VACATION':'Vacances - aprovacio','requires_approval_SICK_DAY':'Malaltia dom. - aprovacio','requires_approval_PAID_LEAVE':'Permis retribuit - aprovacio','requires_approval_SICK_LEAVE':'Baixa medica - aprovacio','requires_approval_HOLIDAY':'Festiu - aprovacio','allow_end_while_paused':'Finalitzar en pausa','allow_worker_edits':'Edicions de treballador','show_photo_on_card':'Foto a la targeta','show_role_on_card':'Carrec a la targeta'};
+    var lbl={'company_name':"Nom de l'empresa",'admin_email':'Correu admin','admin_password':'Contrasenya admin','notify_email_on_perm':'Email en permisos','vacation_days_per_year':'Dies vacances/any','daily_minutes':'Minuts/dia','weekly_hours':'Hores/setmana','daily_hours':'Hores/dia','working_days_per_week':'Dies laborables/setm.','annual_working_days':'Dies laborables/any','holidays_2025':'Festius 2025','holidays_2026':'Festius 2026','holidays_2027':'Festius 2027','default_compute_vacances':'Vacances - comput','default_compute_baixa_medica':'Baixa medica - comput','default_compute_permis_retribuit':'Permis retribuit - comput','default_compute_festiu':'Festiu - comput','requires_approval_VACATION':'Vacances - aprovacio','requires_approval_SICK_DAY':'Malaltia dom. - aprovacio','requires_approval_PAID_LEAVE':'Permis retribuit - aprovacio','requires_approval_SICK_LEAVE':'Baixa medica - aprovacio','requires_approval_HOLIDAY':'Festiu - aprovacio','allow_end_while_paused':'Finalitzar en pausa','allow_worker_edits':'Edicions de treballador','show_photo_on_card':'Foto a la targeta','show_role_on_card':'Rol a la targeta'};
     var grps={'Empresa':['company_name','admin_email','admin_password','vacation_days_per_year'],'Horari':['weekly_hours','daily_hours','daily_minutes','working_days_per_week','annual_working_days'],'Festius':['holidays_2025','holidays_2026','holidays_2027'],'Comput':['default_compute_vacances','default_compute_baixa_medica','default_compute_permis_retribuit','default_compute_festiu'],'Aprovacio':['requires_approval_VACATION','requires_approval_SICK_DAY','requires_approval_PAID_LEAVE','requires_approval_SICK_LEAVE','requires_approval_HOLIDAY'],'Opcions':['allow_end_while_paused','allow_worker_edits','show_photo_on_card','show_role_on_card','notify_email_on_perm']};
     var allK=Object.values(grps).reduce(function(a,b){return a.concat(b);},[]);
     var html='';
@@ -7043,6 +7043,200 @@ if(typeof window!=='undefined'){
 
 
 
+
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v8 · Targetes verticals refinades
+// - Disseny més fidel a la proposta D
+// - QR lleugerament més gran
+// - Franja blava inferior més petita
+// - Sense rellotge/JASL Time dins la franja blava
+// - Rol visible només si app_settings.show_role_on_card no és false/no/0
+// ─────────────────────────────────────────────────────────────────────────────
+function cardSettingBoolV8(key, defaultValue){
+  var v = state && state.settings ? state.settings[key] : undefined;
+  if(v===undefined || v===null || String(v).trim()==='') return defaultValue;
+  v = String(v).trim().toLowerCase();
+  return !(v==='false' || v==='0' || v==='no' || v==='off' || v==='n');
+}
+
+async function ensureCardSettingsV8(){
+  state.settings = state.settings || {};
+  if(Object.prototype.hasOwnProperty.call(state.settings,'show_role_on_card')) return;
+  try{
+    var rows = await dbGet('app_settings','select=setting_key,setting_value');
+    rows.forEach(function(r){ state.settings[r.setting_key]=r.setting_value; });
+  }catch(e){}
+}
+
+function drawTextPairCenteredV8(doc,label,value,cx,y,fontSize,labelColor,valueColor){
+  label = String(label||''); value = String(value||'');
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(fontSize);
+  var lw = doc.getTextWidth(label);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(fontSize+0.2);
+  var vw = doc.getTextWidth(value);
+  var x0 = cx - (lw+vw+1.2)/2;
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(labelColor[0],labelColor[1],labelColor[2]);
+  doc.text(label,x0,y);
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(valueColor[0],valueColor[1],valueColor[2]);
+  doc.text(value,x0+lw+1.2,y);
+}
+
+async function drawCardVerticalD_V7(doc, worker, x, y, w, h){
+  var blue=[30,144,232], blueDark=[21,112,196], gray=[145,139,144], dark=[44,62,80];
+  var showRole = cardSettingBoolV8('show_role_on_card', true);
+
+  // Targeta base
+  doc.setFillColor(255,255,255);
+  doc.roundedRect(x,y,w,h,3.2,3.2,'F');
+
+  // Capçalera: més aire superior i jerarquia Jurislab/Advocats com la proposta
+  var topY = y + 8.4;
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(blue[0],blue[1],blue[2]);
+  fitTextCenterV7(doc,'Jurislab',x+16.2,topY+3.8,25.5,9.2,6.6,blue);
+
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(gray[0],gray[1],gray[2]);
+  fitTextCenterV7(doc,'Advocats',x+16.2,topY+10.2,25.5,7.8,5.4,gray);
+
+  // Separador i símbol puzzle a la dreta
+  doc.setDrawColor(208,214,222);
+  doc.setLineWidth(0.22);
+  doc.line(x+31.8,topY-0.7,x+31.8,topY+15.8);
+  drawJurislabPuzzleV7(doc,x+36.4,topY-0.3,11.8,11.5);
+
+  // Submarca JASL Time / Control horari
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(blue[0],blue[1],blue[2]);
+  doc.setFontSize(5.7);
+  doc.text('JASL Time',x+7.4,y+25.4);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(107,122,141);
+  doc.setFontSize(4.7);
+  doc.text('Control horari',x+7.4,y+29.5);
+  doc.setDrawColor(blue[0],blue[1],blue[2]);
+  doc.setLineWidth(0.62);
+  doc.line(x+7.4,y+31.6,x+16.4,y+31.6);
+
+  // QR central: una mica més gran, però amb aire i marc suau
+  var footerY = y + (showRole ? 68.8 : 70.6);
+  var qrFrame = showRole ? 38.2 : 39.2;
+  var qrSize  = showRole ? 35.0 : 36.0;
+  var qrFrameX = x + (w-qrFrame)/2;
+  var qrFrameY = footerY - qrFrame - 0.7;
+  doc.setDrawColor(205,225,245);
+  doc.setLineWidth(0.32);
+  doc.setFillColor(255,255,255);
+  doc.roundedRect(qrFrameX,qrFrameY,qrFrame,qrFrame,3.0,3.0,'FD');
+  var qr = await generateBlueQRDataURLV7(worker.qr_token||worker.employee_code||'');
+  if(qr){
+    doc.addImage(qr,'PNG',x+(w-qrSize)/2,qrFrameY+(qrFrame-qrSize)/2,qrSize,qrSize,undefined,'FAST');
+  }else{
+    doc.setFont('courier','bold');
+    doc.setTextColor(blue[0],blue[1],blue[2]);
+    doc.setFontSize(6);
+    doc.text(worker.employee_code||'',x+w/2,qrFrameY+qrFrame/2,{align:'center'});
+  }
+
+  // Franja blava inferior: més petita i només amb dades essencials
+  var footerH = h - (footerY-y);
+  doc.setFillColor(blue[0],blue[1],blue[2]);
+  doc.roundedRect(x,footerY,w,footerH,3.2,3.2,'F');
+  doc.rect(x,footerY,w,3.8,'F'); // part superior recta, cantonades inferiors arrodonides
+
+  var name = worker.display_name||worker.employee_code||'';
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(255,255,255);
+  fitTextCenterV7(doc,name,x+w/2,footerY+6.0,w-9.0,8.2,5.8,[255,255,255]);
+
+  doc.setDrawColor(125,195,248);
+  doc.setLineWidth(0.22);
+  doc.line(x+10.5,footerY+8.8,x+w-10.5,footerY+8.8);
+
+  if(showRole){
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(5.2);
+    doc.setTextColor(220,240,255);
+    doc.text('Codi:',x+17.8,footerY+12.7,{align:'right'});
+    doc.text('Rol:',x+17.8,footerY+16.0,{align:'right'});
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(5.9);
+    doc.setTextColor(255,255,255);
+    doc.text(String(worker.employee_code||''),x+21.1,footerY+12.7);
+    doc.text(String(worker.role||'WORKER').toUpperCase(),x+21.1,footerY+16.0);
+  }else{
+    drawTextPairCenteredV8(doc,'Codi: ',String(worker.employee_code||''),x+w/2,footerY+13.1,5.9,[220,240,255],[255,255,255]);
+  }
+
+  // Perfil exterior suau
+  doc.setDrawColor(220,226,234);
+  doc.setLineWidth(0.25);
+  doc.roundedRect(x,y,w,h,3.2,3.2,'S');
+}
+
+async function loadCardsWorkers(){
+  await ensureCardSettingsV8();
+  var el=document.getElementById('cards-workers-list');
+  var ws=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*').catch(function(){return[];});
+  if(ws.length) state.allWorkers=ws;
+  var showRole=cardSettingBoolV8('show_role_on_card', true);
+  var html='';
+  ws.forEach(function(w){
+    var sub=(w.employee_code||'')+(showRole?(' · '+(w.role||'WORKER')):'');
+    html+='<div class="worker-item" style="align-items:center;cursor:pointer" id="cw-'+w.id+'" data-worker-id="'+w.id+'" onclick="selectCardWorkerV7('+w.id+')">'+
+      '<input type="radio" name="card-worker-v7" class="cw-check" value="'+w.id+'" style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;margin-right:4px" onclick="event.stopPropagation();selectCardWorkerV7('+w.id+')">'+
+      '<div style="width:42px;height:58px;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#fff 56%,#1E90E8 56%,#1E90E8 100%);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px;flex-shrink:0">▦</div>'+
+      '<div style="flex:1;margin-left:10px"><div style="font-weight:700;font-size:14px">'+(w.display_name||w.employee_code)+'</div>'+
+      '<div style="font-size:11px;color:var(--text2)">'+sub+'</div></div>'+
+      '<div id="qr-card-'+w.id+'" style="width:52px;height:52px;flex-shrink:0;border-radius:6px;overflow:hidden;border:1px solid var(--border)"></div>'+
+    '</div>';
+  });
+  el.innerHTML=html||'<div class="empty-state">Cap treballador</div>';
+  ws.forEach(function(w){var qrEl=document.getElementById('qr-card-'+w.id);if(qrEl){ generateQRSVG(w.qr_token||w.employee_code||'',qrEl,52); }});
+  if(state.selectedCardWorker){ selectCardWorkerV7(state.selectedCardWorker,true); }
+}
+
+async function generateCards(all){
+  showToast('Generant targetes...','success');
+  try{
+    await loadJsPDF();
+    await ensureCardSettingsV8();
+    var workers=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&select=*&order=display_name.asc');
+    var cardW=54, cardH=85.6;
+    if(all){
+      var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+      var marginX=10, marginY=8, gapX=6, gapY=6, cols=3, rows=3;
+      var perPage=cols*rows;
+      for(var i=0;i<workers.length;i++){
+        if(i>0 && i%perPage===0) doc.addPage();
+        var pos=i%perPage, col=pos%cols, row=Math.floor(pos/cols);
+        var x=marginX+col*(cardW+gapX), y=marginY+row*(cardH+gapY);
+        await drawCardVerticalD_V7(doc,workers[i],x,y,cardW,cardH);
+      }
+      doc.save('JASL_Time_Targetes_Totes_vertical.pdf');
+    }else{
+      var wid=getSelectedCardWorkerIdV7();
+      var w=workers.find(function(x){return String(x.id)===String(wid);});
+      if(!w){showToast('Selecciona un treballador','error');return;}
+      var doc2=new window.jspdf.jsPDF({unit:'mm',format:[60,92],orientation:'portrait'});
+      await drawCardVerticalD_V7(doc2,w,3,3,cardW,cardH);
+      doc2.save('JASL_Time_Targeta_'+sanitizeFilePartV6(w.display_name||w.employee_code)+'.pdf');
+    }
+    showToast('PDF descarregat!','success');
+  }catch(e){console.error('generateCards v8 error:',e);showToast('Error generant targetes: '+(e&&e.message?e.message:''),'error');}
+}
+
+if(typeof window!=='undefined'){
+  window.loadCardsWorkers=loadCardsWorkers;
+  window.generateCards=generateCards;
+  window.drawCardVerticalD_V7=drawCardVerticalD_V7;
+}
 
 </script>
 </body>
