@@ -633,7 +633,7 @@ async function afterLogin(){
     var adminLoginMethod = state._loginByQR ? 'QR' : 'CODE';
     state._loginByQR = false;
     logAccess(w.id, adminLoginMethod);
-    showPage('worker-home'); startClock(); await loadTodaySummary(); checkPendingPerms();
+    showPage('worker-home'); startClock(); await loadTodaySummary(); ensureWorkerYearToYesterdayInBackground(state.worker); checkPendingPerms();
     // Carregar settings per tenir colors de vacances disponibles
     try{
       if(!state.settings||!Object.keys(state.settings).length){
@@ -660,7 +660,7 @@ async function afterLogin(){
   }
   var loginMethod = state._loginByQR ? 'QR' : 'CODE';
   logAccess(w.id, loginMethod);
-  showPage('worker-home'); startClock(); await loadTodaySummary();
+  showPage('worker-home'); startClock(); await loadTodaySummary(); ensureWorkerYearToYesterdayInBackground(state.worker);
 }
 
 function generateQRSVG(text, container, size){
@@ -1218,6 +1218,7 @@ async function loadMonthHistory(){
   var m=state.historyMonth; var y=m.getFullYear(),mo=m.getMonth()+1;
   document.getElementById('history-month-title').textContent=m.toLocaleDateString('ca',{month:'long',year:'numeric'});
   var moS=String(mo).padStart(2,'0'); var start=y+'-'+moS+'-01'; var end=y+'-'+moS+'-31';
+  await ensureDailyRecordsForWorkerRange(state.worker,start,end,{force:false});
   var el=document.getElementById('history-list'); el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
   try{
     var rows;
@@ -1721,6 +1722,7 @@ async function deleteMyPerm(id){
   if(!confirm('Segur que vols eliminar aquesta sol.licitud?')) return;
   try{
     await dbPatch('day_status','id=eq.'+id,{is_active:false});
+    await ensureDailyRecordsForWorkerRange(state.worker,localDateISO(new Date(new Date().getFullYear(),0,1)),localDateISO(new Date()),{force:true,includeToday:true});
     showToast('Sol.licitud eliminada','success');
     loadMyPerms();
   }catch(e){showToast('Error eliminant','error');}
@@ -1753,6 +1755,7 @@ async function saveEditPerm(id){
   if(end<start){showToast('La data de fi no pot ser anterior a l\'inici','error');return;}
   try{
     await dbPatch('day_status','id=eq.'+id,{comment:comment,start_date:start,end_date:end,approval_status:'PENDING'});
+    await ensureDailyRecordsForWorkerRange(state.worker,start,end,{force:true,includeToday:true});
     closeModal();
     showToast('Sol.licitud actualitzada - pendent d\'aprovacio','success');
     loadMyPerms();
@@ -1775,6 +1778,7 @@ async function loadMyBalance(){
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
   try{
     var yr=new Date().getFullYear();
+    await ensureDailyRecordsForWorkerRange(state.worker,yr+'-01-01',yr+'-12-31',{force:false});
     var moS=String(new Date().getMonth()+1).padStart(2,'0');
     var rows=await dbGet('daily_records',
       'worker_id=eq.'+state.worker.id+'&work_date=gte.'+yr+'-01-01'+
@@ -1835,6 +1839,7 @@ async function loadMyBalance(){
     try{ var rawbal=await rpc('get_worker_balance',{p_worker_id:parseInt(state.worker.id)}); data=Array.isArray(rawbal)?rawbal[0]:rawbal; }
     catch(e1){
       var now=new Date(); var yr=now.getFullYear();
+      await ensureDailyRecordsForWorkerRange(state.worker,yr+'-01-01',yr+'-12-31',{force:false});
       var moS=String(now.getMonth()+1).padStart(2,'0');
       var rows=await dbGet('daily_records','worker_id=eq.'+state.worker.id+'&work_date=gte.'+yr+'-01-01&select=balance_minutes,worked_minutes,theoretical_minutes,work_date,status&order=work_date.asc');
       var total=rows.reduce(function(a,r){return a+(r.balance_minutes||0);},0);
@@ -4415,6 +4420,170 @@ async function exportEditsReport(){
    - No altera la maqueta ni el disseny general.
 ============================================================================ */
 
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Regularització teòrica de jornades fins al dia anterior
+   - Crea daily_records només quan falta el resum diari.
+   - No toca fitxades existents.
+   - No consolida dies futurs.
+   - Si hi ha permís/dia especial actiu, el dia queda recalculat sense penalitzar.
+──────────────────────────────────────────────────────────────────────────── */
+var _jaslDailyEnsureLocks = {};
+
+function compareISODateJASL(a,b){ return String(a||'')===String(b||'') ? 0 : (String(a||'')<String(b||'') ? -1 : 1); }
+function minISODateJASL(a,b){ return compareISODateJASL(a,b)<=0 ? a : b; }
+function maxISODateJASL(a,b){ return compareISODateJASL(a,b)>=0 ? a : b; }
+function addDaysISOJASL(ds,days){ var d=new Date(ds+'T12:00:00'); d.setDate(d.getDate()+days); return localDateISO(d); }
+function yesterdayISOJASL(){ return addDaysISOJASL(localDateISO(new Date()),-1); }
+function isWeekdayISOJASL(ds){ var dow=new Date(ds+'T12:00:00').getDay(); return dow!==0 && dow!==6; }
+function normalizeApprovalJASL(v){ return String(v||'APPROVED').toUpperCase(); }
+
+async function fullWorkerForDailyEnsureJASL(worker){
+  if(!worker||!worker.id) return worker;
+  try{
+    var rows=await dbGet('workers','id=eq.'+worker.id+'&select=*');
+    return rows&&rows[0]?rows[0]:worker;
+  }catch(e){ return worker; }
+}
+
+function theoreticalMinutesForWorkerJASL(worker){
+  var v=parseInt(worker&&worker.daily_theoretical_minutes,10);
+  return isNaN(v)?480:v;
+}
+
+function regularizationStartForWorkerJASL(worker, requestedStart){
+  var start=requestedStart;
+  var candidates=[];
+  if(worker){
+    if(worker.start_date) candidates.push(String(worker.start_date).substring(0,10));
+    if(worker.hire_date) candidates.push(String(worker.hire_date).substring(0,10));
+    if(worker.created_at) candidates.push(String(worker.created_at).substring(0,10));
+    var code=String(worker.employee_code||'').toUpperCase();
+    // Pol Calsina: no generar teòrics abans de la seva alta real al sistema.
+    if(code==='CAL001') candidates.push('2025-12-01');
+  }
+  candidates.forEach(function(c){ if(c && /^\d{4}-\d{2}-\d{2}$/.test(c)) start=maxISODateJASL(start,c); });
+  return start;
+}
+
+function activePermForDateJASL(perms, ds){
+  var list=(perms||[]).filter(function(p){
+    if(!p||!p.start_date||!p.end_date) return false;
+    if(normalizeApprovalJASL(p.approval_status)==='REJECTED') return false;
+    return String(p.start_date).substring(0,10)<=ds && String(p.end_date).substring(0,10)>=ds;
+  });
+  if(!list.length) return null;
+  var weight={FESTIU:5,HOLIDAY:5,VACANCES:4,VACATION:4,BAIXA_MEDICA:3,SICK_LEAVE:3,SICK_DAY:3,PERMIS_RETRIBUIT:2,PAID_LEAVE:2};
+  list.sort(function(a,b){return (weight[String(b.day_type||'').toUpperCase()]||1)-(weight[String(a.day_type||'').toUpperCase()]||1);});
+  return list[0];
+}
+
+function buildDailyRecordFromPermJASL(worker, ds, perm){
+  var type=String((perm&&perm.day_type)||'NORMAL').toUpperCase();
+  var th=isWeekdayISOJASL(ds)?theoreticalMinutesForWorkerJASL(worker):0;
+  var mode=String((perm&&perm.compute_mode)||'THEORETICAL_HOURS').toUpperCase();
+  var theoretical=th, worked=0, balance=0;
+  if(type==='FESTIU'||type==='HOLIDAY'){
+    theoretical=0; worked=0; balance=0;
+  }else if(mode==='THEORETICAL_HOURS'){
+    theoretical=th; worked=th; balance=0;
+  }else{
+    // ZERO_HOURS o altres permisos: no penalitzen el saldo en aquesta regularització.
+    theoretical=0; worked=0; balance=0;
+  }
+  return {
+    worker_id:parseInt(worker.id,10), work_date:ds,
+    status:'FINISHED', day_type:type,
+    pause_minutes:0, worked_minutes:worked, theoretical_minutes:theoretical, balance_minutes:balance,
+    has_incidence:false, is_edited:false
+  };
+}
+
+function buildMissingWorkdayRecordJASL(worker, ds){
+  var th=theoreticalMinutesForWorkerJASL(worker);
+  return {
+    worker_id:parseInt(worker.id,10), work_date:ds,
+    status:'INCIDENCE', day_type:'NORMAL',
+    pause_minutes:0, worked_minutes:0, theoretical_minutes:th, balance_minutes:-th,
+    has_incidence:true, is_edited:false
+  };
+}
+
+async function upsertDailyRecordSafeJASL(existing, row, force){
+  if(existing&&existing.id){
+    if(force){ await dbPatch('daily_records','id=eq.'+existing.id,row); return 'patched'; }
+    return 'kept';
+  }
+  try{ await dbPost('daily_records',row); return 'created'; }
+  catch(e){
+    // Si s'ha creat en paral·lel, fem patch per worker/date només si és una regularització forçada.
+    try{ if(force){ await dbPatch('daily_records','worker_id=eq.'+row.worker_id+'&work_date=eq.'+row.work_date,row); return 'patched'; } }catch(_e){}
+    return 'skipped';
+  }
+}
+
+async function ensureDailyRecordsForWorkerRange(worker, startDate, endDate, opts){
+  opts=opts||{};
+  if(!worker||!worker.id||!startDate||!endDate) return {created:0,patched:0,skipped:0};
+  worker=await fullWorkerForDailyEnsureJASL(worker);
+  var today=localDateISO(new Date());
+  var endLimit=opts.includeToday?today:yesterdayISOJASL();
+  var start=regularizationStartForWorkerJASL(worker,String(startDate).substring(0,10));
+  var end=minISODateJASL(String(endDate).substring(0,10),endLimit);
+  if(compareISODateJASL(end,start)<0) return {created:0,patched:0,skipped:0};
+  var key=[worker.id,start,end,opts.force?'F':'N',opts.includeToday?'T':'Y'].join('|');
+  if(_jaslDailyEnsureLocks[key]) return _jaslDailyEnsureLocks[key];
+  _jaslDailyEnsureLocks[key]=(async function(){
+    var result={created:0,patched:0,skipped:0,recalculated:0};
+    try{
+      var existingRows=await dbGet('daily_records','worker_id=eq.'+worker.id+'&work_date=gte.'+start+'&work_date=lte.'+end+'&select=id,work_date');
+      var entryRows=await dbGet('time_entries','worker_id=eq.'+worker.id+'&entry_date=gte.'+start+'&entry_date=lte.'+end+'&is_active=eq.true&select=id,entry_date');
+      var permRows=await dbGet('day_status','worker_id=eq.'+worker.id+'&start_date=lte.'+end+'&end_date=gte.'+start+'&is_active=eq.true&select=day_type,start_date,end_date,compute_mode,approval_status');
+      var existingByDate={}, entriesByDate={};
+      (existingRows||[]).forEach(function(r){existingByDate[r.work_date]=r;});
+      (entryRows||[]).forEach(function(r){entriesByDate[r.entry_date]=true;});
+      var ds=start;
+      while(compareISODateJASL(ds,end)<=0){
+        var perm=activePermForDateJASL(permRows,ds);
+        var hasEntries=!!entriesByDate[ds];
+        var existing=existingByDate[ds];
+        if(hasEntries){
+          if(!existing||opts.force){
+            try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(worker.id,10),p_work_date:ds}); result.recalculated++; }
+            catch(e){ result.skipped++; }
+          }
+        }else if(perm){
+          var rowPerm=buildDailyRecordFromPermJASL(worker,ds,perm);
+          var r1=await upsertDailyRecordSafeJASL(existing,rowPerm,!!opts.force);
+          if(r1==='created')result.created++; else if(r1==='patched')result.patched++; else result.skipped++;
+        }else if(isWeekdayISOJASL(ds) && compareISODateJASL(ds,today)<0){
+          var rowMiss=buildMissingWorkdayRecordJASL(worker,ds);
+          var r2=await upsertDailyRecordSafeJASL(existing,rowMiss,!!opts.force);
+          if(r2==='created')result.created++; else if(r2==='patched')result.patched++; else result.skipped++;
+        }
+        ds=addDaysISOJASL(ds,1);
+      }
+    }catch(e){ console.warn('ensureDailyRecordsForWorkerRange',e); }
+    return result;
+  })();
+  try{return await _jaslDailyEnsureLocks[key];}
+  finally{delete _jaslDailyEnsureLocks[key];}
+}
+
+async function ensureDailyRecordsForWorkersRange(workers,startDate,endDate,opts){
+  var list=workers||[];
+  for(var i=0;i<list.length;i++){
+    await ensureDailyRecordsForWorkerRange(list[i],startDate,endDate,opts||{});
+  }
+}
+
+function ensureWorkerYearToYesterdayInBackground(worker){
+  if(!worker||!worker.id) return;
+  var y=new Date().getFullYear();
+  setTimeout(function(){ ensureDailyRecordsForWorkerRange(worker,y+'-01-01',y+'-12-31',{force:false}).catch(function(e){console.warn(e);}); },800);
+}
+
 function localDateISO(dateObj){
   var d = dateObj instanceof Date ? dateObj : new Date(dateObj);
   if(isNaN(d.getTime())) d = new Date();
@@ -6478,6 +6647,7 @@ async function saveVacances(){
       is_active: true,
       approval_status: approvalStatus
     });
+    await ensureDailyRecordsForWorkerRange(state.worker,start,end,{force:true,includeToday:true});
     state.vacancesYear=parseInt(start.substring(0,4),10)||getVacancesYearV7();
     closeModal();
     showToast(approvalStatus==='PENDING'?'Sol·licitud enviada - pendent d’aprovació':'Vacances registrades','success');
@@ -6580,6 +6750,9 @@ async function loadAllRecords(){
   var moS=String(mo).padStart(2,'0');
   var lastDay=String(new Date(y,mo,0).getDate()).padStart(2,'0');
   var start=y+'-'+moS+'-01', end=y+'-'+moS+'-'+lastDay;
+  var workersForEnsure=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*');
+  state.allWorkers=workersForEnsure;
+  await ensureDailyRecordsForWorkersRange(workerFilter?workersForEnsure.filter(function(w){return String(w.id)===String(workerFilter);}):workersForEnsure,start,end,{force:false});
   var el=document.getElementById('all-records-list'); if(!el) return;
   el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
   try{
@@ -6630,7 +6803,8 @@ async function loadAllBalances(){
     var yr=getGlobalBalanceYearV7();
     var workers=state.allWorkers&&state.allWorkers.length?state.allWorkers:await dbGet('workers','is_active=eq.true&order=display_name.asc&select=id,display_name,employee_code');
     state.allWorkers=workers;
-    var recs=await dbGet('daily_records','work_date=gte.'+yr+'-01-01&work_date=lte.'+yr+'-12-31&select=worker_id,balance_minutes,worked_minutes,theoretical_minutes,status');
+    await ensureDailyRecordsForWorkersRange(workers,yr+'-01-01',yr+'-12-31',{force:false});
+    var recs=await dbGet('daily_records','work_date=gte.'+yr+'-01-01&work_date=lte.'+yr+'-12-31&select=worker_id,balance_minutes,worked_minutes,theoretical_minutes,status,has_incidence');
     var byWorker={};
     recs.forEach(function(r){
       var k=String(r.worker_id);
@@ -7430,6 +7604,7 @@ if(typeof window!=='undefined'){
         };
         try{
           var res=await insertDayStatusV9(payload,type);
+          await ensureDailyRecordsForWorkerRange(state.worker,start,end,{force:true,includeToday:true});
           closeModal();
           var fallback=(type==='SICK_DAY'&&res.day_type!=='SICK_DAY')?' Guardat com a baixa mèdica amb nota de malaltia sense justificant.':'';
           showToast((isPending?'Sol·licitud enviada - pendent d’aprovació':'Permís creat')+fallback,'success');
