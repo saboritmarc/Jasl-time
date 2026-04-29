@@ -1497,6 +1497,8 @@ async function getEntryEdits(entryId){
 
 async function loadDayDetail(date){
   document.getElementById('day-detail-title').textContent=formatDateLong(date);
+  // El boto '+ Afegir registre' s'insereix fora del resum; cal eliminar-lo abans de cada recarrega.
+  document.querySelectorAll('.day-detail-add-entry-wrap').forEach(function(el){ el.remove(); });
   document.getElementById('day-summary-cards').innerHTML='<div class="empty-state"><span class="loader"></span></div>';
   document.getElementById('day-timeline').innerHTML='';
   showPage('day-detail');
@@ -1522,7 +1524,10 @@ async function loadDayDetail(date){
     // Boto afegir registre (admin o si allow_worker_edits)
     var canAdd=state.worker&&(state.worker.role==='ADMIN'||(state.settings&&state.settings.allow_worker_edits!=='false'));
     if(canAdd){
+      // Evitem duplicats en entrar/sortir repetidament del detall del dia.
+      document.querySelectorAll('.day-detail-add-entry-wrap').forEach(function(el){ el.remove(); });
       var addBtnEl=document.createElement('div');
+      addBtnEl.className='day-detail-add-entry-wrap';
       addBtnEl.style.marginBottom='8px';
       var addBtnInner=document.createElement('button');
       addBtnInner.className='btn btn-ghost';
@@ -6133,6 +6138,170 @@ if(typeof window!=='undefined'){
   window.loadEditsReport=loadEditsReport;
   window.renderEditsReport=renderEditsReport;
   window.exportEditsReport=exportEditsReport;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH V6 · CALENDARI VACANCES: ICONES MÉS VISIBLES + PDF DIRECTE EN COLOR
+// ─────────────────────────────────────────────────────────────────────────────
+async function loadVacances(){
+  var el=document.getElementById('page-vacances-content');
+  if(!el||!state.worker) return;
+  el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  if(!state.settings||!Object.keys(state.settings).length){
+    try{var sr=await dbGet('app_settings','select=setting_key,setting_value');state.settings=state.settings||{};sr.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});}catch(e){}
+  }
+  try{
+    var yr=new Date().getFullYear();
+    var maxRows=await dbGet('app_settings','setting_key=eq.vacation_days_per_year&select=setting_value').catch(function(){return[];});
+    var maxDays=maxRows[0]?parseInt(maxRows[0].setting_value,10):VACATION_DAYS_DEFAULT;
+    var statuses=await dbGet('day_status','worker_id=eq.'+state.worker.id+'&start_date=lte.'+yr+'-12-31&end_date=gte.'+yr+'-01-01&is_active=eq.true&select=*');
+    var usedDays=0,pendingVacDays=0,dateMap={};
+    statuses.forEach(function(p){
+      var approval=String(p.approval_status||'APPROVED').toUpperCase();
+      if(!isActiveApproval(p) && approval!=='PENDING') return;
+      var dt=String(p.day_type||'').toUpperCase();
+      var start=new Date(p.start_date+'T12:00:00'), end=new Date(p.end_date+'T12:00:00');
+      var min=new Date(yr+'-01-01T12:00:00'), max=new Date(yr+'-12-31T12:00:00');
+      if(start<min) start=min; if(end>max) end=max;
+      for(var d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+        var dow=d.getDay(), ds=localDateISO(d), isWeekday=dow!==0&&dow!==6;
+        if(isVacationType(dt)&&isWeekday&&approval==='APPROVED') usedDays++;
+        if(isVacationType(dt)&&isWeekday&&approval==='PENDING') pendingVacDays++;
+        if(!isVacationType(dt) || isWeekday){
+          var obj={status:p.approval_status||'APPROVED',type:dt,icon:permIcon(dt),isVac:isVacationType(dt),isHoliday:isHolidayType(dt),comment:p.comment||''};
+          if(!dateMap[ds] || obj.isHoliday || obj.isVac) dateMap[ds]=obj;
+        }
+      }
+    });
+    var remaining=maxDays-usedDays, color=getWorkerColor(state.worker.id), pct=maxDays>0?Math.min(100,Math.round(usedDays/maxDays*100)):0;
+    el.innerHTML=
+      '<div class="vacances-action-bar" style="display:flex;gap:8px;margin-bottom:16px"><button class="btn btn-primary" style="flex:1" onclick="openVacancesModal()">+ Sol·licitar vacances</button><button class="btn btn-ghost" onclick="printVacancesPDF()" style="flex-shrink:0;padding:10px">🖨 PDF</button></div>'+ 
+      '<div class="vacances-print-keep" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px"><div class="stat-box"><div class="stat-val" style="color:var(--accent)">'+maxDays+'</div><div class="stat-lbl">Dies totals</div></div><div class="stat-box"><div class="stat-val" style="color:'+color+'">'+usedDays+'</div><div class="stat-lbl">Dies usats</div></div><div class="stat-box"><div class="stat-val" style="color:'+(remaining>0?'var(--success)':'var(--warn)')+'">'+remaining+'</div><div class="stat-lbl">Dies pendents</div></div></div>'+ 
+      (pendingVacDays?'<div class="vacances-pending-note" style="font-size:12px;color:var(--text2);margin-bottom:12px">Vacances pendents d’aprovació: <strong>'+pendingVacDays+'</strong> dies laborables.</div>':'')+
+      '<div class="card vacances-print-keep vacances-progress-card" style="margin-bottom:20px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:6px"><span>Vacances '+yr+'</span><span>'+pct+'%</span></div><div style="background:var(--surface2);border-radius:6px;height:8px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:6px"></div></div></div>'+ 
+      '<div class="vacances-legend vacances-print-keep" style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5">🏖 Vacances · 🩺 Baixa mèdica · 🤒 Malaltia · 📋 Permís retribuït · 🔴 Festiu</div>'+ 
+      '<div class="section-title vacances-section-title">Calendari '+yr+'</div>'+renderCalendarYear(yr,dateMap,color,null,true);
+  }catch(e){console.error('loadVacances v6',e);el.innerHTML='<div class="empty-state">Error carregant vacances</div>';}
+}
+
+async function loadVacancesGlobal(){
+  var el=document.getElementById('page-vacances-content'); if(!el) return;
+  el.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  if(!state.settings||!Object.keys(state.settings).length){try{var sr=await dbGet('app_settings','select=setting_key,setting_value');state.settings=state.settings||{};sr.forEach(function(r){state.settings[r.setting_key]=r.setting_value;});}catch(e){}}
+  try{
+    var yr=new Date().getFullYear();
+    if(!state.allWorkers||!state.allWorkers.length) state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*');
+    var statuses=await dbGet('day_status','start_date=lte.'+yr+'-12-31&end_date=gte.'+yr+'-01-01&is_active=eq.true&select=*');
+    var dateMap={};
+    statuses.forEach(function(p){
+      var approval=String(p.approval_status||'APPROVED').toUpperCase();
+      if(!isActiveApproval(p) && approval!=='PENDING') return;
+      var w=state.allWorkers.find(function(x){return String(x.id)===String(p.worker_id);}); if(!w) return;
+      var dt=String(p.day_type||'').toUpperCase(), color=getWorkerColor(p.worker_id);
+      var start=new Date(p.start_date+'T12:00:00'), end=new Date(p.end_date+'T12:00:00');
+      var min=new Date(yr+'-01-01T12:00:00'), max=new Date(yr+'-12-31T12:00:00');
+      if(start<min) start=min; if(end>max) end=max;
+      for(var d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+        var dow=d.getDay(), isWeekday=dow!==0&&dow!==6;
+        if(isVacationType(dt)&&!isWeekday) continue;
+        var ds=localDateISO(d);
+        if(!dateMap[ds]) dateMap[ds]=[];
+        dateMap[ds].push({workerId:p.worker_id,color:color,name:w.display_name||w.employee_code,status:p.approval_status||'APPROVED',type:dt,icon:permIcon(dt),isVac:isVacationType(dt),isHoliday:isHolidayType(dt)});
+      }
+    });
+    var html='<div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px">';
+    state.allWorkers.forEach(function(w){var color=getWorkerColor(w.id);html+='<div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:22px;height:8px;border-radius:4px;background:'+color+';flex-shrink:0"></div><span>'+(w.display_name||w.employee_code)+'</span></div>';});
+    html+='</div><div class="vacances-legend" style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5">🏖 franges = vacances · 🩺 baixa mèdica · 🤒 malaltia · 📋 permís retribuït · 🔴 festiu</div><div class="section-title vacances-section-title">Calendari global '+yr+'</div>'+renderCalendarYear(yr,dateMap,null,state.allWorkers,false);
+    el.innerHTML=html;
+  }catch(e){console.error('loadVacancesGlobal v6',e);el.innerHTML='<div class="empty-state">Error carregant calendari global</div>';}
+}
+
+function calendarIconBadgeV6(icon,bg,color,borderColor){return '<div style="position:absolute;right:1px;bottom:1px;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;background:'+bg+';color:'+color+';border:1px solid '+borderColor+';box-shadow:0 1px 2px rgba(0,0,0,.12)">'+icon+'</div>';}
+
+function renderCalendarYear(yr,dateMap,singleColor,workers,isIndividual){
+  var mNames=['Gener','Febrer','Març','Abril','Maig','Juny','Juliol','Agost','Setembre','Octubre','Novembre','Desembre'];
+  var dNames=['Dl','Dt','Dc','Dj','Dv','Ds','Dg'];
+  var html='<div class="vacances-calendar-year" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+  for(var m=0;m<12;m++){
+    var firstDay=new Date(yr,m,1),daysInMonth=new Date(yr,m+1,0).getDate(),startDow=(firstDay.getDay()+6)%7;
+    html+='<div class="vacances-month" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px"><div style="font-weight:700;font-size:12px;color:var(--text);margin-bottom:8px;text-align:center">'+mNames[m]+'</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:4px">';
+    dNames.forEach(function(d){html+='<div style="text-align:center;font-size:9px;font-weight:700;color:var(--text3);padding:2px">'+d+'</div>';});
+    html+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">';
+    for(var e=0;e<startDow;e++) html+='<div></div>';
+    for(var d=1;d<=daysInMonth;d++){
+      var date=new Date(yr,m,d),dow=date.getDay(),ds=yr+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      var isWeekend=(dow===0||dow===6),entry=dateMap[ds],hasEntry=!!entry;
+      var bg='transparent',bgImage='',textColor=isWeekend?'#e53935':'var(--text)',title='',extra='',borderColor='transparent',fontWeight='500';
+      if(hasEntry){
+        if(isIndividual){
+          var status=String(entry.status||'APPROVED').toUpperCase();
+          if(entry.isHoliday){bg='#FEF0F0';textColor='#C00000';borderColor='#C00000';fontWeight='800';title='Festiu';extra=calendarIconBadgeV6('🔴','#fff','#C00000','#C00000');}
+          else if(entry.isVac){bg=status==='APPROVED'?singleColor:(status==='PENDING'?'#FFF3CD':'#FEF0F0');textColor=status==='APPROVED'?'#fff':(status==='PENDING'?'#856404':'#c62828');borderColor=status==='PENDING'?'#E0A800':singleColor;fontWeight='800';title=status==='PENDING'?'Vacances pendents':'Vacances aprovades';extra=calendarIconBadgeV6('🏖',status==='APPROVED'?'rgba(255,255,255,.95)':'#fff',status==='APPROVED'?singleColor:'#856404',status==='APPROVED'?'rgba(255,255,255,.95)':'#E0A800');}
+          else {bg='#fff';textColor=isWeekend?'#e53935':'var(--text)';borderColor='#1E90E8';fontWeight='800';title=permTypeLabel(entry.type);extra=calendarIconBadgeV6(entry.icon||'📅','#E8F3FD','#1E90E8','#1E90E8');}
+        }else{
+          var arr=Array.isArray(entry)?entry:[entry];
+          var vacs=arr.filter(function(x){return x.isVac;});
+          var hols=arr.filter(function(x){return x.isHoliday;});
+          var others=arr.filter(function(x){return !x.isVac&&!x.isHoliday;});
+          if(vacs.length){var n=Math.min(vacs.length,4);var fr=vacs.slice(0,4).map(function(x,i){var p0=Math.round(i*100/n),p1=Math.round((i+1)*100/n);return x.color+' '+p0+'% '+p1+'%';});bgImage='linear-gradient(to bottom,'+fr.join(',')+')';bg='#e8f4fd';textColor='#fff';fontWeight='800';borderColor='rgba(30,144,232,.35)';}
+          if(hols.length&&!vacs.length){bg='#FEF0F0';textColor='#C00000';borderColor='#C00000';fontWeight='800';}
+          if(hols.length) extra+=calendarIconBadgeV6('🔴','#fff','#C00000','#C00000');
+          if(others.length){var icons=others.slice(0,2).map(function(x){return x.icon||'📅';}).join('');extra+=calendarIconBadgeV6(icons,'#E8F3FD','#1E90E8','#1E90E8');if(!vacs.length&&!hols.length){borderColor='#1E90E8';fontWeight='800';}}
+          title=arr.map(function(x){return (x.name?x.name+': ':'')+permTypeLabel(x.type)+(String(x.status||'').toUpperCase()==='PENDING'?' pendent':'');}).join(', ');
+        }
+      }
+      var isToday=ds===localDateISO(new Date()); if(isToday) borderColor='var(--accent)';
+      html+='<div class="vacances-day-cell" style="position:relative;min-height:26px;text-align:center;border-radius:6px;padding:3px 1px;'+(bgImage?'background-image:'+bgImage+';background-color:'+bg:'background:'+bg)+';cursor:'+(hasEntry?'default':'auto')+';border:'+(isToday?'2px':'1.5px')+' solid '+borderColor+';overflow:hidden" '+(title?'title="'+title.replace(/"/g,'&quot;')+'"':'')+'><div style="font-size:11px;color:'+textColor+';font-weight:'+fontWeight+';line-height:18px">'+d+'</div>'+extra+'</div>';
+    }
+    html+='</div></div>';
+  }
+  html+='</div>';return html;
+}
+
+function loadHtml2CanvasV6(){if(window.html2canvas)return Promise.resolve();return new Promise(function(resolve,reject){var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';s.onload=resolve;s.onerror=function(){reject(new Error('No s’ha pogut carregar html2canvas'));};document.head.appendChild(s);});}
+function sanitizeFilePartV6(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9_-]+/g,'_').replace(/^_+|_+$/g,'').substring(0,70)||'calendari';}
+
+async function printVacancesPDF(){
+  var src=document.getElementById('page-vacances-content');
+  if(!src){showToast('Carrega primer el calendari de vacances','error');return;}
+  try{
+    showToast('Generant PDF...','success');
+    await loadJsPDF();
+    await loadHtml2CanvasV6();
+    var clone=src.cloneNode(true);
+    clone.querySelectorAll('.vacances-action-bar,.vacances-pending-note,.vacances-section-title,button,.btn').forEach(function(n){n.remove();});
+    var holder=document.createElement('div');
+    holder.style.cssText='position:fixed;left:-10000px;top:0;width:1120px;background:#fff;color:#2C3E50;padding:18px;font-family:Arial Narrow,Arial,sans-serif;z-index:-1;';
+    holder.appendChild(clone);document.body.appendChild(holder);
+    holder.querySelectorAll('*').forEach(function(n){n.style.fontFamily='Arial Narrow, Arial, sans-serif';n.style.webkitPrintColorAdjust='exact';n.style.printColorAdjust='exact';});
+    holder.querySelectorAll('.stat-box,.card,.vacances-month').forEach(function(n){n.style.boxShadow='none';n.style.border='1px solid #DDE2EA';n.style.backgroundColor='#ffffff';});
+    var canvas=await window.html2canvas(holder,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
+    document.body.removeChild(holder);
+    var imgData=canvas.toDataURL('image/png');
+    var pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+    var pageW=pdf.internal.pageSize.getWidth(),pageH=pdf.internal.pageSize.getHeight(),margin=8;
+    var imgW=pageW-(margin*2),imgH=canvas.height*imgW/canvas.width;
+    pdf.addImage(imgData,'PNG',margin,margin,imgW,imgH,undefined,'FAST');
+    var printed=pageH-(margin*2);
+    while(printed<imgH){
+      pdf.addPage();
+      pdf.addImage(imgData,'PNG',margin,margin-printed,imgW,imgH,undefined,'FAST');
+      printed+=pageH-(margin*2);
+    }
+    var workerName=state.worker?(state.worker.display_name||state.worker.employee_code):'treballador';
+    var year=new Date().getFullYear();
+    pdf.save('JASL_Time_vacances_'+sanitizeFilePartV6(workerName)+'_'+year+'.pdf');
+    showToast('PDF generat','success');
+  }catch(e){console.error('printVacancesPDF v6',e);showToast('Error generant PDF: '+(e&&e.message?e.message:e),'error');}
+}
+
+if(typeof window!=='undefined'){
+  window.loadVacances=loadVacances;
+  window.loadVacancesGlobal=loadVacancesGlobal;
+  window.renderCalendarYear=renderCalendarYear;
+  window.printVacancesPDF=printVacancesPDF;
 }
 
 </script>
