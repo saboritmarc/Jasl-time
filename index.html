@@ -4519,23 +4519,12 @@ function activePermForDateJASL(perms, ds){
 
 function buildDailyRecordFromPermJASL(worker, ds, perm){
   var type=String((perm&&perm.day_type)||'NORMAL').toUpperCase();
-  var th=isWeekdayISOJASL(ds)?theoreticalMinutesForWorkerJASL(worker):0;
-  var mode=String((perm&&perm.compute_mode)||'THEORETICAL_HOURS').toUpperCase();
-  var theoretical=th, worked=0, balance=0;
-  if(type==='FESTIU'||type==='HOLIDAY'){
-    theoretical=0; worked=0; balance=0;
-  }else if(mode==='THEORETICAL_HOURS'){
-    // Permisos, vacances i baixes no són hores realment treballades.
-    // Mantenim la jornada teòrica per control, però el saldo queda neutralitzat.
-    theoretical=th; worked=0; balance=0;
-  }else{
-    // ZERO_HOURS o altres permisos: no penalitzen el saldo en aquesta regularització.
-    theoretical=0; worked=0; balance=0;
-  }
+  // Criteri v10k: vacances, permisos, baixes i festius no són jornada exigible.
+  // Per tant: 0 hores treballades, 0 hores teòriques i saldo 0.
   return {
     worker_id:parseInt(worker.id,10), work_date:ds,
     status:'FINISHED', day_type:type,
-    pause_minutes:0, worked_minutes:worked, theoretical_minutes:theoretical, balance_minutes:balance,
+    pause_minutes:0, worked_minutes:0, theoretical_minutes:0, balance_minutes:0,
     has_incidence:false, is_edited:false
   };
 }
@@ -6116,12 +6105,10 @@ function buildMonthRowsV4(worker, data, year, month, withEdits){
       worked=0; theoretical=0; balance=0;
       statusText='Festiu';
     }else if(visiblePerm && !hasEntries){
-      theoretical=isWeekdayISOJASL(ds)?theoreticalMinutesForWorkerJASL(worker):0;
-      if(isHolidayTypeV4(visibleType)){ theoretical=0; worked=0; balance=0; statusText='Festiu'; }
-      else if(isVacationTypeV4(visibleType) || String(visiblePerm.compute_mode||'THEORETICAL_HOURS').toUpperCase()==='THEORETICAL_HOURS'){
-        // Vacances, baixes i permisos retribuïts no són hores treballades reals.
-        worked=0; balance=0; statusText=permTypeLabel(visibleType);
-      }else{ theoretical=0; worked=0; balance=0; statusText=permTypeLabel(visibleType); }
+      // Criteri v10k: vacances, permisos, baixes i festius no computen com a hores
+      // treballades ni com a hores teòriques; només identifiquen el dia especial.
+      theoretical=0; worked=0; balance=0;
+      statusText=isHolidayTypeV4(visibleType)?'Festiu':permTypeLabel(visibleType);
     }else if(rec){
       theoretical=isWeekend?0:baseTheory;
       balance=(worked||0)-theoretical;
