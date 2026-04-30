@@ -4452,6 +4452,41 @@ function theoreticalMinutesForWorkerJASL(worker){
   return isNaN(v)?480:v;
 }
 
+function dailyRecordNeedsNormalizationJASL(existing,row){
+  if(!existing||!row) return false;
+  var keys=['status','day_type','pause_minutes','worked_minutes','theoretical_minutes','balance_minutes','has_incidence'];
+  for(var i=0;i<keys.length;i++){
+    var k=keys[i];
+    if(row[k]===undefined) continue;
+    var a=existing[k], b=row[k];
+    if(typeof b==='number'){
+      if(Math.round(Number(a)||0)!==Math.round(Number(b)||0)) return true;
+    }else if(typeof b==='boolean'){
+      if(!!a!==!!b) return true;
+    }else{
+      if(String(a||'').toUpperCase()!==String(b||'').toUpperCase()) return true;
+    }
+  }
+  return false;
+}
+
+function parseHolidaySettingsJASL(year){
+  var out={};
+  try{
+    var raw=state&&state.settings?state.settings['holidays_'+year]:'';
+    if(!raw) return out;
+    String(raw).split(/[\n,;|]+/).forEach(function(part){
+      part=String(part||'').trim();
+      if(!part) return;
+      var m=part.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+      if(m){ out[m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0')]=true; return; }
+      m=part.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+      if(m){ out[m[3]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0')]=true; }
+    });
+  }catch(e){}
+  return out;
+}
+
 function regularizationStartForWorkerJASL(worker, requestedStart){
   var start=requestedStart;
   var candidates=[];
@@ -4537,7 +4572,7 @@ async function ensureDailyRecordsForWorkerRange(worker, startDate, endDate, opts
   _jaslDailyEnsureLocks[key]=(async function(){
     var result={created:0,patched:0,skipped:0,recalculated:0};
     try{
-      var existingRows=await dbGet('daily_records','worker_id=eq.'+worker.id+'&work_date=gte.'+start+'&work_date=lte.'+end+'&select=id,work_date');
+      var existingRows=await dbGet('daily_records','worker_id=eq.'+worker.id+'&work_date=gte.'+start+'&work_date=lte.'+end+'&select=id,work_date,status,day_type,pause_minutes,worked_minutes,theoretical_minutes,balance_minutes,has_incidence');
       var entryRows=await dbGet('time_entries','worker_id=eq.'+worker.id+'&entry_date=gte.'+start+'&entry_date=lte.'+end+'&is_active=eq.true&select=id,entry_date');
       var permRows=await dbGet('day_status','worker_id=eq.'+worker.id+'&start_date=lte.'+end+'&end_date=gte.'+start+'&is_active=eq.true&select=day_type,start_date,end_date,compute_mode,approval_status');
       var existingByDate={}, entriesByDate={};
@@ -4549,17 +4584,19 @@ async function ensureDailyRecordsForWorkerRange(worker, startDate, endDate, opts
         var hasEntries=!!entriesByDate[ds];
         var existing=existingByDate[ds];
         if(hasEntries){
-          if(!existing||opts.force){
+          var expectedTh=isWeekdayISOJASL(ds)?theoreticalMinutesForWorkerJASL(worker):0;
+          var needsRecalc=!existing||opts.force||(existing&&Math.round(Number(existing.theoretical_minutes)||0)!==Math.round(expectedTh));
+          if(needsRecalc){
             try{ await rpc('recalculate_daily_record',{p_worker_id:parseInt(worker.id,10),p_work_date:ds}); result.recalculated++; }
             catch(e){ result.skipped++; }
           }
         }else if(perm){
           var rowPerm=buildDailyRecordFromPermJASL(worker,ds,perm);
-          var r1=await upsertDailyRecordSafeJASL(existing,rowPerm,!!opts.force);
+          var r1=await upsertDailyRecordSafeJASL(existing,rowPerm,!!opts.force||dailyRecordNeedsNormalizationJASL(existing,rowPerm));
           if(r1==='created')result.created++; else if(r1==='patched')result.patched++; else result.skipped++;
         }else if(isWeekdayISOJASL(ds) && compareISODateJASL(ds,today)<0){
           var rowMiss=buildMissingWorkdayRecordJASL(worker,ds);
-          var r2=await upsertDailyRecordSafeJASL(existing,rowMiss,!!opts.force);
+          var r2=await upsertDailyRecordSafeJASL(existing,rowMiss,!!opts.force||dailyRecordNeedsNormalizationJASL(existing,rowMiss));
           if(r2==='created')result.created++; else if(r2==='patched')result.patched++; else result.skipped++;
         }
         ds=addDaysISOJASL(ds,1);
@@ -5623,7 +5660,18 @@ async function loadVacances(){
     var maxRows=await dbGet('app_settings','setting_key=eq.vacation_days_per_year&select=setting_value').catch(function(){return[];});
     var maxDays=maxRows[0]?parseInt(maxRows[0].setting_value,10):VACATION_DAYS_DEFAULT;
     var statuses=await dbGet('day_status','worker_id=eq.'+state.worker.id+'&start_date=lte.'+yr+'-12-31&end_date=gte.'+yr+'-01-01&is_active=eq.true&select=*');
-    var usedDays=0,pendingVacDays=0,dateMap={};
+    var usedDays=0,pendingVacDays=0,dateMap={},holidayDates=parseHolidaySettingsJASL(yr);
+    statuses.forEach(function(p){
+      if(!isActiveApproval(p)) return;
+      if(!isHolidayType(String(p.day_type||'').toUpperCase())) return;
+      var hs=new Date(p.start_date+'T12:00:00'), he=new Date(p.end_date+'T12:00:00');
+      var hmin=new Date(yr+'-01-01T12:00:00'), hmax=new Date(yr+'-12-31T12:00:00');
+      if(hs<hmin) hs=hmin; if(he>hmax) he=hmax;
+      for(var hd=new Date(hs); hd<=he; hd.setDate(hd.getDate()+1)) holidayDates[localDateISO(hd)]=true;
+    });
+    Object.keys(holidayDates).forEach(function(ds){
+      dateMap[ds]={status:'APPROVED',type:'FESTIU',icon:'🔴',isVac:false,isHoliday:true,comment:'Festiu'};
+    });
     statuses.forEach(function(p){
       if(!isActiveApproval(p) && String(p.approval_status||'').toUpperCase()!=='PENDING') return;
       var dt=String(p.day_type||'').toUpperCase();
@@ -5657,7 +5705,10 @@ async function loadVacancesGlobal(){
     var yr=new Date().getFullYear();
     if(!state.allWorkers||!state.allWorkers.length) state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*');
     var statuses=await dbGet('day_status','start_date=lte.'+yr+'-12-31&end_date=gte.'+yr+'-01-01&is_active=eq.true&select=*');
-    var dateMap={};
+    var dateMap={},holidayDates=parseHolidaySettingsJASL(yr);
+    Object.keys(holidayDates).forEach(function(ds){
+      dateMap[ds]=[{workerId:null,color:'#C00000',name:'Empresa',status:'APPROVED',type:'FESTIU',icon:'🔴',isVac:false,isHoliday:true}];
+    });
     statuses.forEach(function(p){
       if(!isActiveApproval(p) && String(p.approval_status||'').toUpperCase()!=='PENDING') return;
       var w=state.allWorkers.find(function(x){return String(x.id)===String(p.worker_id);}); if(!w) return;
@@ -5667,10 +5718,10 @@ async function loadVacancesGlobal(){
       if(start<min) start=min; if(end>max) end=max;
       for(var d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
         var dow=d.getDay(), isWeekday=dow!==0&&dow!==6;
-        if(isVacationType(dt)&&!isWeekday) continue;
         var ds=localDateISO(d);
+        if(isVacationType(dt)&&(!isWeekday||holidayDates[ds])) continue;
         if(!dateMap[ds]) dateMap[ds]=[];
-        dateMap[ds].push({workerId:p.worker_id,color:color,name:w.display_name||w.employee_code,status:p.approval_status||'APPROVED',type:dt,icon:permIcon(dt),isVac:isVacationType(dt),isHoliday:isHolidayType(dt)});
+        dateMap[ds].push({workerId:p.worker_id,color:color,name:w.display_name||w.employee_code,status:p.approval_status||'APPROVED',type:dt,icon:permIcon(dt),isVac:isVacationType(dt),isHoliday:isHolidayType(dt)||!!holidayDates[ds]});
       }
     });
     var html='<div style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:8px">';
@@ -6005,6 +6056,11 @@ function pauseDetailV4(summary){
 }
 async function fetchWorkerMonthBundleV4(workerId, year, month){
   var rng=exportDateRangeV4(year,month);
+  try{
+    var wk=(state.allWorkers||[]).find(function(w){return String(w.id)===String(workerId);});
+    if(!wk){ var wr=await dbGet('workers','id=eq.'+workerId+'&select=*'); wk=wr&&wr[0]; }
+    if(wk) await ensureDailyRecordsForWorkerRange(wk,rng.start,rng.end,{force:false,includeToday:true});
+  }catch(_e){}
   var records=await dbGet('daily_records','worker_id=eq.'+workerId+'&work_date=gte.'+rng.start+'&work_date=lte.'+rng.end+'&order=work_date.asc&select=*');
   var entries=await dbGet('time_entries','worker_id=eq.'+workerId+'&entry_date=gte.'+rng.start+'&entry_date=lte.'+rng.end+'&is_active=eq.true&order=entry_datetime.asc&select=*');
   var edits=await dbGet('time_entry_edits','worker_id=eq.'+workerId+'&work_date=gte.'+rng.start+'&work_date=lte.'+rng.end+'&order=edited_at.asc&select=*').catch(function(){return[];});
@@ -6012,6 +6068,11 @@ async function fetchWorkerMonthBundleV4(workerId, year, month){
   return {rng:rng,records:records||[],entries:entries||[],edits:edits||[],statuses:statuses||[],entriesByDate:groupByDateV4(entries||[],'entry_date'),editsByDate:groupByDateV4(edits||[],'work_date'),permsByDate:groupPermsByDateV4(statuses||[],rng.start,rng.end)};
 }
 async function fetchWorkerYearBundleV4(workerId, year){
+  try{
+    var wk=(state.allWorkers||[]).find(function(w){return String(w.id)===String(workerId);});
+    if(!wk){ var wr=await dbGet('workers','id=eq.'+workerId+'&select=*'); wk=wr&&wr[0]; }
+    if(wk) await ensureDailyRecordsForWorkerRange(wk,year+'-01-01',year+'-12-31',{force:false,includeToday:true});
+  }catch(_e){}
   var records=await dbGet('daily_records','worker_id=eq.'+workerId+'&work_date=gte.'+year+'-01-01&work_date=lte.'+year+'-12-31&order=work_date.asc&select=*');
   var statuses=await dbGet('day_status','worker_id=eq.'+workerId+'&start_date=lte.'+year+'-12-31&end_date=gte.'+year+'-01-01&is_active=eq.true&select=*').catch(function(){return[];});
   return {records:records||[],statuses:statuses||[]};
@@ -6022,13 +6083,23 @@ function sumRecordsV4(records){
 }
 function countStatusDaysV4(statuses, year, predicate){
   var count=0, min=new Date(year+'-01-01T12:00:00'), max=new Date(year+'-12-31T12:00:00');
+  var holidaySet=parseHolidaySettingsJASL(year);
+  (statuses||[]).forEach(function(p){
+    if(!isVisibleStatusV4(p)||!isHolidayTypeV4(p.day_type)) return;
+    var s=new Date(p.start_date+'T12:00:00'), e=new Date(p.end_date+'T12:00:00');
+    if(s<min) s=min; if(e>max) e=max;
+    for(var d=new Date(s); d<=e; d.setDate(d.getDate()+1)) holidaySet[localDateISO(d)]=true;
+  });
   (statuses||[]).forEach(function(p){
     if(!isVisibleStatusV4(p)||!predicate(p)) return;
     var s=new Date(p.start_date+'T12:00:00'), e=new Date(p.end_date+'T12:00:00');
     if(s<min) s=min; if(e>max) e=max;
     for(var d=new Date(s); d<=e; d.setDate(d.getDate()+1)){
-      var dow=d.getDay();
-      if(dow!==0&&dow!==6) count++;
+      var dow=d.getDay(), ds=localDateISO(d);
+      if(dow!==0&&dow!==6){
+        if(isVacationTypeV4(p.day_type)&&holidaySet[ds]) continue;
+        count++;
+      }
     }
   });
   return count;
@@ -6335,11 +6406,11 @@ async function loadVacances(){
       if(start<min) start=min; if(end>max) end=max;
       for(var d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
         var dow=d.getDay(), ds=localDateISO(d), isWeekday=dow!==0&&dow!==6;
-        if(isVacationType(dt)&&isWeekday&&approval==='APPROVED') usedDays++;
-        if(isVacationType(dt)&&isWeekday&&approval==='PENDING') pendingVacDays++;
+        if(isVacationType(dt)&&isWeekday&&approval==='APPROVED'&&!holidayDates[ds]) usedDays++;
+        if(isVacationType(dt)&&isWeekday&&approval==='PENDING'&&!holidayDates[ds]) pendingVacDays++;
         if(!isVacationType(dt) || isWeekday){
-          var obj={status:p.approval_status||'APPROVED',type:dt,icon:permIcon(dt),isVac:isVacationType(dt),isHoliday:isHolidayType(dt),comment:p.comment||''};
-          if(!dateMap[ds] || obj.isHoliday || obj.isVac) dateMap[ds]=obj;
+          var obj={status:p.approval_status||'APPROVED',type:dt,icon:permIcon(dt),isVac:isVacationType(dt),isHoliday:isHolidayType(dt)||!!holidayDates[ds],comment:p.comment||''};
+          if(!dateMap[ds] || obj.isHoliday || (!dateMap[ds].isHoliday && obj.isVac)) dateMap[ds]=obj;
         }
       }
     });
@@ -6414,8 +6485,8 @@ function renderCalendarYear(yr,dateMap,singleColor,workers,isIndividual){
           var vacs=arr.filter(function(x){return x.isVac;});
           var hols=arr.filter(function(x){return x.isHoliday;});
           var others=arr.filter(function(x){return !x.isVac&&!x.isHoliday;});
-          if(vacs.length){var n=Math.min(vacs.length,4);var fr=vacs.slice(0,4).map(function(x,i){var p0=Math.round(i*100/n),p1=Math.round((i+1)*100/n);return x.color+' '+p0+'% '+p1+'%';});bgImage='linear-gradient(to bottom,'+fr.join(',')+')';bg='#e8f4fd';textColor='#fff';fontWeight='800';borderColor='rgba(30,144,232,.35)';}
-          if(hols.length&&!vacs.length){bg='#FEF0F0';textColor='#C00000';borderColor='#C00000';fontWeight='800';}
+          if(hols.length){bg='#FEF0F0';textColor='#C00000';borderColor='#C00000';fontWeight='800';}
+          else if(vacs.length){var n=Math.min(vacs.length,4);var fr=vacs.slice(0,4).map(function(x,i){var p0=Math.round(i*100/n),p1=Math.round((i+1)*100/n);return x.color+' '+p0+'% '+p1+'%';});bgImage='linear-gradient(to bottom,'+fr.join(',')+')';bg='#e8f4fd';textColor='#fff';fontWeight='800';borderColor='rgba(30,144,232,.35)';}
           if(hols.length) extra+=calendarIconBadgeV6('🔴','#fff','#C00000','#C00000');
           if(others.length){var icons=others.slice(0,2).map(function(x){return x.icon||'📅';}).join('');extra+=calendarIconBadgeV6(icons,'#E8F3FD','#1E90E8','#1E90E8');if(!vacs.length&&!hols.length){borderColor='#1E90E8';fontWeight='800';}}
           title=arr.map(function(x){return (x.name?x.name+': ':'')+permTypeLabel(x.type)+(String(x.status||'').toUpperCase()==='PENDING'?' pendent':'');}).join(', ');
