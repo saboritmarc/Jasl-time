@@ -4525,7 +4525,9 @@ function buildDailyRecordFromPermJASL(worker, ds, perm){
   if(type==='FESTIU'||type==='HOLIDAY'){
     theoretical=0; worked=0; balance=0;
   }else if(mode==='THEORETICAL_HOURS'){
-    theoretical=th; worked=th; balance=0;
+    // Permisos, vacances i baixes no són hores realment treballades.
+    // Mantenim la jornada teòrica per control, però el saldo queda neutralitzat.
+    theoretical=th; worked=0; balance=0;
   }else{
     // ZERO_HOURS o altres permisos: no penalitzen el saldo en aquesta regularització.
     theoretical=0; worked=0; balance=0;
@@ -4542,7 +4544,8 @@ function buildMissingWorkdayRecordJASL(worker, ds){
   var th=theoreticalMinutesForWorkerJASL(worker);
   return {
     worker_id:parseInt(worker.id,10), work_date:ds,
-    status:'INCIDENCE', day_type:'NORMAL',
+    // daily_status no sempre accepta INCIDENCE; la incidència real es marca amb has_incidence.
+    status:'NOT_STARTED', day_type:'NORMAL',
     pause_minutes:0, worked_minutes:0, theoretical_minutes:th, balance_minutes:-th,
     has_incidence:true, is_edited:false
   };
@@ -6109,14 +6112,15 @@ function buildMonthRowsV4(worker, data, year, month, withEdits){
     var worked=rec?(rec.worked_minutes||0):summary.workedFromEntries;
     var theoretical=0, balance='', statusText='';
     if(isHoliday){
-      theoretical=0;
-      balance=hasEntries?(worked-theoretical):0;
+      // Criteri tancat: en festiu no hi pot haver fitxada ni jornada teòrica.
+      worked=0; theoretical=0; balance=0;
       statusText='Festiu';
     }else if(visiblePerm && !hasEntries){
       theoretical=isWeekdayISOJASL(ds)?theoreticalMinutesForWorkerJASL(worker):0;
       if(isHolidayTypeV4(visibleType)){ theoretical=0; worked=0; balance=0; statusText='Festiu'; }
       else if(isVacationTypeV4(visibleType) || String(visiblePerm.compute_mode||'THEORETICAL_HOURS').toUpperCase()==='THEORETICAL_HOURS'){
-        worked=theoretical; balance=0; statusText=permTypeLabel(visibleType);
+        // Vacances, baixes i permisos retribuïts no són hores treballades reals.
+        worked=0; balance=0; statusText=permTypeLabel(visibleType);
       }else{ theoretical=0; worked=0; balance=0; statusText=permTypeLabel(visibleType); }
     }else if(rec){
       theoretical=isWeekend?0:baseTheory;
@@ -6222,30 +6226,83 @@ async function exportFormat01(targets, year, month, withEdits){
   downloadWorkbookV4(wb,'JASL_Time_'+(withEdits?'02_mensual_edicions':'01_mensual')+suffix+'_'+year+'_'+String(month).padStart(2,'0')+'.xlsx');
   showToast('Excel generat!','success');
 }
+
+function hmTextToMinutesV10j(v){
+  if(v===null||v===undefined) return 0;
+  var s=String(v).trim();
+  if(!s) return 0;
+  var sign=1;
+  if(s[0]==='-'){ sign=-1; s=s.substring(1); }
+  if(s[0]==='+'){ s=s.substring(1); }
+  s=s.replace(/h/g,':').replace(/\s+/g,'');
+  var m=s.match(/^(\d+):(\d{1,2})$/);
+  if(m) return sign*(parseInt(m[1],10)*60+parseInt(m[2],10));
+  var n=parseFloat(s.replace(',','.'));
+  return isNaN(n)?0:sign*Math.round(n*60);
+}
+function totalsFromMonthRowsV10j(rows){
+  var total=(rows||[]).find(function(r){return r&&String(r[0]||'').toUpperCase()==='TOTAL';})||[];
+  return {worked:hmTextToMinutesV10j(total[6]),theoretical:hmTextToMinutesV10j(total[7]),balance:hmTextToMinutesV10j(total[8]),pause:hmTextToMinutesV10j(total[5])};
+}
+function statsFromMonthRowsV10j(rows){
+  var stats={days:0,incidences:0};
+  (rows||[]).forEach(function(r){
+    if(!r||!/^\d{4}-\d{2}-\d{2}$/.test(String(r[0]||''))) return;
+    var status=String(r[9]||'').toLowerCase();
+    if(status.indexOf('final')>=0) stats.days++;
+    if(status.indexOf('incid')>=0 || String(r[10]||'').indexOf('⚠')>=0) stats.incidences++;
+  });
+  return stats;
+}
 async function exportFormat03(targets, year){
   var wb=XLSX.utils.book_new(), used={}, names=monthNamesV4();
   for(var i=0;i<targets.length;i++){
-    var w=targets[i], yearly=await fetchWorkerYearBundleV4(w.id,year), accumulated=0;
-    var rows=[['JASL Time · Registre anual per mesos'],['Treballador',w.display_name||w.employee_code,'Codi',w.employee_code,'Exercici',year],[],['Mes','Hores treballades','Hores teòriques','Saldo mensual','Saldo acumulat','Dies treballats','Incidències','Vacances laborables','Altres permisos/festius']];
+    var w=targets[i];
+    var accumulated=0;
+    var rows=[
+      ['JASL Time · Registre anual per mesos'],
+      ['Treballador',w.display_name||w.employee_code,'Codi',w.employee_code,'Exercici',year],
+      [],
+      ['Mes','Hores treballades','Hores teòriques','Saldo mensual','Saldo acumulat','Dies treballats','Incidències','Vacances laborables','Altres permisos/festius']
+    ];
     var totals={worked:0,theoretical:0,balance:0,days:0,incidences:0};
-    for(var m=1;m<=12;m++){
-      var moS=String(m).padStart(2,'0');
-      var recs=yearly.records.filter(function(r){return r.work_date&&r.work_date.indexOf(year+'-'+moS)===0;});
-      var s=sumRecordsV4(recs); accumulated+=s.balance;
-      totals.worked+=s.worked; totals.theoretical+=s.theoretical; totals.balance+=s.balance; totals.days+=s.days; totals.incidences+=s.incidences;
-      var start=year+'-'+moS+'-01', end=year+'-'+moS+'-'+String(new Date(year,m,0).getDate()).padStart(2,'0');
-      var monthStatuses=yearly.statuses.filter(function(p){return isVisibleStatusV4(p)&&p.start_date<=end&&p.end_date>=start;});
+
+    for(var mth=1;mth<=12;mth++){
+      var monthData=await fetchWorkerMonthBundleV4(w.id,year,mth);
+      var monthRows=buildMonthRowsV4(w,monthData,year,mth,false);
+      var monthTotals=totalsFromMonthRowsV10j(monthRows);
+      var monthStats=statsFromMonthRowsV10j(monthRows);
+      accumulated+=monthTotals.balance;
+      totals.worked+=monthTotals.worked;
+      totals.theoretical+=monthTotals.theoretical;
+      totals.balance+=monthTotals.balance;
+      totals.days+=monthStats.days;
+      totals.incidences+=monthStats.incidences;
+      var startM=year+'-'+String(mth).padStart(2,'0')+'-01';
+      var endM=year+'-'+String(mth).padStart(2,'0')+'-'+String(new Date(year,mth,0).getDate()).padStart(2,'0');
+      var monthStatuses=(monthData.statuses||[]).filter(function(p){return isVisibleStatusV4(p)&&p.start_date<=endM&&p.end_date>=startM;});
       var vac=countStatusDaysV4(monthStatuses,year,function(p){return isVacationTypeV4(p.day_type)&&String(p.approval_status||'APPROVED').toUpperCase()==='APPROVED';});
       var others=monthStatuses.filter(function(p){return !isVacationTypeV4(p.day_type);}).map(function(p){return permIcon(p.day_type)+' '+permTypeLabel(p.day_type);}).join(' · ');
-      rows.push([names[m-1],minsToExcelHMV4(s.worked),minsToExcelHMV4(s.theoretical),balanceHMV4(s.balance),balanceHMV4(accumulated),s.days,s.incidences,vac,others]);
+      rows.push([names[mth-1],minsToExcelHMV4(monthTotals.worked),minsToExcelHMV4(monthTotals.theoretical),balanceHMV4(monthTotals.balance),balanceHMV4(accumulated),monthStats.days,monthStats.incidences,vac,others]);
     }
-    rows.push([]); rows.push(['TOTAL',minsToExcelHMV4(totals.worked),minsToExcelHMV4(totals.theoretical),balanceHMV4(totals.balance),balanceHMV4(accumulated),totals.days,totals.incidences,'','']);
-    appendStyledSheetV4(wb,rows,safeSheetNameV4('03 '+(w.employee_code||w.display_name),used),{headerRows:[3],titleRows:[0],boldRows:[1,rows.length-1],maxWidth:85,freeze:{xSplit:0,ySplit:4}});
+    rows.push([]);
+    rows.push(['TOTAL',minsToExcelHMV4(totals.worked),minsToExcelHMV4(totals.theoretical),balanceHMV4(totals.balance),balanceHMV4(accumulated),totals.days,totals.incidences,'','']);
+
+    appendStyledSheetV4(wb,rows,safeSheetNameV4('Resum '+(w.employee_code||w.display_name),used),{headerRows:[3],titleRows:[0],boldRows:[1,rows.length-1],maxWidth:85,freeze:{xSplit:0,ySplit:4}});
+
+    // Fulls mensuals detallats: mateix criteri que el format 01 individual.
+    for(var m2=1;m2<=12;m2++){
+      var detailData=await fetchWorkerMonthBundleV4(w.id,year,m2);
+      var detailRows=buildMonthRowsV4(w,detailData,year,m2,false);
+      var sheetBase=(targets.length===1?names[m2-1]:(String(w.employee_code||w.id)+' '+names[m2-1].substring(0,3)));
+      appendStyledSheetV4(wb,detailRows,safeSheetNameV4(sheetBase,used),{headerRows:[3],titleRows:[0],boldRows:[1,detailRows.length-1],maxWidth:85,minWidth:11,freeze:{xSplit:0,ySplit:4}});
+    }
   }
   var suffix=targets.length===1?'_'+(targets[0].employee_code||targets[0].id):'';
-  downloadWorkbookV4(wb,'JASL_Time_03_anual_mesos'+suffix+'_'+year+'.xlsx');
+  downloadWorkbookV4(wb,'JASL_Time_03_anual_mesos_detall'+suffix+'_'+year+'.xlsx');
   showToast('Excel generat!','success');
 }
+
 async function exportFormat04(targets, year){
   var wb=XLSX.utils.book_new(), used={}, names=monthNamesV4();
   for(var i=0;i<targets.length;i++){
