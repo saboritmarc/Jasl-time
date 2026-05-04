@@ -339,7 +339,6 @@ textarea.input{resize:vertical;min-height:80px;}
       <button class="btn btn-secondary btn-full" onclick="showAdminPage('access-logs')">&#128203; Registre d'accessos</button>
       <button class="btn btn-secondary btn-full" onclick="showAdminPage('settings')">&#9881; Configuraci&oacute;</button>
       <button class="btn btn-secondary btn-full" onclick="showAdminPage('edits-report')">&#9998; Registre d'edicions</button>
-      <button class="btn btn-secondary btn-full" onclick="showPage('pending-incidents'); loadPendingIncidentsPage();">&#9888; Incid&egrave;ncies pendents</button>
     </div>
   </div>
 </div>
@@ -490,34 +489,6 @@ textarea.input{resize:vertical;min-height:80px;}
   </div>
 </div>
 
-
-<!-- PENDING INCIDENTS -->
-<div id="page-pending-incidents" class="page" style="display:none;flex-direction:column">
-  <div class="topbar">
-    <button class="back-btn" onclick="showPage('admin-home')">&#8592;</button>
-    <div class="topbar-title">Incid&egrave;ncies pendents</div>
-    <div style="width:28px"></div>
-  </div>
-  <div class="content" style="flex:1;overflow-y:auto">
-    <div class="card" style="margin-bottom:14px">
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-        <div class="input-group" style="flex:1;min-width:120px;margin-bottom:0">
-          <label class="input-label">Any</label>
-          <input type="number" id="pending-inc-year" class="input" min="2024" max="2035" onchange="loadPendingIncidentsPage(true)">
-        </div>
-        <div class="input-group" style="flex:2;min-width:180px;margin-bottom:0">
-          <label class="input-label">Treballador</label>
-          <select id="pending-inc-worker" class="input" onchange="loadPendingIncidentsPage(true)">
-            <option value="">Tots els treballadors</option>
-          </select>
-        </div>
-        <button class="btn btn-secondary" style="padding:11px 14px" onclick="loadPendingIncidentsPage(true)">Actualitzar</button>
-      </div>
-    </div>
-    <div id="pending-incidents-list"></div>
-  </div>
-</div>
-
 <!-- QR SCAN -->
 <div id="page-qr-scan" class="page" style="align-items:center;justify-content:center;flex-direction:column;gap:20px">
   <div style="text-align:center">
@@ -608,7 +579,7 @@ function showPage(pageId){
     'admin-home':'Admin','day-detail':'Detall',workers:'Treballadors',
     'all-records':'Registres','all-perms':'Permisos globals','all-balances':'Saldos',
     exports:'Exportacions',cards:'Targetes',settings:'Configuraci&#243;',
-    'access-logs':'Accessos','edits-report':'Edicions','pending-incidents':'Incidencies'};
+    'access-logs':'Accessos','edits-report':'Edicions'};
   document.title=(t[pageId]||'JASL Time')+' &#183; JASL Time';
 }
 
@@ -717,7 +688,6 @@ function generateQRSVG(text, container, size){
 }
 
 function doLogout(){
-  stopLiveWorkedTimer();
   state.worker=null; state.todaySummary=null; state._loginByQR=false;
   clearInterval(clockInterval);
   document.getElementById('login-code').value='';
@@ -725,82 +695,7 @@ function doLogout(){
   if(nav) nav.style.display='none';
   var adminBtn=document.getElementById('nav-admin-btn');
   if(adminBtn) adminBtn.remove();
-  
-
-async function ensurePendingIncidentsWorkerFilter(){
-  var sel=document.getElementById('pending-inc-worker');
-  if(!sel) return;
-  if(!state.allWorkers || !state.allWorkers.length){
-    try{ state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*'); }catch(e){ state.allWorkers=[]; }
-  }
-  var current=sel.value||'';
-  var html='<option value="">Tots els treballadors</option>';
-  (state.allWorkers||[]).forEach(function(w){ html+='<option value="'+w.id+'">'+(w.display_name||w.employee_code)+' · '+(w.employee_code||'')+'</option>'; });
-  sel.innerHTML=html;
-  if(current) sel.value=current;
-}
-
-function incidentTypeLabelFromRow(r, entries, specials){
-  var hasEntries=(entries||[]).length>0;
-  var hasSpecial=(specials||[]).length>0;
-  if(hasEntries && hasSpecial) return 'Fitxades + permís/dia especial';
-  if(!hasEntries && (r.balance_minutes||0)<0) return 'Dia laborable sense fitxatge';
-  if(hasEntries){
-    var types=entries.map(function(e){return e.entry_type;});
-    if(types.indexOf('START')<0) return 'Falta inici de jornada';
-    if(types.indexOf('END')<0) return 'Falta sortida';
-    var ps=types.filter(function(t){return t==='PAUSE_START';}).length;
-    var pe=types.filter(function(t){return t==='PAUSE_END';}).length;
-    if(ps!==pe) return 'Pausa incompleta';
-  }
-  return 'Incidència pendent';
-}
-
-async function loadPendingIncidentsPage(keepFilters){
-  var list=document.getElementById('pending-incidents-list');
-  var yearEl=document.getElementById('pending-inc-year');
-  if(yearEl && !yearEl.value) yearEl.value=String(new Date().getFullYear());
-  await ensurePendingIncidentsWorkerFilter();
-  if(!list) return;
-  list.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
-  var year=parseInt((yearEl||{value:new Date().getFullYear()}).value)||new Date().getFullYear();
-  var workerId=(document.getElementById('pending-inc-worker')||{value:''}).value;
-  var start=year+'-01-01', end=year+'-12-31';
-  try{
-    var q='work_date=gte.'+start+'&work_date=lte.'+end+'&has_incidence=eq.true&order=work_date.desc&select=*,workers(display_name,employee_code)';
-    if(workerId) q='worker_id=eq.'+workerId+'&'+q;
-    var rows=await dbGet('daily_records',q);
-    if(!rows||!rows.length){ list.innerHTML='<div class="empty-state">No hi ha incidències pendents per aquests filtres.</div>'; return; }
-    var html='';
-    for(var i=0;i<rows.length;i++){
-      var r=rows[i];
-      var entries=await dbGet('time_entries','worker_id=eq.'+r.worker_id+'&entry_date=eq.'+r.work_date+'&is_active=eq.true&order=entry_datetime.asc&select=entry_type,entry_datetime,pause_number').catch(function(){return[];});
-      var specials=await dbGet('day_status','worker_id=eq.'+r.worker_id+'&start_date=lte.'+r.work_date+'&end_date=gte.'+r.work_date+'&is_active=eq.true&select=day_type,approval_status').catch(function(){return[];});
-      var name=(r.workers&&(r.workers.display_name||r.workers.employee_code))||(r.worker_id||'');
-      var code=(r.workers&&r.workers.employee_code)||'';
-      var chrono=(entries||[]).map(function(e){return e.entry_type+' '+new Date(e.entry_datetime).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'});}).join(' · ')||'Sense fitxades';
-      var spec=(specials||[]).map(function(s){return (s.day_type||'')+(s.approval_status?' ('+s.approval_status+')':'');}).join(' · ');
-      var typ=incidentTypeLabelFromRow(r,entries,specials);
-      html+='<div class="card" style="margin-bottom:10px">'+
-        '<div class="card-row" style="align-items:flex-start;gap:10px"><div><div style="font-weight:800;font-size:14px">'+formatDateLong(r.work_date)+'</div>'+ 
-        '<div style="font-size:12px;color:var(--text2);margin-top:2px">'+name+(code?' · '+code:'')+'</div></div>'+ 
-        '<span class="tag tag-red">Incidència</span></div>'+ 
-        '<div style="margin-top:10px;font-weight:700;color:var(--warn);font-size:13px">'+typ+'</div>'+ 
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px">'+
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px">'+minsToHM(r.worked_minutes||0)+'</div><div class="stat-lbl">Treballat</div></div>'+ 
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px">'+minsToHM(r.theoretical_minutes||0)+'</div><div class="stat-lbl">Teòric</div></div>'+ 
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px;color:'+((r.balance_minutes||0)>=0?'var(--accent)':'var(--warn)')+'">'+((r.balance_minutes||0)>=0?'+':'')+minsToHM(r.balance_minutes||0)+'</div><div class="stat-lbl">Saldo</div></div>'+ 
-        '</div>'+ 
-        '<div style="font-size:12px;color:var(--text2);margin-top:10px"><strong>Cronologia:</strong> '+chrono+'</div>'+ 
-        (spec?'<div style="font-size:12px;color:var(--text2);margin-top:4px"><strong>Dia especial:</strong> '+spec+'</div>':'')+
-        '</div>';
-    }
-    list.innerHTML=html;
-  }catch(e){ console.error('loadPendingIncidentsPage',e); list.innerHTML='<div class="empty-state">Error carregant incidències.</div>'; }
-}
-
-
-showPage('splash');
+  showPage('splash');
 }
 
 
@@ -1133,81 +1028,6 @@ function switchVacancesView(view){
   else loadVacancesGlobal();
 }
 
-
-
-async function ensurePendingIncidentsWorkerFilter(){
-  var sel=document.getElementById('pending-inc-worker');
-  if(!sel) return;
-  if(!state.allWorkers || !state.allWorkers.length){
-    try{ state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*'); }catch(e){ state.allWorkers=[]; }
-  }
-  var current=sel.value||'';
-  var html='<option value="">Tots els treballadors</option>';
-  (state.allWorkers||[]).forEach(function(w){ html+='<option value="'+w.id+'">'+(w.display_name||w.employee_code)+' · '+(w.employee_code||'')+'</option>'; });
-  sel.innerHTML=html;
-  if(current) sel.value=current;
-}
-
-function incidentTypeLabelFromRow(r, entries, specials){
-  var hasEntries=(entries||[]).length>0;
-  var hasSpecial=(specials||[]).length>0;
-  if(hasEntries && hasSpecial) return 'Fitxades + permís/dia especial';
-  if(!hasEntries && (r.balance_minutes||0)<0) return 'Dia laborable sense fitxatge';
-  if(hasEntries){
-    var types=entries.map(function(e){return e.entry_type;});
-    if(types.indexOf('START')<0) return 'Falta inici de jornada';
-    if(types.indexOf('END')<0) return 'Falta sortida';
-    var ps=types.filter(function(t){return t==='PAUSE_START';}).length;
-    var pe=types.filter(function(t){return t==='PAUSE_END';}).length;
-    if(ps!==pe) return 'Pausa incompleta';
-  }
-  return 'Incidència pendent';
-}
-
-async function loadPendingIncidentsPage(keepFilters){
-  var list=document.getElementById('pending-incidents-list');
-  var yearEl=document.getElementById('pending-inc-year');
-  if(yearEl && !yearEl.value) yearEl.value=String(new Date().getFullYear());
-  await ensurePendingIncidentsWorkerFilter();
-  if(!list) return;
-  list.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
-  var year=parseInt((yearEl||{value:new Date().getFullYear()}).value)||new Date().getFullYear();
-  var workerId=(document.getElementById('pending-inc-worker')||{value:''}).value;
-  var start=year+'-01-01', end=year+'-12-31';
-  try{
-    var q='work_date=gte.'+start+'&work_date=lte.'+end+'&has_incidence=eq.true&order=work_date.desc&select=*,workers(display_name,employee_code)';
-    if(workerId) q='worker_id=eq.'+workerId+'&'+q;
-    var rows=await dbGet('daily_records',q);
-    if(!rows||!rows.length){ list.innerHTML='<div class="empty-state">No hi ha incidències pendents per aquests filtres.</div>'; return; }
-    var html='';
-    for(var i=0;i<rows.length;i++){
-      var r=rows[i];
-      var entries=await dbGet('time_entries','worker_id=eq.'+r.worker_id+'&entry_date=eq.'+r.work_date+'&is_active=eq.true&order=entry_datetime.asc&select=entry_type,entry_datetime,pause_number').catch(function(){return[];});
-      var specials=await dbGet('day_status','worker_id=eq.'+r.worker_id+'&start_date=lte.'+r.work_date+'&end_date=gte.'+r.work_date+'&is_active=eq.true&select=day_type,approval_status').catch(function(){return[];});
-      var name=(r.workers&&(r.workers.display_name||r.workers.employee_code))||(r.worker_id||'');
-      var code=(r.workers&&r.workers.employee_code)||'';
-      var chrono=(entries||[]).map(function(e){return e.entry_type+' '+new Date(e.entry_datetime).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'});}).join(' · ')||'Sense fitxades';
-      var spec=(specials||[]).map(function(s){return (s.day_type||'')+(s.approval_status?' ('+s.approval_status+')':'');}).join(' · ');
-      var typ=incidentTypeLabelFromRow(r,entries,specials);
-      html+='<div class="card" style="margin-bottom:10px">'+
-        '<div class="card-row" style="align-items:flex-start;gap:10px"><div><div style="font-weight:800;font-size:14px">'+formatDateLong(r.work_date)+'</div>'+ 
-        '<div style="font-size:12px;color:var(--text2);margin-top:2px">'+name+(code?' · '+code:'')+'</div></div>'+ 
-        '<span class="tag tag-red">Incidència</span></div>'+ 
-        '<div style="margin-top:10px;font-weight:700;color:var(--warn);font-size:13px">'+typ+'</div>'+ 
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px">'+
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px">'+minsToHM(r.worked_minutes||0)+'</div><div class="stat-lbl">Treballat</div></div>'+ 
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px">'+minsToHM(r.theoretical_minutes||0)+'</div><div class="stat-lbl">Teòric</div></div>'+ 
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px;color:'+((r.balance_minutes||0)>=0?'var(--accent)':'var(--warn)')+'">'+((r.balance_minutes||0)>=0?'+':'')+minsToHM(r.balance_minutes||0)+'</div><div class="stat-lbl">Saldo</div></div>'+ 
-        '</div>'+ 
-        '<div style="font-size:12px;color:var(--text2);margin-top:10px"><strong>Cronologia:</strong> '+chrono+'</div>'+ 
-        (spec?'<div style="font-size:12px;color:var(--text2);margin-top:4px"><strong>Dia especial:</strong> '+spec+'</div>':'')+
-        '</div>';
-    }
-    list.innerHTML=html;
-  }catch(e){ console.error('loadPendingIncidentsPage',e); list.innerHTML='<div class="empty-state">Error carregant incidències.</div>'; }
-}
-
-
 showPage('splash');
 
 // -- Gestio offline --
@@ -1293,63 +1113,64 @@ async function loadTodaySummary(){
 }
 
 
-
 var _liveWorkedTimer = null;
-var _liveWorkedFetchToken = 0;
 var _liveWorkedEntries = [];
-var _liveWorkedStatus = 'NOT_STARTED';
+var _liveWorkedStatus = null;
+
+function isLiveWorkStatus(status){
+  return status==='IN_PROGRESS'||status==='PAUSED'||status==='ON_PAUSE';
+}
 
 function stopLiveWorkedTimer(){
   if(_liveWorkedTimer){ clearInterval(_liveWorkedTimer); _liveWorkedTimer=null; }
+  _liveWorkedEntries=[];
+  _liveWorkedStatus=null;
 }
 
-function computeWorkedMinutesFromEntriesLive(entries, status){
-  var total = 0;
-  var openStart = null;
-  (entries||[]).forEach(function(e){
-    var t = new Date(e.entry_datetime);
-    if(e.entry_type==='START' || e.entry_type==='PAUSE_END'){
-      openStart = t;
-    } else if((e.entry_type==='PAUSE_START' || e.entry_type==='END') && openStart){
-      var diff = Math.round((t - openStart) / 60000);
-      if(diff > 0) total += diff;
-      openStart = null;
+function calcWorkedMinutesLive(entries,status){
+  var sorted=(entries||[]).slice().sort(function(a,b){return new Date(a.entry_datetime)-new Date(b.entry_datetime);});
+  var total=0;
+  var openStart=null;
+  sorted.forEach(function(e){
+    var t=new Date(e.entry_datetime);
+    if(e.entry_type==='START'||e.entry_type==='PAUSE_END'){
+      openStart=t;
+    }else if((e.entry_type==='PAUSE_START'||e.entry_type==='END')&&openStart){
+      var diff=Math.round((t-openStart)/60000);
+      if(diff>0) total+=diff;
+      openStart=null;
     }
   });
-  if(status==='IN_PROGRESS' && openStart){
-    var extra = Math.round((new Date() - openStart) / 60000);
-    if(extra > 0) total += extra;
+  if(status==='IN_PROGRESS'&&openStart){
+    var liveDiff=Math.round((new Date()-openStart)/60000);
+    if(liveDiff>0) total+=liveDiff;
   }
   return Math.max(0,total);
 }
 
 function refreshLiveWorkedDisplay(){
-  var status = _liveWorkedStatus;
-  var worked = computeWorkedMinutesFromEntriesLive(_liveWorkedEntries, status);
-  var workedEl = document.getElementById('stat-worked');
-  var balEl = document.getElementById('stat-balance');
-  if(workedEl) workedEl.textContent = minsToHM(worked);
+  if(!isLiveWorkStatus(_liveWorkedStatus)) return;
+  var worked=calcWorkedMinutesLive(_liveWorkedEntries,_liveWorkedStatus);
+  var workedEl=document.getElementById('stat-worked');
+  var balEl=document.getElementById('stat-balance');
+  if(workedEl) workedEl.textContent=minsToHM(worked);
   if(balEl){
-    balEl.textContent = 'En curs';
-    balEl.style.color = 'var(--accent)';
-    balEl.style.fontSize = '15px';
+    balEl.textContent='En curs';
+    balEl.style.color='var(--accent)';
+    balEl.style.fontSize='16px';
   }
 }
 
 async function startLiveWorkedTimer(status){
   stopLiveWorkedTimer();
-  _liveWorkedStatus = status;
-  var token = ++_liveWorkedFetchToken;
+  if(!isLiveWorkStatus(status)||!state.worker) return;
+  _liveWorkedStatus=status;
   try{
-    if(state.worker){
-      var today = localDateISO(new Date());
-      var rows = await dbGet('time_entries','worker_id=eq.'+state.worker.id+'&entry_date=eq.'+today+'&is_active=eq.true&order=entry_datetime.asc&select=entry_datetime,entry_type,pause_number');
-      if(token !== _liveWorkedFetchToken) return;
-      _liveWorkedEntries = rows || [];
-    }
-  }catch(e){ _liveWorkedEntries = []; }
+    var today=localDateISO(new Date());
+    _liveWorkedEntries=await dbGet('time_entries','worker_id=eq.'+state.worker.id+'&entry_date=eq.'+today+'&is_active=eq.true&order=entry_datetime.asc&select=entry_datetime,entry_type');
+  }catch(e){ _liveWorkedEntries=[]; }
   refreshLiveWorkedDisplay();
-  _liveWorkedTimer = setInterval(refreshLiveWorkedDisplay, 30000);
+  _liveWorkedTimer=setInterval(refreshLiveWorkedDisplay,30000);
 }
 
 function renderTodaySummary(s){
@@ -1358,19 +1179,19 @@ function renderTodaySummary(s){
   var st=sm[status]||sm['NOT_STARTED'];
   document.getElementById('clock-status-tag').innerHTML='<span class="tag '+st.cls+'">'+st.label+'</span>';
   document.getElementById('stat-worked').textContent=minsToHM(s&&s.worked_minutes?s.worked_minutes:0);
-  document.getElementById('stat-theoretical').textContent=minsToHM(s&&s.theoretical_minutes?s.theoretical_minutes:(state.worker&&state.worker.daily_theoretical_minutes?state.worker.daily_theoretical_minutes:480));
+  document.getElementById('stat-theoretical').textContent=minsToHM(s&&s.theoretical_minutes?s.theoretical_minutes:480);
   var bal=s&&s.balance_minutes?s.balance_minutes:0;
   var balEl=document.getElementById('stat-balance');
-  if(status==='IN_PROGRESS'||status==='PAUSED'||status==='ON_PAUSE'){
-    if(balEl){ balEl.textContent='En curs'; balEl.style.color='var(--accent)'; balEl.style.fontSize='15px'; }
-    startLiveWorkedTimer(status==='ON_PAUSE'?'PAUSED':status);
-  } else {
+  if(isLiveWorkStatus(status)){
+    balEl.textContent='En curs';
+    balEl.style.color='var(--accent)';
+    balEl.style.fontSize='16px';
+    startLiveWorkedTimer(status);
+  }else{
     stopLiveWorkedTimer();
-    if(balEl){
-      balEl.textContent=(bal>=0?'+':'')+minsToHM(bal);
-      balEl.style.color=bal>=0?'var(--accent)':'var(--warn)';
-      balEl.style.fontSize='19px';
-    }
+    balEl.textContent=(bal>=0?'+':'')+minsToHM(bal);
+    balEl.style.color=bal>=0?'var(--accent)':'var(--warn)';
+    balEl.style.fontSize='19px';
   }
   document.getElementById('btn-start').disabled=!(status==='NOT_STARTED'||status==='FINISHED'||status==='COMPLETED');
   document.getElementById('btn-pause').disabled=status!=='IN_PROGRESS';
@@ -3694,81 +3515,6 @@ function switchVacancesView(view){
   else loadVacancesGlobal();
 }
 
-
-
-async function ensurePendingIncidentsWorkerFilter(){
-  var sel=document.getElementById('pending-inc-worker');
-  if(!sel) return;
-  if(!state.allWorkers || !state.allWorkers.length){
-    try{ state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*'); }catch(e){ state.allWorkers=[]; }
-  }
-  var current=sel.value||'';
-  var html='<option value="">Tots els treballadors</option>';
-  (state.allWorkers||[]).forEach(function(w){ html+='<option value="'+w.id+'">'+(w.display_name||w.employee_code)+' · '+(w.employee_code||'')+'</option>'; });
-  sel.innerHTML=html;
-  if(current) sel.value=current;
-}
-
-function incidentTypeLabelFromRow(r, entries, specials){
-  var hasEntries=(entries||[]).length>0;
-  var hasSpecial=(specials||[]).length>0;
-  if(hasEntries && hasSpecial) return 'Fitxades + permís/dia especial';
-  if(!hasEntries && (r.balance_minutes||0)<0) return 'Dia laborable sense fitxatge';
-  if(hasEntries){
-    var types=entries.map(function(e){return e.entry_type;});
-    if(types.indexOf('START')<0) return 'Falta inici de jornada';
-    if(types.indexOf('END')<0) return 'Falta sortida';
-    var ps=types.filter(function(t){return t==='PAUSE_START';}).length;
-    var pe=types.filter(function(t){return t==='PAUSE_END';}).length;
-    if(ps!==pe) return 'Pausa incompleta';
-  }
-  return 'Incidència pendent';
-}
-
-async function loadPendingIncidentsPage(keepFilters){
-  var list=document.getElementById('pending-incidents-list');
-  var yearEl=document.getElementById('pending-inc-year');
-  if(yearEl && !yearEl.value) yearEl.value=String(new Date().getFullYear());
-  await ensurePendingIncidentsWorkerFilter();
-  if(!list) return;
-  list.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
-  var year=parseInt((yearEl||{value:new Date().getFullYear()}).value)||new Date().getFullYear();
-  var workerId=(document.getElementById('pending-inc-worker')||{value:''}).value;
-  var start=year+'-01-01', end=year+'-12-31';
-  try{
-    var q='work_date=gte.'+start+'&work_date=lte.'+end+'&has_incidence=eq.true&order=work_date.desc&select=*,workers(display_name,employee_code)';
-    if(workerId) q='worker_id=eq.'+workerId+'&'+q;
-    var rows=await dbGet('daily_records',q);
-    if(!rows||!rows.length){ list.innerHTML='<div class="empty-state">No hi ha incidències pendents per aquests filtres.</div>'; return; }
-    var html='';
-    for(var i=0;i<rows.length;i++){
-      var r=rows[i];
-      var entries=await dbGet('time_entries','worker_id=eq.'+r.worker_id+'&entry_date=eq.'+r.work_date+'&is_active=eq.true&order=entry_datetime.asc&select=entry_type,entry_datetime,pause_number').catch(function(){return[];});
-      var specials=await dbGet('day_status','worker_id=eq.'+r.worker_id+'&start_date=lte.'+r.work_date+'&end_date=gte.'+r.work_date+'&is_active=eq.true&select=day_type,approval_status').catch(function(){return[];});
-      var name=(r.workers&&(r.workers.display_name||r.workers.employee_code))||(r.worker_id||'');
-      var code=(r.workers&&r.workers.employee_code)||'';
-      var chrono=(entries||[]).map(function(e){return e.entry_type+' '+new Date(e.entry_datetime).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'});}).join(' · ')||'Sense fitxades';
-      var spec=(specials||[]).map(function(s){return (s.day_type||'')+(s.approval_status?' ('+s.approval_status+')':'');}).join(' · ');
-      var typ=incidentTypeLabelFromRow(r,entries,specials);
-      html+='<div class="card" style="margin-bottom:10px">'+
-        '<div class="card-row" style="align-items:flex-start;gap:10px"><div><div style="font-weight:800;font-size:14px">'+formatDateLong(r.work_date)+'</div>'+ 
-        '<div style="font-size:12px;color:var(--text2);margin-top:2px">'+name+(code?' · '+code:'')+'</div></div>'+ 
-        '<span class="tag tag-red">Incidència</span></div>'+ 
-        '<div style="margin-top:10px;font-weight:700;color:var(--warn);font-size:13px">'+typ+'</div>'+ 
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px">'+
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px">'+minsToHM(r.worked_minutes||0)+'</div><div class="stat-lbl">Treballat</div></div>'+ 
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px">'+minsToHM(r.theoretical_minutes||0)+'</div><div class="stat-lbl">Teòric</div></div>'+ 
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px;color:'+((r.balance_minutes||0)>=0?'var(--accent)':'var(--warn)')+'">'+((r.balance_minutes||0)>=0?'+':'')+minsToHM(r.balance_minutes||0)+'</div><div class="stat-lbl">Saldo</div></div>'+ 
-        '</div>'+ 
-        '<div style="font-size:12px;color:var(--text2);margin-top:10px"><strong>Cronologia:</strong> '+chrono+'</div>'+ 
-        (spec?'<div style="font-size:12px;color:var(--text2);margin-top:4px"><strong>Dia especial:</strong> '+spec+'</div>':'')+
-        '</div>';
-    }
-    list.innerHTML=html;
-  }catch(e){ console.error('loadPendingIncidentsPage',e); list.innerHTML='<div class="empty-state">Error carregant incidències.</div>'; }
-}
-
-
 showPage('splash');
 
 // -- Gestio offline --
@@ -4548,81 +4294,6 @@ function printVacancesPDF(){
   printWin.focus();
   setTimeout(function(){ printWin.print(); printWin.close(); }, 800);
 }
-
-
-
-async function ensurePendingIncidentsWorkerFilter(){
-  var sel=document.getElementById('pending-inc-worker');
-  if(!sel) return;
-  if(!state.allWorkers || !state.allWorkers.length){
-    try{ state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*'); }catch(e){ state.allWorkers=[]; }
-  }
-  var current=sel.value||'';
-  var html='<option value="">Tots els treballadors</option>';
-  (state.allWorkers||[]).forEach(function(w){ html+='<option value="'+w.id+'">'+(w.display_name||w.employee_code)+' · '+(w.employee_code||'')+'</option>'; });
-  sel.innerHTML=html;
-  if(current) sel.value=current;
-}
-
-function incidentTypeLabelFromRow(r, entries, specials){
-  var hasEntries=(entries||[]).length>0;
-  var hasSpecial=(specials||[]).length>0;
-  if(hasEntries && hasSpecial) return 'Fitxades + permís/dia especial';
-  if(!hasEntries && (r.balance_minutes||0)<0) return 'Dia laborable sense fitxatge';
-  if(hasEntries){
-    var types=entries.map(function(e){return e.entry_type;});
-    if(types.indexOf('START')<0) return 'Falta inici de jornada';
-    if(types.indexOf('END')<0) return 'Falta sortida';
-    var ps=types.filter(function(t){return t==='PAUSE_START';}).length;
-    var pe=types.filter(function(t){return t==='PAUSE_END';}).length;
-    if(ps!==pe) return 'Pausa incompleta';
-  }
-  return 'Incidència pendent';
-}
-
-async function loadPendingIncidentsPage(keepFilters){
-  var list=document.getElementById('pending-incidents-list');
-  var yearEl=document.getElementById('pending-inc-year');
-  if(yearEl && !yearEl.value) yearEl.value=String(new Date().getFullYear());
-  await ensurePendingIncidentsWorkerFilter();
-  if(!list) return;
-  list.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
-  var year=parseInt((yearEl||{value:new Date().getFullYear()}).value)||new Date().getFullYear();
-  var workerId=(document.getElementById('pending-inc-worker')||{value:''}).value;
-  var start=year+'-01-01', end=year+'-12-31';
-  try{
-    var q='work_date=gte.'+start+'&work_date=lte.'+end+'&has_incidence=eq.true&order=work_date.desc&select=*,workers(display_name,employee_code)';
-    if(workerId) q='worker_id=eq.'+workerId+'&'+q;
-    var rows=await dbGet('daily_records',q);
-    if(!rows||!rows.length){ list.innerHTML='<div class="empty-state">No hi ha incidències pendents per aquests filtres.</div>'; return; }
-    var html='';
-    for(var i=0;i<rows.length;i++){
-      var r=rows[i];
-      var entries=await dbGet('time_entries','worker_id=eq.'+r.worker_id+'&entry_date=eq.'+r.work_date+'&is_active=eq.true&order=entry_datetime.asc&select=entry_type,entry_datetime,pause_number').catch(function(){return[];});
-      var specials=await dbGet('day_status','worker_id=eq.'+r.worker_id+'&start_date=lte.'+r.work_date+'&end_date=gte.'+r.work_date+'&is_active=eq.true&select=day_type,approval_status').catch(function(){return[];});
-      var name=(r.workers&&(r.workers.display_name||r.workers.employee_code))||(r.worker_id||'');
-      var code=(r.workers&&r.workers.employee_code)||'';
-      var chrono=(entries||[]).map(function(e){return e.entry_type+' '+new Date(e.entry_datetime).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'});}).join(' · ')||'Sense fitxades';
-      var spec=(specials||[]).map(function(s){return (s.day_type||'')+(s.approval_status?' ('+s.approval_status+')':'');}).join(' · ');
-      var typ=incidentTypeLabelFromRow(r,entries,specials);
-      html+='<div class="card" style="margin-bottom:10px">'+
-        '<div class="card-row" style="align-items:flex-start;gap:10px"><div><div style="font-weight:800;font-size:14px">'+formatDateLong(r.work_date)+'</div>'+ 
-        '<div style="font-size:12px;color:var(--text2);margin-top:2px">'+name+(code?' · '+code:'')+'</div></div>'+ 
-        '<span class="tag tag-red">Incidència</span></div>'+ 
-        '<div style="margin-top:10px;font-weight:700;color:var(--warn);font-size:13px">'+typ+'</div>'+ 
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px">'+
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px">'+minsToHM(r.worked_minutes||0)+'</div><div class="stat-lbl">Treballat</div></div>'+ 
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px">'+minsToHM(r.theoretical_minutes||0)+'</div><div class="stat-lbl">Teòric</div></div>'+ 
-        '<div class="stat-box" style="padding:8px"><div class="stat-val" style="font-size:15px;color:'+((r.balance_minutes||0)>=0?'var(--accent)':'var(--warn)')+'">'+((r.balance_minutes||0)>=0?'+':'')+minsToHM(r.balance_minutes||0)+'</div><div class="stat-lbl">Saldo</div></div>'+ 
-        '</div>'+ 
-        '<div style="font-size:12px;color:var(--text2);margin-top:10px"><strong>Cronologia:</strong> '+chrono+'</div>'+ 
-        (spec?'<div style="font-size:12px;color:var(--text2);margin-top:4px"><strong>Dia especial:</strong> '+spec+'</div>':'')+
-        '</div>';
-    }
-    list.innerHTML=html;
-  }catch(e){ console.error('loadPendingIncidentsPage',e); list.innerHTML='<div class="empty-state">Error carregant incidències.</div>'; }
-}
-
 
 showPage('splash');
 
