@@ -8033,6 +8033,8 @@ if(typeof window!=='undefined'){
         throw lastErr||new Error('No s’ha pogut obrir la càmera');
       }
       window.stopQR = function stopQR_V10L(){
+        try{ if(window.__jasl_qr_feedback_timer) clearTimeout(window.__jasl_qr_feedback_timer); }catch(e){}
+        window.__jasl_qr_feedback_timer=null;
         try{ if(window.__jasl_qr_raf) cancelAnimationFrame(window.__jasl_qr_raf); }catch(e){}
         window.__jasl_qr_raf=null;
         try{ if(window.__jasl_qr_timer) clearTimeout(window.__jasl_qr_timer); }catch(e){}
@@ -8045,6 +8047,8 @@ if(typeof window!=='undefined'){
         var token=normalizeQRTokenV9(rawToken);
         try{
           if(!token) throw new Error('QR buit');
+          var hintLogin=document.getElementById('qr-scan-hint');
+          if(hintLogin) hintLogin.textContent='Validant treballador...';
           var worker=null;
           try{
             var res=await rpc('login_by_qr',{p_qr_token:token});
@@ -8086,7 +8090,12 @@ if(typeof window!=='undefined'){
           var track=stream.getVideoTracks&&stream.getVideoTracks()[0];
           var facing='';
           try{ facing=(track.getSettings&&track.getSettings().facingMode)||''; }catch(e){}
-          if(hint) hint.textContent=(facing==='user'?'Càmera frontal activa. ':'')+'Apunta al QR i mantén-lo dins el requadre';
+          if(hint) hint.textContent=(facing==='user'?'Càmera frontal activa. ':'')+'Buscant QR... Mantén-lo dins el requadre';
+          try{ if(window.__jasl_qr_feedback_timer) clearTimeout(window.__jasl_qr_feedback_timer); }catch(_e){}
+          window.__jasl_qr_feedback_timer=setTimeout(function(){
+            var h=document.getElementById('qr-scan-hint');
+            if(window.__jasl_qr_stream && h) h.textContent='Encara no detecto cap QR. Acosta la targeta, evita reflexos i centra el codi.';
+          },7000);
           var hasJsQR=await ensureJsQRV9();
           var detector=null;
           try{ if('BarcodeDetector' in window) detector=new BarcodeDetector({formats:['qr_code']}); }catch(e){}
@@ -8137,7 +8146,8 @@ if(typeof window!=='undefined'){
                   }
                 }
                 if(value){
-                  if(hint) hint.textContent='QR detectat...';
+                  if(hint) hint.textContent='QR detectat. Validant...';
+                  try{ if(window.__jasl_qr_feedback_timer) clearTimeout(window.__jasl_qr_feedback_timer); }catch(_e){}
                   window.stopQR();
                   await window.loginByQR(value);
                   return;
