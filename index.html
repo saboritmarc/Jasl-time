@@ -7774,7 +7774,8 @@ if(typeof window!=='undefined'){
         });
       };
 
-      // 5) Lector QR més robust + acceptació de QR token o codi de treballador.
+      // 5) Lector QR reforçat: càmera frontal per defecte, lectura normal + mirall,
+      //    jsQR amb doble CDN i BarcodeDetector quan existeixi.
       function normalizeQRTokenV9(raw){
         var s=String(raw||'').trim();
         if(!s) return '';
@@ -7792,25 +7793,72 @@ if(typeof window!=='undefined'){
         }catch(e){}
         return String(s||'').trim();
       }
-      async function ensureJsQRV9(){
-        if(window.jsQR) return;
-        await new Promise(function(resolve){
-          var s=document.createElement('script');
-          s.src='https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js';
-          s.onload=resolve; s.onerror=resolve;
-          document.head.appendChild(s);
-        });
+      function barcodeValueV10L(code){
+        if(!code) return '';
+        if(code.rawValue) return String(code.rawValue);
+        if(code.rawData){
+          try{
+            if(typeof code.rawData === 'string') return code.rawData;
+            if(window.TextDecoder) return new TextDecoder().decode(code.rawData);
+          }catch(e){}
+        }
+        return '';
       }
-      window.stopQR = function stopQR_V9(){
+      async function ensureJsQRV9(){
+        if(window.jsQR) return true;
+        var sources=[
+          'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js'
+        ];
+        for(var i=0;i<sources.length;i++){
+          try{
+            await new Promise(function(resolve,reject){
+              var src=sources[i];
+              var existing=[].slice.call(document.querySelectorAll('script')).find(function(x){return (x.src||'').indexOf(src)>=0;});
+              if(existing){
+                if(window.jsQR) return resolve();
+                existing.addEventListener('load',resolve,{once:true});
+                existing.addEventListener('error',reject,{once:true});
+                return;
+              }
+              var s=document.createElement('script');
+              s.src=src;
+              s.onload=resolve;
+              s.onerror=reject;
+              document.head.appendChild(s);
+            });
+            if(window.jsQR) return true;
+          }catch(e){}
+        }
+        return !!window.jsQR;
+      }
+      async function getQRStreamV10L(){
+        var tries=[
+          {video:{facingMode:{exact:'user'},width:{ideal:1920},height:{ideal:1080}},audio:false},
+          {video:{facingMode:{ideal:'user'},width:{ideal:1600},height:{ideal:900}},audio:false},
+          {video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:false},
+          {video:{width:{ideal:1280},height:{ideal:720}},audio:false}
+        ];
+        var lastErr=null;
+        for(var i=0;i<tries.length;i++){
+          try{return await navigator.mediaDevices.getUserMedia(tries[i]);}
+          catch(e){lastErr=e;}
+        }
+        throw lastErr||new Error('No s’ha pogut obrir la càmera');
+      }
+      window.stopQR = function stopQR_V10L(){
         try{ if(window.__jasl_qr_raf) cancelAnimationFrame(window.__jasl_qr_raf); }catch(e){}
         window.__jasl_qr_raf=null;
+        try{ if(window.__jasl_qr_timer) clearTimeout(window.__jasl_qr_timer); }catch(e){}
+        window.__jasl_qr_timer=null;
         try{ if(window.__jasl_qr_stream){window.__jasl_qr_stream.getTracks().forEach(function(t){t.stop();});} }catch(e){}
         window.__jasl_qr_stream=null;
         try{ var v=document.getElementById('qr-video'); if(v){v.pause(); v.srcObject=null;} }catch(e){}
       };
-      window.loginByQR = async function loginByQR_V9(rawToken){
+      window.loginByQR = async function loginByQR_V10L(rawToken){
         var token=normalizeQRTokenV9(rawToken);
         try{
+          if(!token) throw new Error('QR buit');
           var worker=null;
           try{
             var res=await rpc('login_by_qr',{p_qr_token:token});
@@ -7828,55 +7876,82 @@ if(typeof window!=='undefined'){
           if(!worker||!worker.id) throw new Error('QR no reconegut');
           state._loginByQR=true;
           state.worker=worker;
-          afterLogin();
+          await afterLogin();
         }catch(e){
           showToast((e&&e.message)||'QR no reconegut','error');
           showPage('splash');
         }
       };
-      window.startQRScan = async function startQRScan_V9(){
+      window.startQRScan = async function startQRScan_V10L(){
         showPage('qr-scan');
         window.stopQR();
         var hint=document.getElementById('qr-scan-hint');
         var video=document.getElementById('qr-video');
-        if(hint) hint.textContent='Obrint càmera...';
+        if(hint) hint.textContent='Obrint càmera frontal...';
         try{
           if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('Aquest navegador no permet accedir a la càmera');
-          var constraints={video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false};
-          var stream=await navigator.mediaDevices.getUserMedia(constraints);
+          var stream=await getQRStreamV10L();
           window.__jasl_qr_stream=stream;
           video.setAttribute('playsinline','true');
+          video.setAttribute('autoplay','true');
           video.muted=true;
           video.srcObject=stream;
           await video.play();
-          if(hint) hint.textContent='Apunta al QR i mantén-lo dins el requadre';
-          await ensureJsQRV9();
+          var track=stream.getVideoTracks&&stream.getVideoTracks()[0];
+          var facing='';
+          try{ facing=(track.getSettings&&track.getSettings().facingMode)||''; }catch(e){}
+          if(hint) hint.textContent=(facing==='user'?'Càmera frontal activa. ':'')+'Apunta al QR i mantén-lo dins el requadre';
+          var hasJsQR=await ensureJsQRV9();
           var detector=null;
           try{ if('BarcodeDetector' in window) detector=new BarcodeDetector({formats:['qr_code']}); }catch(e){}
+          if(!hasJsQR && !detector){
+            throw new Error('No s’ha pogut carregar el lector QR');
+          }
           var canvas=document.createElement('canvas');
           var ctx=canvas.getContext('2d',{willReadFrequently:true});
+          var mirrorCanvas=document.createElement('canvas');
+          var mirrorCtx=mirrorCanvas.getContext('2d',{willReadFrequently:true});
           var busy=false;
+          var lastScan=0;
+          function decodeCanvas(c, cctx){
+            if(!window.jsQR) return '';
+            try{
+              var img=cctx.getImageData(0,0,c.width,c.height);
+              var qr=window.jsQR(img.data,img.width,img.height,{inversionAttempts:'attemptBoth'});
+              return qr&&qr.data?String(qr.data):'';
+            }catch(e){return '';}
+          }
           async function scan(){
             if(!window.__jasl_qr_stream) return;
-            if(video.readyState>=2 && !busy){
-              busy=true;
+            var now=Date.now();
+            if(video.readyState>=2 && !busy && now-lastScan>120){
+              busy=true; lastScan=now;
               try{
                 var value='';
                 if(detector){
                   try{
                     var codes=await detector.detect(video);
-                    if(codes&&codes.length) value=codes[0].rawValue||codes[0].rawData||'';
+                    if(codes&&codes.length) value=barcodeValueV10L(codes[0]);
                   }catch(e){}
                 }
                 if(!value && window.jsQR && video.videoWidth>0){
-                  canvas.width=video.videoWidth;
-                  canvas.height=video.videoHeight;
-                  ctx.drawImage(video,0,0,canvas.width,canvas.height);
-                  var img=ctx.getImageData(0,0,canvas.width,canvas.height);
-                  var qr=window.jsQR(img.data,img.width,img.height,{inversionAttempts:'attemptBoth'});
-                  if(qr&&qr.data) value=qr.data;
+                  var vw=video.videoWidth, vh=video.videoHeight;
+                  canvas.width=vw; canvas.height=vh;
+                  ctx.drawImage(video,0,0,vw,vh);
+                  value=decodeCanvas(canvas,ctx);
+                  if(!value){
+                    // Algunes càmeres frontals donen una imatge mirall. Provem també el mirall.
+                    mirrorCanvas.width=vw; mirrorCanvas.height=vh;
+                    mirrorCtx.save();
+                    mirrorCtx.translate(vw,0);
+                    mirrorCtx.scale(-1,1);
+                    mirrorCtx.drawImage(video,0,0,vw,vh);
+                    mirrorCtx.restore();
+                    value=decodeCanvas(mirrorCanvas,mirrorCtx);
+                  }
                 }
                 if(value){
+                  if(hint) hint.textContent='QR detectat...';
                   window.stopQR();
                   await window.loginByQR(value);
                   return;
@@ -7887,8 +7962,9 @@ if(typeof window!=='undefined'){
           }
           scan();
         }catch(e){
-          console.error('startQRScan v9',e);
-          if(hint) hint.textContent='No s’ha pogut accedir a la càmera';
+          console.error('startQRScan v10l',e);
+          window.stopQR();
+          if(hint) hint.textContent='No s’ha pogut accedir o llegir la càmera';
           showToast((e&&e.message)||'No s’ha pogut accedir a la càmera','error');
         }
       };
