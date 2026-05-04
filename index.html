@@ -321,6 +321,7 @@ textarea.input{resize:vertical;min-height:80px;}
   <div style="flex:1;overflow-y:auto;padding:20px">
     <div id="admin-perms-alert" style="display:none"></div>
     <div class="admin-grid" id="admin-stats"></div>
+    <button class="btn btn-primary btn-full" style="margin-bottom:18px" onclick="showAdminPage('pending-incidents')">&#9888; Incid&egrave;ncies pendents</button>
     <div class="section-title">Fitxatge r&agrave;pid</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
       <button class="action-btn-big start" onclick="adminClockAction('start')"><span class="action-icon">&#9654;</span>Iniciar</button>
@@ -489,6 +490,33 @@ textarea.input{resize:vertical;min-height:80px;}
   </div>
 </div>
 
+
+<!-- PENDING INCIDENTS -->
+<div id="page-pending-incidents" class="page" style="display:none;flex-direction:column">
+  <div class="topbar">
+    <button class="back-btn" onclick="showPage('admin-home')">&#8592;</button>
+    <div class="topbar-title">Incid&egrave;ncies pendents</div>
+    <button class="btn btn-ghost" style="padding:7px 10px;font-size:12px" onclick="loadPendingIncidentsPage(false)">&#8635;</button>
+  </div>
+  <div class="content" style="flex:1;overflow-y:auto">
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;gap:10px;align-items:end">
+        <div class="input-group" style="flex:2;margin-bottom:0">
+          <label class="input-label">Treballador</label>
+          <select id="pending-incidents-worker" class="input" onchange="loadPendingIncidentsPage(false)">
+            <option value="">Tots els treballadors</option>
+          </select>
+        </div>
+        <div class="input-group" style="flex:1;margin-bottom:0">
+          <label class="input-label">Any</label>
+          <input id="pending-incidents-year" type="number" class="input" min="2024" max="2035" onchange="loadPendingIncidentsPage(false)">
+        </div>
+      </div>
+    </div>
+    <div id="pending-incidents-list"></div>
+  </div>
+</div>
+
 <!-- QR SCAN -->
 <div id="page-qr-scan" class="page" style="align-items:center;justify-content:center;flex-direction:column;gap:20px">
   <div style="text-align:center">
@@ -579,13 +607,101 @@ function showPage(pageId){
     'admin-home':'Admin','day-detail':'Detall',workers:'Treballadors',
     'all-records':'Registres','all-perms':'Permisos globals','all-balances':'Saldos',
     exports:'Exportacions',cards:'Targetes',settings:'Configuraci&#243;',
-    'access-logs':'Accessos','edits-report':'Edicions'};
+    'access-logs':'Accessos','edits-report':'Edicions','pending-incidents':'Incidències'};
   document.title=(t[pageId]||'JASL Time')+' &#183; JASL Time';
 }
 
 function showAdminPage(name){ var pm={workers:'workers','all-records':'all-records','all-perms':'all-perms','all-balances':'all-balances',exports:'exports',cards:'cards',settings:'settings'}; showPage(pm[name]||name); if(name==='workers')loadWorkers(); if(name==='all-records')loadAllRecords(); if(name==='all-perms'){loadAllPerms();loadPendingPermsCount();} if(name==='all-balances')loadAllBalances(); if(name==='exports')loadExportWorkers(); if(name==='cards')loadCardsWorkers(); if(name==='settings'){ loadSettings(); loadComputeSettings(); }
   if(name==='access-logs'){ loadAccessLogs(); }
-  if(name==='edits-report'){ setTimeout(function(){loadEditsReport();},50); } }
+  if(name==='edits-report'){ setTimeout(function(){loadEditsReport();},50); }
+  if(name==='pending-incidents'){ setTimeout(function(){loadPendingIncidentsPage(true);},50); } }
+
+async function loadPendingIncidentsPage(init){
+  var list=document.getElementById('pending-incidents-list');
+  if(!list) return;
+  list.innerHTML='<div class="empty-state"><span class="loader"></span></div>';
+  try{
+    var yearEl=document.getElementById('pending-incidents-year');
+    if(yearEl && (!yearEl.value || init)) yearEl.value=new Date().getFullYear();
+    var year=parseInt(yearEl&&yearEl.value?yearEl.value:new Date().getFullYear())||new Date().getFullYear();
+    var workerSel=document.getElementById('pending-incidents-worker');
+    if(!state.allWorkers||!state.allWorkers.length){
+      state.allWorkers=await dbGet('workers','is_active=eq.true&order=display_name.asc&select=*').catch(function(){return[];});
+    }
+    if(workerSel && init){
+      var current=workerSel.value||'';
+      workerSel.innerHTML='<option value="">Tots els treballadors</option>'+state.allWorkers.map(function(w){return '<option value="'+w.id+'">'+(w.display_name||w.employee_code)+'</option>';}).join('');
+      workerSel.value=current;
+    }
+    var wFilter=workerSel?workerSel.value:'';
+    var start=year+'-01-01', end=year+'-12-31';
+    var q='work_date=gte.'+start+'&work_date=lte.'+end+'&order=work_date.desc&select=*,workers(display_name,employee_code)';
+    if(wFilter) q='worker_id=eq.'+wFilter+'&'+q;
+    var rows=await dbGet('daily_records',q).catch(function(){return[];});
+    var incidents=rows.filter(function(r){
+      var bal=r.balance_minutes||0;
+      var status=String(r.status||'').toUpperCase();
+      var dt=String(r.day_type||'').toUpperCase();
+      var special=['VACANCES','VACATION','FESTIU','HOLIDAY','BAIXA_MEDICA','SICK_LEAVE','SICK_DAY','PERMIS_RETRIBUIT','PAID_LEAVE'].indexOf(dt)>=0;
+      return !!r.has_incidence || (!special && status==='NOT_STARTED' && bal<0);
+    });
+    if(!incidents.length){
+      list.innerHTML='<div class="empty-state">No hi ha incid&egrave;ncies pendents per als filtres seleccionats.</div>';
+      return;
+    }
+    var dates=incidents.map(function(r){return r.work_date;});
+    var minDate=dates.reduce(function(a,b){return a<b?a:b;});
+    var maxDate=dates.reduce(function(a,b){return a>b?a:b;});
+    var workerIds=[];
+    incidents.forEach(function(r){ if(workerIds.indexOf(String(r.worker_id))<0) workerIds.push(String(r.worker_id)); });
+    var entries=[];
+    if(workerIds.length){
+      entries=await dbGet('time_entries','worker_id=in.('+workerIds.join(',')+')&entry_date=gte.'+minDate+'&entry_date=lte.'+maxDate+'&is_active=eq.true&order=entry_datetime.asc&select=*').catch(function(){return[];});
+    }
+    var specials=[];
+    if(workerIds.length){
+      specials=await dbGet('day_status','worker_id=in.('+workerIds.join(',')+')&start_date=lte.'+maxDate+'&end_date=gte.'+minDate+'&is_active=eq.true&select=*').catch(function(){return[];});
+    }
+    function entriesFor(r){return entries.filter(function(e){return String(e.worker_id)===String(r.worker_id)&&e.entry_date===r.work_date;});}
+    function specialsFor(r){return specials.filter(function(s){return String(s.worker_id)===String(r.worker_id)&&r.work_date>=s.start_date&&r.work_date<=s.end_date;});}
+    function typeGuess(r, ents, sp){
+      if(sp.length && ents.length) return 'Fitxades + perm&iacute;s/dia especial';
+      if(!ents.length && (r.balance_minutes||0)<0) return 'Dia laborable sense fitxada';
+      var types=ents.map(function(e){return e.entry_type;});
+      if(types.indexOf('START')<0) return 'Falta inici de jornada';
+      if(types.indexOf('END')<0) return 'Falta sortida';
+      var ps=types.filter(function(t){return t==='PAUSE_START';}).length;
+      var pe=types.filter(function(t){return t==='PAUSE_END';}).length;
+      if(ps!==pe) return 'Pausa oberta o desquadrada';
+      return 'Incid&egrave;ncia marcada';
+    }
+    var html='<div class="card" style="margin-bottom:12px"><strong>'+incidents.length+'</strong> incid&egrave;ncia/es detectades</div>';
+    html+=incidents.map(function(r){
+      var ents=entriesFor(r), sp=specialsFor(r), w=r.workers||{};
+      var chrono=ents.length?ents.map(function(e){
+        var t=new Date(e.entry_datetime).toLocaleTimeString('ca',{hour:'2-digit',minute:'2-digit'});
+        return e.entry_type+' '+t;
+      }).join(' | '):'Sense fitxades actives';
+      var specialTxt=sp.length?sp.map(function(s){return s.day_type+' '+s.start_date+'-'+s.end_date;}).join(' | '):'Cap perm&iacute;s/dia especial';
+      var guess=typeGuess(r,ents,sp);
+      return '<div class="card" style="border-left:4px solid var(--warn)">'+
+        '<div class="card-row"><div><div style="font-weight:800">'+(w.display_name||r.worker_id)+' <span style="color:var(--text2);font-size:12px">'+(w.employee_code||'')+'</span></div><div style="font-size:12px;color:var(--text2);margin-top:2px">'+formatDateLong(r.work_date)+'</div></div><span class="tag tag-red">'+guess+'</span></div>'+        
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px">'+
+          '<div class="stat-box"><div class="stat-val" style="font-size:15px">'+minsToHM(r.worked_minutes||0)+'</div><div class="stat-lbl">Treballat</div></div>'+        
+          '<div class="stat-box"><div class="stat-val" style="font-size:15px">'+minsToHM(r.theoretical_minutes||0)+'</div><div class="stat-lbl">Te&ograve;ric</div></div>'+        
+          '<div class="stat-box"><div class="stat-val" style="font-size:15px;color:'+((r.balance_minutes||0)>=0?'var(--success)':'var(--warn)')+'">'+((r.balance_minutes||0)>=0?'+':'')+minsToHM(r.balance_minutes||0)+'</div><div class="stat-lbl">Saldo</div></div>'+        
+        '</div>'+        
+        '<div style="font-size:12px;color:var(--text2);margin-top:10px"><strong>Cronologia:</strong> '+chrono+'</div>'+        
+        '<div style="font-size:12px;color:var(--text2);margin-top:4px"><strong>Perm&iacute;s/dia especial:</strong> '+specialTxt+'</div>'+        
+      '</div>';
+    }).join('');
+    list.innerHTML=html;
+  }catch(e){
+    console.error('loadPendingIncidentsPage',e);
+    list.innerHTML='<div class="empty-state">Error carregant incid&egrave;ncies</div>';
+  }
+}
+
 
 function switchTab(tab){
   var tabs=['home','history','perms','vacances','balance','profile'];
